@@ -8,7 +8,7 @@ const path = require('path');
 const HTML = path.join(__dirname, '..', 'src', 'index.html');
 
 const NAMES = `KEY DOW MAXGOALS CAD DEFCAD
-pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId esc
+pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId esc cadName TAP
 Store load save seed
 dayTotal adhocMonth adhocAll level subTotal firstDone lastTouch activeDays goalDays goalCount streak
 bump addAdhoc delAdhoc clearSub

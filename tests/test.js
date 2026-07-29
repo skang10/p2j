@@ -846,6 +846,61 @@ t('a backfilled day is named next to the back link', async () => {
   has(g.captured.app, 'id="back"');
 });
 
+// ---------- the editor speaks in plain terms ----------
+t('every editor control carries a label', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.editing = a.state.goals[0].id; a.render();          // the count goal
+  const html = g.captured.app;
+  has(html, '<span>What a tap does</span>');
+  has(html, '<span>Monthly target</span>');
+  has(html, '<span>Say “untouched”</span>');
+  has(html, 'Sub-goals');
+  eq((html.match(/class="frow"/g) || []).length, 3, 'three labelled fields on a count goal');
+});
+t('the type options describe what tapping does, not the internal kind', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.editing = a.state.goals[0].id; a.render();
+  const html = g.captured.app;
+  has(html, 'Marks the day done');
+  has(html, 'Adds one to a monthly total');
+  has(html, 'Crosses it off for good');
+  for (const jargon of ['>Daily<', '>Count<', '>List<'])
+    no(html, jargon, 'no implementation vocabulary in the picker');
+});
+t('cadence options state the actual threshold in days', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.editing = a.state.goals[0].id; a.render();
+  const html = g.captured.app;
+  has(html, 'after 3 days'); has(html, 'after 10 days'); has(html, 'after 35 days'); has(html, '>never<');
+});
+t('cadence labels are derived from CAD, so retuning it retunes the copy', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  eq(a.cadName(a.CAD.weekly), 'after 10 days');
+  eq(a.cadName(a.CAD.free), 'never');
+  eq(a.cadName({ d: 7 }), 'after 7 days', 'a changed threshold changes the label');
+});
+t('"Daily" no longer appears anywhere, so the two pickers cannot be confused', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  for (const id of a.state.goals.map(x => x.id)) {
+    a.editing = id; a.render();
+    no(g.captured.app, 'Daily', 'the type and cadence pickers shared this word');
+  }
+});
+t('a non-count goal drops the monthly-target field and its caption', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.editing = a.state.goals[1].id; a.render();           // the list goal
+  const html = g.captured.app;
+  eq((html.match(/class="frow"/g) || []).length, 2, 'only two fields apply');
+  no(html, 'Monthly target');
+  no(html, 'resets to 0 on the 1st', 'the caption is about the target, so it goes too');
+});
+
 // ---------- the §4.1 invariant ----------
 t('persisted JSON stores only goals, logs and adhoc — no cached totals', async () => {
   const a = await fixture();

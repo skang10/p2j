@@ -291,6 +291,10 @@ entries; recomputing costs nothing. If a change appears to need a cache for perf
 
 ### 4.2 Goal types
 
+The three type names below are **internal only**. The editor never shows them — it asks *what a tap
+does* and answers in the same words as the table's third column, because that is the only difference
+the user experiences.
+
 | type | meaning | tapping a chip does | progress shown |
 |---|---|---|---|
 | `daily` | ongoing habit, no finish line | toggles 0/1 for that day | active days this month |
@@ -311,7 +315,13 @@ summed. This is what gives the cycle an ending. `list` is not month-scoped; it s
 | `monthly` | 35 days | effectively only fires when a whole month is skipped |
 | `free` | never | anything that shouldn't nag |
 
-At 3× the threshold the label darkens. Thresholds live in the `CAD` constant. Changing a goal's
+At 3× the threshold the label darkens. Thresholds live in the `CAD` constant, and the editor labels
+them by rendering the number itself — `after 3 days`, `after 10 days`, `never` — via `cadName()`.
+Retuning `CAD` (§8.3) therefore retunes the copy, with no second place to keep in sync.
+
+Note the trap this replaced: `CAD.daily` and the `daily` goal *type* both used to render as **Daily**,
+in two dropdowns side by side in the same row, meaning entirely different things — "a tap marks the
+day done" versus "nag me after 3 days". Changing a goal's
 `type` resets `cad` to the `DEFCAD` default for that type, and a newly created goal is written with
 an explicit `cad` from the start — an earlier version omitted it, so the dropdown showed `Daily`
 while dormancy fell back to `Weekly`, and the label silently changed on the next launch.
@@ -375,7 +385,10 @@ then the ad-hoc input.
 
 **Editing is per goal, in place.** Each goal carries its own `Edit` control on the right of its
 heading; clicking it swaps that one goal for its editor — title, type, monthly target, cadence,
-sub-goals, delete — while the other goals stay in check-in mode. `editing` holds the id of the goal
+sub-goals, delete — while the other goals stay in check-in mode. The editor is a labelled form: every
+control states what it is (`What a tap does`, `Monthly target`, `Say “untouched”`, `Sub-goals`) and
+every option states what it will do, rather than naming a kind. Fields that do not apply are absent —
+a non-count goal shows no monthly target, and no caption about one. `editing` holds the id of the goal
 being edited, or `null`. There is no global edit mode: a single bottom toggle meant opening every
 goal at once to change one word, and it put the fields far from the goal they belonged to.
 

@@ -106,6 +106,11 @@
   .goal.ed{background:var(--faint);border-radius:var(--r);border-bottom:0;padding:14px 16px;margin:8px 0}
   .goal.ed .cap{padding-top:6px}
   .edfoot{padding-top:2px}
+  .frow{display:flex;align-items:center;gap:12px;padding:5px 0;cursor:pointer}
+  .frow>span{font-size:12.5px;color:var(--muted);width:134px;flex:none}
+  .esep{height:1px;background:var(--line);margin:11px 0 9px}
+  .flab{font-size:12.5px;color:var(--muted);padding:0 0 3px}
+  .fcount{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;opacity:.7}
   .done{font-weight:600;color:var(--accent)}
   .goal h3{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.005em}
   .goal h3 .cold{font-weight:400;font-size:12px;color:var(--dust);margin-left:9px}
@@ -289,7 +294,8 @@ const MON=['January','February','March','April','May','June',
            'July','August','September','October','November','December'];
 const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // Dormancy follows the expected cadence, not the nature of the task
-const CAD={daily:{n:'Daily',d:3},weekly:{n:'Weekly',d:10},monthly:{n:'Monthly',d:35},free:{n:'Never',d:0}};
+const CAD={daily:{d:3},weekly:{d:10},monthly:{d:35},free:{d:0}};
+const cadName=c=>c.d?`after ${c.d} days`:'never';
 const DEFCAD={count:'daily',list:'monthly',daily:'weekly'};
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, dataPath='', saveErr=false, refocus=false;
@@ -600,18 +606,26 @@ function goalBlock(g,k,F){
 
 // One goal's editor, rendered where that goal sits. The caption explains only
 // the fields actually on screen.
+// The type of a goal decides what tapping a chip does, so the options say exactly
+// that rather than naming the underlying kind. Every field carries its own label.
+const TAP={daily:'Marks the day done',count:'Adds one to a monthly total',list:'Crosses it off for good'};
 function goalEditor(g){
-  const T={daily:'Daily',count:'Count',list:'List'};
+  const field=(lb,ctrl)=>`<label class="frow"><span>${lb}</span>${ctrl}</label>`;
   return `<div class="goal ed">
     <div class="erow lv1">
       <input type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
-      <select data-gy="${g.id}">${Object.entries(T).map(([v,n])=>
-        `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>
-      ${g.type==='count'?`<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}" title="Monthly target">`:''}
-      <select data-gc="${g.id}" title="How often">${Object.entries(CAD).map(([v,c])=>
-        `<option value="${v}"${g.cad===v?' selected':''}>${c.n}</option>`).join('')}</select>
       <button class="x" data-dg="${g.id}" title="Delete this goal">×</button>
     </div>
+    ${field('What a tap does',
+      `<select data-gy="${g.id}">${Object.entries(TAP).map(([v,n])=>
+        `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>`)}
+    ${g.type==='count'?field('Monthly target',
+      `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`):''}
+    ${field('Say “untouched”',
+      `<select data-gc="${g.id}">${Object.entries(CAD).map(([v,c])=>
+        `<option value="${v}"${g.cad===v?' selected':''}>${cadName(c)}</option>`).join('')}</select>`)}
+    <div class="esep"></div>
+    <p class="flab">Sub-goals${g.subs.length?` <span class="fcount">${g.subs.length}</span>`:''}</p>
     ${g.subs.map(s=>`<div class="erow sub">
       <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
       <button class="x" data-ds="${s.id}" title="Delete">×</button></div>`).join('')}
@@ -620,10 +634,7 @@ function goalEditor(g){
       <span class="grow"></span>
       <button class="lnk done" data-edit="">Done</button>
     </div>
-    <p class="cap">${g.type==='count'
-      ? 'The number is a <strong>monthly</strong> target; it resets to 0 on the 1st. ' : ''
-    }Cadence sets how long before this reads “untouched”: daily 3 days, weekly 10, monthly 35,
-      never stays quiet.</p>
+    ${g.type==='count'?'<p class="cap">The target resets to 0 on the 1st of each month.</p>':''}
   </div>`;
 }
 
