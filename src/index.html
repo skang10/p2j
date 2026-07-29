@@ -101,6 +101,12 @@
   .goal{padding:18px 0;border-bottom:1px solid var(--hair)}
   .goal:last-of-type{border-bottom:0}
   .ghead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .gright{display:flex;align-items:baseline;gap:14px;flex:none}
+  .gedit{font-size:12.5px}
+  .goal.ed{background:var(--faint);border-radius:var(--r);border-bottom:0;padding:14px 16px;margin:8px 0}
+  .goal.ed .cap{padding-top:6px}
+  .edfoot{padding-top:2px}
+  .done{font-weight:600;color:var(--accent)}
   .goal h3{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.005em}
   .goal h3 .cold{font-weight:400;font-size:12px;color:var(--dust);margin-left:9px}
   .goal h3 .cold.deep{color:var(--alert)}
@@ -212,7 +218,6 @@
   .linkbtn{font:inherit;font-size:12.5px;color:var(--muted);background:0;border:0;
     cursor:pointer;padding:0;transition:color .12s}
   .linkbtn:hover{color:var(--ink)}
-  .edit{border-top:1px solid var(--line);margin-top:16px;padding-top:10px}
   .erow{display:flex;align-items:center;gap:7px;padding:6px 0}
   .erow.sub{padding-left:18px}
   input[type=text]{font:inherit;font-size:14px;border:0;border-bottom:1px solid transparent;background:0;
@@ -287,7 +292,7 @@ const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','D
 const CAD={daily:{n:'Daily',d:3},weekly:{n:'Weekly',d:10},monthly:{n:'Monthly',d:35},free:{n:'Never',d:0}};
 const DEFCAD={count:'daily',list:'monthly',daily:'weekly'};
 let state={goals:[],logs:{}};
-let view=null, sel=null, panel='day', editing=false, dataPath='', saveErr=false, refocus=false;
+let view=null, sel=null, panel='day', editing=null, dataPath='', saveErr=false, refocus=false;
 
 /* ---------- helpers ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -461,8 +466,9 @@ function render(){
     </div>
 
     <div class="foot">
-      <button class="linkbtn" id="ed">${editing?'Done':'Edit goals'}</button>
-      ${editing?editor():''}
+      ${state.goals.length<MAXGOALS
+        ? '<button class="add addgoal" id="ag">+ goal</button>'
+        : `<p class="cap">You already have ${MAXGOALS} goals. Delete one to add another.</p>`}
       <p class="store">${saveErr
         ? '<span class="bad">Write failed. Changes were not saved.</span>'
         : (dataPath?esc(dataPath):'')}</p>
@@ -541,7 +547,12 @@ function adhocBlock(k){
 }
 
 function goalBlock(g,k,F){
-  if(!g.subs.length) return '';
+  if(editing===g.id) return goalEditor(g);
+  const ed=`<button class="lnk gedit" data-edit="${g.id}">Edit</button>`;
+  // a goal with no sub-goals still needs a way in, or it becomes unreachable
+  if(!g.subs.length) return `<div class="goal">
+    <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${ed}</div></div>
+    <p class="hint" style="margin-top:9px">No sub-goals yet. Edit to add one.</p></div>`;
   const {y,m}=view, day=state.logs[k]||{};
   let right='',prog='',pace='',chips='',done='';
 
@@ -583,8 +594,37 @@ function goalBlock(g,k,F){
   }
 
   return `<div class="goal">
-    <div class="ghead"><h3>${esc(g.title)}${cold}</h3>${right}</div>
+    <div class="ghead"><h3>${esc(g.title)}${cold}</h3><div class="gright">${right}${ed}</div></div>
     ${prog}${pace}<div class="chips">${chips}</div>${done}</div>`;
+}
+
+// One goal's editor, rendered where that goal sits. The caption explains only
+// the fields actually on screen.
+function goalEditor(g){
+  const T={daily:'Daily',count:'Count',list:'List'};
+  return `<div class="goal ed">
+    <div class="erow lv1">
+      <input type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
+      <select data-gy="${g.id}">${Object.entries(T).map(([v,n])=>
+        `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>
+      ${g.type==='count'?`<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}" title="Monthly target">`:''}
+      <select data-gc="${g.id}" title="How often">${Object.entries(CAD).map(([v,c])=>
+        `<option value="${v}"${g.cad===v?' selected':''}>${c.n}</option>`).join('')}</select>
+      <button class="x" data-dg="${g.id}" title="Delete this goal">×</button>
+    </div>
+    ${g.subs.map(s=>`<div class="erow sub">
+      <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
+      <button class="x" data-ds="${s.id}" title="Delete">×</button></div>`).join('')}
+    <div class="erow edfoot">
+      <button class="add" data-as="${g.id}">+ sub-goal</button>
+      <span class="grow"></span>
+      <button class="lnk done" data-edit="">Done</button>
+    </div>
+    <p class="cap">${g.type==='count'
+      ? 'The number is a <strong>monthly</strong> target; it resets to 0 on the 1st. ' : ''
+    }Cadence sets how long before this reads “untouched”: daily 3 days, weekly 10, monthly 35,
+      never stays quiet.</p>
+  </div>`;
 }
 
 // The projection track is the app's thesis made visible: the dark segment is what
@@ -734,32 +774,6 @@ function statsPanel(){
       :'<p class="hint">Finished list items, and count goals that hit their monthly target, show up here.</p>'}</div>`;
 }
 
-function editor(){
-  const T={daily:'Daily',count:'Count',list:'List'};
-  return `<div class="edit">
-    ${state.goals.map(g=>`
-      <div class="erow lv1">
-        <input type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
-        <select data-gy="${g.id}">${Object.entries(T).map(([v,n])=>
-          `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>
-        ${g.type==='count'?`<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}" title="Monthly target">`:''}
-        <select data-gc="${g.id}" title="How often">${Object.entries(CAD).map(([v,c])=>
-          `<option value="${v}"${g.cad===v?' selected':''}>${c.n}</option>`).join('')}</select>
-        <button class="x" data-dg="${g.id}" title="Delete">×</button>
-      </div>
-      ${g.subs.map(s=>`<div class="erow sub">
-        <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
-        <button class="x" data-ds="${s.id}" title="Delete">×</button></div>`).join('')}
-      <button class="add" data-as="${g.id}">+ sub-goal</button>`).join('')}
-    ${state.goals.length<MAXGOALS
-      ? '<button class="add addgoal" id="ag">+ goal</button>'
-      : `<p class="cap">You already have ${MAXGOALS} goals. Delete one to add another.</p>`}
-    <p class="cap">A count goal's number is a <strong>monthly</strong> target; it resets to 0 on the 1st.<br>
-      The cadence on the right sets how long before a goal reads “untouched”: daily 3 days,
-      weekly 10, monthly 35, never means it stays quiet.</p>
-  </div>`;
-}
-
 /* ---------- events ---------- */
 const on=(q,f)=>document.querySelectorAll(q).forEach(f);
 function bind(){
@@ -792,11 +806,14 @@ function bind(){
     view={y,m}; const nn=today();
     panel=(y===nn.getFullYear()&&m===nn.getMonth())?'day':'review';
     sel=panel==='day'?todayKey():null; render(); });
-  document.getElementById('ed').onclick=()=>{editing=!editing;render();};
+  on('[data-edit]',b=>b.onclick=()=>{ editing=b.dataset.edit||null; render(); });
 
   const ag=document.getElementById('ag');
   if(ag) ag.onclick=()=>{ if(state.goals.length>=MAXGOALS)return;
-    state.goals.push({id:newId(),type:'daily',title:'New goal',subs:[{id:newId(),title:'New sub-goal'}]});save();render();};
+    const id=newId();
+    state.goals.push({id,type:'daily',cad:DEFCAD.daily,title:'New goal',
+                      subs:[{id:newId(),title:'New sub-goal'}]});
+    editing=id; panel='day'; save(); render();};
   on('[data-as]',b=>b.onclick=()=>{
     state.goals.find(g=>g.id===b.dataset.as).subs.push({id:newId(),title:'New sub-goal'});save();render();});
   on('[data-gt]',i=>i.oninput=()=>{state.goals.find(g=>g.id===i.dataset.gt).title=i.value;save();});
@@ -809,7 +826,8 @@ function bind(){
     state.goals.find(g=>g.id===i.dataset.gn).target=Math.max(1,+i.value||1); save();});
   on('[data-st]',i=>i.oninput=()=>{
     for(const g of state.goals){const s=g.subs.find(s=>s.id===i.dataset.st);if(s){s.title=i.value;break;}}save();});
-  on('[data-dg]',b=>b.onclick=()=>{state.goals=state.goals.filter(g=>g.id!==b.dataset.dg);save();render();});
+  on('[data-dg]',b=>b.onclick=()=>{state.goals=state.goals.filter(g=>g.id!==b.dataset.dg);
+    if(editing===b.dataset.dg) editing=null; save();render();});
   on('[data-ds]',b=>b.onclick=()=>{state.goals.forEach(g=>g.subs=g.subs.filter(s=>s.id!==b.dataset.ds));save();render();});
 }
 

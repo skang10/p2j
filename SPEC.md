@@ -312,7 +312,9 @@ summed. This is what gives the cycle an ending. `list` is not month-scoped; it s
 | `free` | never | anything that shouldn't nag |
 
 At 3× the threshold the label darkens. Thresholds live in the `CAD` constant. Changing a goal's
-`type` resets `cad` to the `DEFCAD` default for that type.
+`type` resets `cad` to the `DEFCAD` default for that type, and a newly created goal is written with
+an explicit `cad` from the start — an earlier version omitted it, so the dropdown showed `Daily`
+while dormancy fell back to `Weekly`, and the label silently changed on the next launch.
 
 The reasoning, so it isn't "simplified" back later: the first design split tasks into repeatable vs
 one-off, but "update the resume" is both repeatable and not something to be nagged about daily. The real
@@ -370,6 +372,23 @@ months, then the counts: days in a row, active days this month, total check-ins.
 
 *Right pane*: the goals, each with its chips and — depending on type — pips or a projection track,
 then the ad-hoc input.
+
+**Editing is per goal, in place.** Each goal carries its own `Edit` control on the right of its
+heading; clicking it swaps that one goal for its editor — title, type, monthly target, cadence,
+sub-goals, delete — while the other goals stay in check-in mode. `editing` holds the id of the goal
+being edited, or `null`. There is no global edit mode: a single bottom toggle meant opening every
+goal at once to change one word, and it put the fields far from the goal they belonged to.
+
+Two rules that keep this from trapping you:
+
+- **A goal with no sub-goals still renders**, as a heading plus its `Edit` control. It shows no chips
+  because there is nothing to tap, but it must never disappear — the only way back to a goal is
+  through the goal.
+- **Deleting the goal you are editing clears `editing`**, so the pane cannot be left pointing at
+  something that no longer exists.
+
+`+ goal` lives in the footer, below the goals, and opens the new goal's editor immediately. Above
+`MAXGOALS` it is replaced by the cap notice.
 
 **Pace** (count goals only) is the app's thesis made visible, and is drawn twice — once as a
 projection track, once in words:

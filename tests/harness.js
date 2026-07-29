@@ -13,7 +13,7 @@ Store load save seed
 dayTotal adhocMonth adhocAll level subTotal firstDone lastTouch activeDays goalDays goalCount streak
 bump addAdhoc delAdhoc clearSub
 render calendar yearStrip dayPanel adhocBlock goalBlock paceLine pips tick
-reviewPanel achievements cols statsPanel editor bind shift`.split(/\s+/).filter(Boolean);
+reviewPanel achievements cols statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
 
 const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'dataPath', 'saveErr', 'refocus'];
 

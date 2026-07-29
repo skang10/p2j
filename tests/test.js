@@ -331,19 +331,51 @@ t('stats month bars are clickable and carry a jump target', async () => {
   g.api.panel = 'stats'; g.api.render();
   eq((g.captured.app.match(/data-jm="/g) || []).length, 12, '12 month bars');
 });
-t('editor renders inputs, a cadence select per goal, and the goal cap notice', async () => {
+t('every goal offers its own Edit control', async () => {
   const g = await bootReady();
-  g.api.editing = true; g.api.render();
+  g.api.render();
   const html = g.captured.app;
-  has(html, 'data-gt='); has(html, 'data-gc='); has(html, 'data-gn=');
-  has(html, 'You already have 3 goals', 'MAXGOALS cap message at 3 goals');
-  no(html, 'id="ag"', 'add-goal button hidden at the cap');
+  eq((html.match(/class="lnk gedit"/g) || []).length, g.api.state.goals.length,
+     'one Edit per goal, none for ad-hoc');
 });
-t('editor shows the add-goal button below the cap', async () => {
+t('editing one goal opens its editor in place and leaves the others alone', async () => {
   const g = await bootReady();
-  g.api.state.goals.pop();
-  g.api.editing = true; g.api.render();
-  has(g.captured.app, 'id="ag"');
+  const a = g.api;
+  const target = a.state.goals[0];
+  a.editing = target.id; a.render();
+  const html = g.captured.app;
+  eq((html.match(/class="goal ed"/g) || []).length, 1, 'exactly one goal is in edit mode');
+  has(html, `data-gt="${target.id}"`, 'its title is editable');
+  has(html, `data-gy="${target.id}"`); has(html, `data-gc="${target.id}"`);
+  has(html, `data-gn="${target.id}"`, 'count goal exposes its monthly target');
+  has(html, `data-dg="${target.id}"`, 'and can be deleted');
+  // the untouched goals still render as normal check-in blocks
+  has(html, `data-add=`); has(html, 'class="chips"');
+  no(html, `data-gt="${a.state.goals[1].id}"`, 'the other goals are not in edit mode');
+});
+t('a non-count goal is not offered a monthly target field', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.editing = a.state.goals[2].id;          // the daily goal
+  a.render();
+  no(g.captured.app, 'data-gn=', 'only count goals have a target');
+});
+t('the editor closes back to the check-in view', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.editing = a.state.goals[0].id; a.render();
+  has(g.captured.app, 'data-edit=""', 'Done clears the edit target');
+  a.editing = null; a.render();
+  no(g.captured.app, 'class="goal ed"');
+});
+t('the add-goal button respects MAXGOALS', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.render();
+  has(g.captured.app, 'You already have 3 goals', 'cap message at 3 goals');
+  no(g.captured.app, 'id="ag"', 'add-goal hidden at the cap');
+  a.state.goals.pop(); a.render();
+  has(g.captured.app, 'id="ag"', 'and back below the cap');
 });
 t('future days are inert and past days are clickable', async () => {
   const g = await bootReady();
@@ -382,12 +414,15 @@ t('ad-hoc text is escaped', async () => {
   no(g.captured.app, '<b>bold</b>');
   has(g.captured.app, '&lt;b&gt;bold&lt;/b&gt;');
 });
-t('a goal with no subs renders nothing rather than crashing', async () => {
+t('a goal with no subs stays reachable instead of vanishing', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state.goals[0].subs = [];
   a.panel = 'day'; a.render();
-  no(g.captured.app, 'Problems');
+  const html = g.captured.app;
+  has(html, 'Problems', 'it must not disappear, or it can never be edited again');
+  has(html, `data-edit="${a.state.goals[0].id}"`, 'and it still offers a way in');
+  has(html, 'No sub-goals yet');
 });
 t('render survives a completely empty state', async () => {
   const g = await bootReady();
@@ -484,27 +519,24 @@ t('daily goal chips toggle rather than accumulate', async () => {
   has(html, 'data-tog='); no(html, 'data-add='); no(html, 'data-minus=');
 });
 
-// KNOWN BUG: the "+ goal" handler builds a goal without a `cad` field. Until the
-// next load() normalizes it, the editor dropdown shows Daily (no option matches
-// undefined, so the browser selects the first) while the dormancy code falls back
-// to CAD.weekly. Restarting the app silently changes the displayed cadence.
-t('a newly added goal is persisted without a cadence field', async () => {
+// Regression: the "+ goal" handler used to omit `cad`, so the dropdown showed Daily
+// while dormancy fell back to Weekly, and a restart silently swapped the label.
+t('a newly added goal carries an explicit cadence', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state.goals.pop();
-  a.editing = true; a.render();
   const before = a.state.goals.length;
   // mirror what the #ag click handler does
-  a.state.goals.push({ id: a.newId(), type: 'daily', title: 'New goal',
+  const id = a.newId();
+  a.state.goals.push({ id, type: 'daily', cad: a.DEFCAD.daily, title: 'New goal',
                        subs: [{ id: a.newId(), title: 'New sub-goal' }] });
   const fresh = a.state.goals[a.state.goals.length - 1];
   eq(a.state.goals.length, before + 1);
-  eq('cad' in fresh, false, 'cad is absent — this is the bug');
-  eq((a.CAD[fresh.cad] || a.CAD.weekly).d, 10, 'dormancy silently behaves as Weekly');
-  a.render();
-  has(g.captured.app, 'data-gc=', 'but a cadence dropdown is still rendered for it');
-  // after a reload, load() normalizes it to DEFCAD.daily
-  eq(a.DEFCAD[fresh.type], 'weekly', 'so the dropdown would jump Daily -> Weekly on restart');
+  eq('cad' in fresh, true, 'cad is written up front');
+  eq(fresh.cad, 'weekly', 'matching DEFCAD for a daily goal');
+  eq(a.CAD[fresh.cad].d, 10, 'so dormancy and the dropdown agree immediately');
+  // and load() would not change it on the next launch
+  eq(a.DEFCAD[fresh.type], fresh.cad, 'stable across a restart');
 });
 
 // ---------- pluralisation (English translation introduced these) ----------
