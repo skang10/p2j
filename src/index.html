@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check-in</title>
+<style>
+  :root{
+    /* surfaces — cool neutral, no paper tint */
+    --canvas:#F6F7F9; --surface:#FFFFFF;
+    --ink:#0F1419; --body:#39404A; --muted:#6E7681;
+    --faint:#F1F3F6; --line:#E4E7EC; --hair:#EFF1F4;
+    /* activity ramp — five steps of pine green */
+    --c0:#EDF0F3; --c1:#CCE8DA; --c2:#93D3B4; --c3:#4EAE83; --c4:#1E7A57;
+    --accent:#1E7A57; --soft:#EAF6F0; --edge:#B6DFC9; --wash:#DCEFE5;
+    /* dormancy + warnings */
+    --dust:#98A0AB; --alert:#A9703A; --danger:#B4483F; --ghost:#C3C9D2;
+    --r:8px; --rs:6px; --gap:6px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--canvas);
+    color:var(--body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+  .sheet{max-width:620px;margin:0 auto;min-height:100%;background:var(--surface);
+    border-left:1px solid var(--line);border-right:1px solid var(--line);padding:26px 30px 48px}
+  .mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+  button{font-family:inherit}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+  /* top bar */
+  .top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px}
+  .top h1{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:2px;margin-bottom:12px}
+  .nav .m{font-size:13px;min-width:124px;text-align:center;color:var(--ink);font-weight:500;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .nav button{font-size:15px;line-height:1;color:var(--muted);background:0;border:0;cursor:pointer;
+    width:26px;height:26px;border-radius:var(--rs);transition:background .12s,color .12s}
+  .nav button:hover:not(:disabled){color:var(--ink);background:var(--faint)}
+  .nav button:disabled{opacity:.25;cursor:default}
+
+  /* month calendar */
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--gap);margin-bottom:6px}
+  .dow i{font-style:normal;font-size:11px;font-weight:500;color:var(--muted);text-align:center}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--gap)}
+  .d{height:42px;background:var(--c0);border:0;border-radius:var(--r);cursor:pointer;position:relative;
+    display:grid;place-items:center;transition:background .15s ease,box-shadow .12s ease}
+  /* consecutive days read as one continuous bar */
+  .d.cL{border-top-left-radius:0;border-bottom-left-radius:0}
+  .d.cR{border-top-right-radius:0;border-bottom-right-radius:0}
+  .d.cL::before{content:"";position:absolute;left:calc(var(--gap)*-1);top:0;bottom:0;
+    width:var(--gap);background-color:inherit}
+  .d .num{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .d[data-l="1"]{background:var(--c1)} .d[data-l="2"]{background:var(--c2)}
+  .d[data-l="3"]{background:var(--c3)} .d[data-l="4"]{background:var(--c4)}
+  .d[data-l="1"] .num{color:var(--accent)}
+  .d[data-l="2"] .num,.d[data-l="3"] .num,.d[data-l="4"] .num{color:var(--surface)}
+  .d.pad{background:transparent;cursor:default}
+  .d.future{background:transparent;box-shadow:inset 0 0 0 1px var(--hair);cursor:default}
+  .d.future .num{color:var(--ghost)}
+  .d.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .d.sel{box-shadow:inset 0 0 0 2px var(--ink)}
+  .d:not(.pad):not(.future):hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
+
+  /* year strip */
+  .year{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:10px 0 0}
+  .ym{height:20px;background:var(--c0);border:0;border-radius:var(--rs);cursor:pointer;
+    font-size:10px;color:var(--muted);display:flex;align-items:center;justify-content:center;
+    line-height:1;font-family:ui-monospace,Menlo,monospace;transition:box-shadow .12s}
+  .ym[data-l="1"]{background:var(--c1)} .ym[data-l="2"]{background:var(--c2)}
+  .ym[data-l="3"]{background:var(--c3)} .ym[data-l="4"]{background:var(--c4)}
+  .ym[data-l="2"],.ym[data-l="3"],.ym[data-l="4"]{color:var(--surface)}
+  .ym.cur{box-shadow:inset 0 0 0 1.5px var(--ink)}
+  .ym:hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
+
+  .tally{display:flex;flex-wrap:wrap;gap:6px 22px;padding:18px 0 20px;
+    border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);align-items:baseline}
+  .tally b{font-weight:600;color:var(--ink);font-size:19px;letter-spacing:-.02em}
+
+  /* panel head — three peer views on a rail, current one marked */
+  .phead{display:flex;align-items:baseline;gap:12px;margin:24px 0 16px;
+    border-bottom:1px solid var(--line)}
+  .tabs{display:flex;align-items:baseline;gap:22px}
+  .tab{font:inherit;font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--muted);
+    background:0;border:0;padding:0 0 9px;cursor:pointer;position:relative;transition:color .12s}
+  .tab:hover{color:var(--body)}
+  .tab.on{color:var(--ink)}
+  .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;
+    background:var(--ink);border-radius:1px}
+  .ctx{font-size:12.5px;color:var(--muted);white-space:nowrap;padding-bottom:9px}
+  .rcap{font-size:12.5px;color:var(--muted);margin:-4px 0 10px}
+  .lnk{font-size:12.5px;color:var(--muted);cursor:pointer;border:0;background:0;padding:0;
+    transition:color .12s}
+  .lnk:hover{color:var(--ink)}
+  .lnk.q{color:var(--muted)}
+
+  /* goal block */
+  .goal{padding:18px 0;border-bottom:1px solid var(--hair)}
+  .goal:last-of-type{border-bottom:0}
+  .ghead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .goal h3{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.005em}
+  .goal h3 .cold{font-weight:400;font-size:12px;color:var(--dust);margin-left:9px}
+  .goal h3 .cold.deep{color:var(--alert)}
+  .prog{font-size:12px;color:var(--muted);flex:none}
+  .prog b{color:var(--ink);font-weight:600;font-size:13.5px}
+  .prog .hit{color:var(--accent);font-weight:600}
+
+  /* pace: the projection track — dark = done, light = where this rate lands you */
+  .pace{margin:11px 0 0}
+  .ptrack{position:relative;height:5px;background:var(--c0);border-radius:3px;overflow:hidden}
+  .ptrack i{position:absolute;top:0;bottom:0;display:block;transition:width .25s ease,left .25s ease}
+  .ptrack .done{left:0;background:var(--c4);border-radius:3px}
+  .ptrack .proj{background:var(--c2)}
+  .pline{font-size:12px;color:var(--muted);margin:7px 0 0}
+  .pline .em{color:var(--ink);font-weight:500}
+  .pline .warn{color:var(--alert)}
+  .pline .rate{color:var(--ink);font-weight:600;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+  .pips{display:flex;flex-wrap:wrap;gap:4px;margin:11px 0 0}
+  .pip{width:10px;height:10px;background:var(--c0);border-radius:3px}
+  .pip.f{background:var(--c4)}
+  .bar{height:5px;background:var(--c0);border-radius:3px;margin:11px 0 0;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--c4);border-radius:3px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+  .chip{font:inherit;font-size:13.5px;line-height:1.4;padding:8px 13px;border:1px solid var(--line);
+    background:var(--surface);color:var(--body);border-radius:var(--r);cursor:pointer;
+    transition:border-color .12s,background .12s,color .12s;
+    display:inline-flex;align-items:center;gap:7px}
+  .chip:hover{border-color:var(--muted);color:var(--ink)}
+  .chip .tick{width:10px;height:10px;opacity:0;transition:opacity .12s;flex:none}
+  .chip.on{background:var(--soft);border-color:var(--edge);color:var(--accent);font-weight:500}
+  .chip.on:hover{border-color:var(--c3)}
+  .chip.on .tick{opacity:1}
+  .chip .n{font-size:12px;opacity:.8;font-variant-numeric:tabular-nums;
+    font-family:ui-monospace,Menlo,monospace}
+  .grp{display:inline-flex}
+  .grp .chip{border-radius:var(--r) 0 0 var(--r)}
+  .minus{font-size:14px;line-height:1;padding:8px 11px;border:1px solid var(--edge);border-left:0;
+    background:var(--soft);color:var(--accent);cursor:pointer;border-radius:0 var(--r) var(--r) 0;
+    transition:background .12s}
+  .minus:hover{background:var(--wash)}
+
+  .doneline{margin-top:12px;font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;
+    gap:5px 12px;align-items:baseline}
+  .doneline .lb{font-size:12px;color:var(--dust)}
+  .undone{font:inherit;font-size:12.5px;background:0;border:0;padding:0;cursor:pointer;color:var(--muted);
+    text-decoration:line-through;text-decoration-color:var(--ghost);transition:color .12s}
+  .undone:hover{color:var(--ink)}
+  .undone em{font-style:normal;opacity:.6;font-variant-numeric:tabular-nums;margin-left:4px;
+    font-family:ui-monospace,Menlo,monospace}
+  .hint{font-size:13px;color:var(--muted)}
+
+  /* month review */
+  .rev{padding:8px 0 0}
+  .rrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+    padding:11px 0;border-bottom:1px solid var(--hair);font-size:14px;color:var(--ink)}
+  .rrow .rv{font-size:12.5px;color:var(--muted);flex:none}
+  .rrow .rv b{color:var(--ink);font-weight:600;font-family:ui-monospace,Menlo,monospace;
+    font-variant-numeric:tabular-nums}
+  .rrow.idle{color:var(--dust)}
+  .rnote{margin-top:18px;font-size:12.5px;color:var(--muted);line-height:1.7}
+
+  /* ad-hoc tasks */
+  .goal.tmp{border-bottom:0;padding-top:18px}
+  .tlist{display:flex;flex-direction:column;margin:4px 0 6px}
+  .trow{display:flex;align-items:baseline;gap:9px;padding:5px 0;font-size:14px;color:var(--ink)}
+  .trow .td{color:var(--ghost);flex:none}
+  .trow .tt{flex:1}
+  .trow .x{opacity:0;transition:opacity .12s}
+  .trow:hover .x,.trow .x:focus-visible{opacity:1}
+  .tin{width:100%;font-size:14px;border:1px solid var(--line)!important;border-radius:var(--r);
+    padding:9px 12px;margin-top:6px;background:var(--surface)}
+  .tin::placeholder{color:var(--ghost)}
+  .tin:focus{outline:0;border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--soft)}
+
+  /* stats */
+  .grow{flex:1}
+  .since{font-size:12.5px;color:var(--muted);padding:4px 0 2px}
+  .sh{font-size:13px;font-weight:600;color:var(--ink);letter-spacing:-.005em;
+    margin:28px 0 12px;padding-bottom:9px;border-bottom:1px solid var(--hair)}
+  .cols{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:5px;align-items:end}
+  .col{display:flex;flex-direction:column;gap:6px;background:0;border:0;padding:0;cursor:pointer}
+  .col:disabled{cursor:default}
+  .box{display:flex;align-items:flex-end;background:var(--faint);border-radius:var(--rs);overflow:hidden}
+  .fill{width:100%;background:var(--c3);border-radius:var(--rs) var(--rs) 0 0;transition:height .2s ease}
+  .col:not(:disabled):hover .fill{background:var(--c4)}
+  .col i{font-style:normal;font-size:10px;color:var(--muted);text-align:center;
+    font-family:ui-monospace,Menlo,monospace}
+  .share{display:flex;flex-direction:column;gap:9px}
+  .shrow{display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--ink)}
+  .shrow .lb{width:96px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shrow .track{flex:1;height:9px;background:var(--faint);border-radius:5px;overflow:hidden}
+  .shrow .track i{display:block;height:100%;background:var(--c3);border-radius:5px}
+  .shrow .v{font-size:12px;color:var(--muted);width:36px;text-align:right;flex:none;
+    font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .ach{display:flex;flex-direction:column}
+  .arow{display:flex;align-items:baseline;gap:12px;padding:9px 0;
+    border-bottom:1px solid var(--hair);font-size:13.5px;color:var(--ink)}
+  .arow .ad{font-size:11.5px;color:var(--muted);width:40px;flex:none;
+    font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .arow .at{flex:1}
+  .arow .ag{font-size:11.5px;color:var(--dust);flex:none}
+  .arow.hit .at{color:var(--accent);font-weight:600}
+
+  /* editor */
+  .foot{padding-top:28px}
+  .linkbtn{font:inherit;font-size:12.5px;color:var(--muted);background:0;border:0;
+    cursor:pointer;padding:0;transition:color .12s}
+  .linkbtn:hover{color:var(--ink)}
+  .edit{border-top:1px solid var(--line);margin-top:16px;padding-top:10px}
+  .erow{display:flex;align-items:center;gap:7px;padding:6px 0}
+  .erow.sub{padding-left:18px}
+  input[type=text]{font:inherit;font-size:14px;border:0;border-bottom:1px solid transparent;background:0;
+    padding:4px 0;flex:1;min-width:0;color:var(--ink);border-radius:0}
+  input[type=text]:hover{border-bottom-color:var(--line)}
+  input[type=text]:focus{outline:0;border-bottom-color:var(--accent)}
+  .erow.lv1 input[type=text]{font-weight:600}
+  select,input[type=number]{font:inherit;font-size:12px;color:var(--muted);
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--rs);padding:5px 6px;flex:none;
+    transition:border-color .12s,color .12s}
+  input[type=number]{width:56px;text-align:center;font-variant-numeric:tabular-nums}
+  select:focus,input:focus{outline:0;border-color:var(--accent);color:var(--ink)}
+  select:hover,input[type=number]:hover{border-color:var(--muted)}
+  .x{font:inherit;font-size:16px;line-height:1;color:var(--ghost);background:0;border:0;cursor:pointer;
+    padding:3px 5px;flex:none;border-radius:var(--rs);transition:color .12s,background .12s}
+  .x:hover{color:var(--danger);background:var(--faint)}
+  .add{font:inherit;font-size:13px;color:var(--muted);background:0;border:0;cursor:pointer;
+    padding:5px 0 5px 18px;text-align:left;transition:color .12s}
+  .add:hover{color:var(--accent)}
+  .addgoal{padding-left:0;margin-top:12px;color:var(--accent);font-weight:500}
+  .cap{font-size:12px;color:var(--muted);padding-top:10px;line-height:1.6}
+  .store{font-size:11px;color:var(--ghost);padding-top:16px;word-break:break-all;
+    font-family:ui-monospace,Menlo,monospace}
+  .store .bad{color:var(--danger);font-family:inherit}
+
+  /* Desktop: calendar and the day's work sit side by side, divided by a rule.
+     Everything stays above the fold instead of scrolling a phone-shaped column. */
+  @media (min-width:820px){
+    .sheet{max-width:1000px;padding:28px 36px 36px}
+    /* the window's own title bar already says "Check-in" — don't repeat it */
+    .top{display:none}
+    .body{display:grid;grid-template-columns:336px minmax(0,1fr);align-items:stretch}
+    .calcol{padding-right:32px;border-right:1px solid var(--line)}
+    .panel{padding-left:32px}
+    .tally{border-bottom:0;padding:16px 0 0}
+    .panel .phead{margin-top:0}
+    .calcol .nav{margin-bottom:14px}
+    .foot{border-top:1px solid var(--hair);margin-top:32px;padding-top:20px}
+    .d{height:40px}
+    .cal,.dow{--gap:5px}
+  }
+  @media (max-width:620px){
+    .sheet{padding:20px 16px 40px;border:0}
+    .d{height:40px} .nav .m{min-width:112px}
+  }
+  /* Short viewports — a 13" MacBook leaves ~750px of webview. Same rhythm, tighter. */
+  @media (max-height:820px){
+    .sheet{padding-top:20px;padding-bottom:32px}
+    .top{padding-bottom:12px}
+    .d{height:36px} .cal,.dow{--gap:5px}
+    .tally{padding:13px 0 15px} .tally b{font-size:18px}
+    .phead{margin:16px 0 12px}
+    .goal{padding:13px 0}
+    .chips{margin-top:9px}
+    .pips,.bar,.pace{margin-top:8px}
+    .sh{margin:20px 0 9px;padding-bottom:7px}
+    .foot{padding-top:20px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="sheet" id="app"><p class="hint">Loading…</p></div>
+
+<script>
+const KEY='checkin-v3', DOW=['S','M','T','W','T','F','S'], MAXGOALS=3;
+const DOWN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MON=['January','February','March','April','May','June',
+           'July','August','September','October','November','December'];
+const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// Dormancy follows the expected cadence, not the nature of the task
+const CAD={daily:{n:'Daily',d:3},weekly:{n:'Weekly',d:10},monthly:{n:'Monthly',d:35},free:{n:'Never',d:0}};
+const DEFCAD={count:'daily',list:'monthly',daily:'weekly'};
+let state={goals:[],logs:{}};
+let view=null, sel=null, panel='day', editing=false, dataPath='', saveErr=false, refocus=false;
+
+/* ---------- helpers ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const todayKey=()=>key(today());
+const parseKey=k=>{const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+const label=k=>{const d=parseKey(k);return MONS[d.getMonth()]+' '+d.getDate()};
+const short=k=>{const d=parseKey(k);return (d.getMonth()+1)+'/'+d.getDate()};
+const mKey=(y,m)=>y+'-'+pad(m+1);
+const inMonth=(k,y,m)=>k.startsWith(mKey(y,m));
+const daysIn=(y,m)=>new Date(y,m+1,0).getDate();
+const diffDays=(a,b)=>Math.round((b-a)/864e5);
+const newId=()=>Math.random().toString(36).slice(2,8);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- storage layer: swap the backend here and nowhere else ---------- */
+const Store = (() => {
+  const T = window.__TAURI__;
+  if (T) {                                    // desktop (Tauri): a JSON file on disk
+    const invoke = T.core.invoke;
+    return { kind:'tauri',
+      read:  ()  => invoke('load_data'),
+      write: (s) => invoke('save_data', { data: s }),
+      where: ()  => invoke('data_path') };
+  }
+  return { kind:'browser',                    // browser fallback
+    read:  async ()  => { const r = await window.storage.get(KEY); return r ? r.value : ''; },
+    write: async (s) => { await window.storage.set(KEY, s); },
+    where: async ()  => 'Browser local storage' };
+})();
+
+/* ---------- load / save ---------- */
+async function load(){
+  try{
+    const raw = await Store.read();
+    if(raw && raw.trim() && raw.trim()!=='{}') state = JSON.parse(raw);
+  }catch(e){ console.warn('Read failed, starting fresh', e); }
+  try{ dataPath = await Store.where(); }catch(e){ dataPath=''; }
+  if(!state.goals||!state.goals.length) state=seed();
+  if(!state.logs) state.logs={};
+  if(!state.adhoc) state.adhoc={};   // ad-hoc: date -> array of strings
+  state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
+    if(!CAD[g.cad]) g.cad=DEFCAD[g.type]||'weekly'; });
+  const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey();
+  render();
+}
+let timer=null;
+function save(){
+  clearTimeout(timer);
+  timer=setTimeout(async()=>{
+    try{ await Store.write(JSON.stringify(state,null,1)); saveErr=false; }
+    catch(e){ console.error('Save failed',e); saveErr=true; render(); }
+  },250);
+}
+function seed(){
+  return {logs:{},goals:[
+    {id:newId(),type:'count',cad:'daily',target:40,title:'Problems',subs:[
+      {id:newId(),title:'Arrays / strings'},{id:newId(),title:'Lists / trees'},
+      {id:newId(),title:'DP'},{id:newId(),title:'Other'}]},
+    {id:newId(),type:'list',cad:'monthly',title:'To learn',subs:[
+      {id:newId(),title:'Rolling IC'},{id:newId(),title:'Block bootstrap'},
+      {id:newId(),title:'PSI / CSI'},{id:newId(),title:'Kalman filter'}]},
+    {id:newId(),type:'daily',cad:'weekly',title:'Job hunt',subs:[
+      {id:newId(),title:'Applications'},{id:newId(),title:'Resume'},{id:newId(),title:'Interview prep'}]}
+  ]};
+}
+
+/* ---------- derived ---------- */
+const dayTotal=k=>Object.values(state.logs[k]||{}).reduce((a,b)=>a+b,0)
+                 +(state.adhoc[k]||[]).length;
+const adhocMonth=(y,m)=>{let n=0;for(const k in state.adhoc) if(inMonth(k,y,m)) n+=state.adhoc[k].length;return n;};
+const adhocAll=()=>Object.values(state.adhoc).reduce((a,x)=>a+x.length,0);
+const level=n=>n===0?0:n===1?1:n===2?2:n<=4?3:4;
+function subTotal(id,y,m){
+  let n=0;
+  for(const k in state.logs){ if(y!==undefined&&!inMonth(k,y,m))continue; n+=state.logs[k][id]||0; }
+  return n;
+}
+function firstDone(){
+  const m={};
+  Object.keys(state.logs).sort().forEach(d=>Object.keys(state.logs[d]).forEach(s=>{if(!m[s])m[s]=d;}));
+  return m;
+}
+function lastTouch(g){
+  let best=null;
+  for(const k in state.logs) if(g.subs.some(s=>state.logs[k][s.id])) if(!best||k>best) best=k;
+  return best;
+}
+function activeDays(y,m){
+  let n=0; for(const k in state.logs) if(inMonth(k,y,m)&&dayTotal(k)>0) n++;
+  return n;
+}
+function goalDays(g,y,m){
+  let n=0;
+  for(const k in state.logs) if(inMonth(k,y,m)&&g.subs.some(s=>state.logs[k][s.id])) n++;
+  return n;
+}
+const goalCount=(g,y,m)=>g.subs.reduce((a,s)=>a+subTotal(s.id,y,m),0);
+// Length of the current run of consecutive active days. If today has nothing logged
+// yet the run is measured to yesterday, so it does not read 0 every morning before
+// you have had a chance to check in.
+function streak(){
+  const d=today();
+  if(dayTotal(key(d))===0) d.setDate(d.getDate()-1);
+  let n=0;
+  while(dayTotal(key(d))>0){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+
+/* ---------- check-in ---------- */
+function bump(id,delta){
+  const k=sel||todayKey(), day=state.logs[k]||{}, v=(day[id]||0)+delta;
+  if(v>0) day[id]=v; else delete day[id];
+  if(Object.keys(day).length) state.logs[k]=day; else delete state.logs[k];
+  save(); render();
+}
+function addAdhoc(text){
+  const t=text.trim(); if(!t) return;
+  const k=sel||todayKey();
+  state.adhoc[k]=state.adhoc[k]||[];
+  state.adhoc[k].push(t);
+  refocus=true; save(); render();
+}
+function delAdhoc(k,i){
+  (state.adhoc[k]||[]).splice(i,1);
+  if(!state.adhoc[k].length) delete state.adhoc[k];
+  save(); render();
+}
+
+function clearSub(id){
+  Object.keys(state.logs).forEach(d=>{ delete state.logs[d][id];
+    if(!Object.keys(state.logs[d]).length) delete state.logs[d]; });
+  save(); render();
+}
+
+/* ---------- render ---------- */
+function render(){
+  const n=today(), tk=todayKey();
+  const isCur = view.y===n.getFullYear() && view.m===n.getMonth();
+  const canNext = view.y<n.getFullYear() || (view.y===n.getFullYear()&&view.m<n.getMonth());
+  const act=activeDays(view.y,view.m), dim=daysIn(view.y,view.m);
+  const elapsed = isCur ? n.getDate() : dim;
+  let hits=0; for(const k in state.logs) if(inMonth(k,view.y,view.m)) hits+=dayTotal(k);
+  const run=streak();
+
+  document.getElementById('app').innerHTML=`
+    <div class="top">
+      <h1>Check-in</h1>
+    </div>
+
+    <div class="body">
+      <div class="calcol">
+        <div class="nav">
+          <button id="prev" aria-label="Previous month">‹</button>
+          <span class="m">${MON[view.m]} ${view.y}</span>
+          <button id="next" ${canNext?'':'disabled'} aria-label="Next month">›</button>
+        </div>
+        <div class="dow">${DOW.map(d=>`<i>${d}</i>`).join('')}</div>
+        <div class="cal">${calendar(tk)}</div>
+        <div class="year">${yearStrip()}</div>
+        <div class="tally mono">
+          ${run?`<span><b>${run}</b> day${run===1?'':'s'} in a row</span>`:''}
+          <span><b>${act}</b>/${elapsed} active this month</span>
+          <span><b>${hits}</b> check-in${hits===1?'':'s'}</span>
+        </div>
+      </div>
+      <div class="panel">
+        ${panel==='stats' ? statsPanel() : panel==='review' ? reviewPanel() : dayPanel(sel||tk,tk)}
+      </div>
+    </div>
+
+    <div class="foot">
+      <button class="linkbtn" id="ed">${editing?'Done':'Edit goals'}</button>
+      ${editing?editor():''}
+      <p class="store">${saveErr
+        ? '<span class="bad">Write failed. Changes were not saved.</span>'
+        : (dataPath?esc(dataPath):'')}</p>
+    </div>`;
+  bind();
+}
+
+function calendar(tk){
+  const {y,m}=view, dim=daysIn(y,m), lead=new Date(y,m,1).getDay(), tdy=today();
+  const on=i=>i>=1&&i<=dim&&dayTotal(key(new Date(y,m,i)))>0;
+  let h='';
+  for(let i=0;i<lead;i++) h+='<div class="d pad"></div>';
+  for(let i=1;i<=dim;i++){
+    const d=new Date(y,m,i), k=key(d);
+    if(d>tdy){ h+=`<div class="d future"><span class="num">${i}</span></div>`; continue; }
+    const cls=['d']; if(k===tk)cls.push('today'); if(k===sel&&panel==='day')cls.push('sel');
+    // join a run of consecutive days into one bar; runs break at the week edge
+    // because the next day is on the following row, not beside this one
+    if(on(i)){
+      const dow=d.getDay();
+      if(dow!==0 && on(i-1)) cls.push('cL');
+      if(dow!==6 && on(i+1)) cls.push('cR');
+    }
+    h+=`<button class="${cls.join(' ')}" data-l="${level(dayTotal(k))}" data-k="${k}"
+        title="${label(k)} · ${dayTotal(k)} check-in${dayTotal(k)===1?'':'s'}"><span class="num">${i}</span></button>`;
+  }
+  return h;
+}
+function yearStrip(){
+  const n=today(); let h='';
+  for(let m=0;m<12;m++){
+    const dim=daysIn(view.y,m), a=activeDays(view.y,m);
+    const future = view.y>n.getFullYear() || (view.y===n.getFullYear()&&m>n.getMonth());
+    const r=a/dim, l=future?0:(a===0?0:r<.2?1:r<.4?2:r<.65?3:4);
+    h+=`<button class="ym ${m===view.m?'cur':''}" data-l="${l}" data-m="${m}" title="${MONS[m]} · ${a} active day${a===1?'':'s'}">${m+1}</button>`;
+  }
+  return h;
+}
+
+// The three views are peers, so they get one persistent switcher rather than a
+// heading plus two links that change shape depending on where you already are.
+function tabs(){
+  const n=today(), tk=todayKey();
+  const isCur = view.y===n.getFullYear() && view.m===n.getMonth();
+  const home = panel==='day' && sel===tk && isCur;
+  const showDate = panel==='day' && sel && sel!==tk;
+  // the middle tab names the month it will actually show, so it never reads
+  // "This month" while displaying June
+  const views=[['day','Today'],['review',isCur?'This month':MON[view.m]],['stats','Stats']];
+  return `<div class="phead">
+      <nav class="tabs">${views.map(([p,name])=>
+        `<button class="tab${panel===p?' on':''}" data-tab="${p}"${
+          panel===p?' aria-current="page"':''}>${name}</button>`).join('')}</nav>
+      <span class="grow"></span>
+      ${home?'':`<span class="ctx">${showDate?esc(label(sel))+' · ':''}<button class="lnk" id="back">Back to today</button></span>`}
+    </div>`;
+}
+
+function dayPanel(k,tk){
+  const F=firstDone();
+  return `${tabs()}
+    ${state.goals.length?state.goals.map(g=>goalBlock(g,k,F)).join('')
+      :'<p class="hint" style="padding:10px 0">No goals yet. Use “Edit goals” below to add one.</p>'}
+    ${adhocBlock(k)}`;
+}
+
+function adhocBlock(k){
+  const list=state.adhoc[k]||[];
+  return `<div class="goal tmp">
+    <div class="ghead"><h3>Ad-hoc</h3>${list.length?`<span class="prog mono"><b>${list.length}</b> ${list.length===1?'item':'items'}</span>`:''}</div>
+    ${list.length?`<div class="tlist">${list.map((t,i)=>
+      `<div class="trow"><span class="td">·</span><span class="tt">${esc(t)}</span>
+        <button class="x" data-dt="${i}" title="Delete">×</button></div>`).join('')}</div>`:''}
+    <input type="text" id="adhocIn" class="tin" placeholder="What else did you do? Enter to log" autocomplete="off">
+  </div>`;
+}
+
+function goalBlock(g,k,F){
+  if(!g.subs.length) return '';
+  const {y,m}=view, day=state.logs[k]||{};
+  let right='',prog='',pace='',chips='',done='';
+
+  // dormancy
+  const thr=(CAD[g.cad]||CAD.weekly).d;
+  let cold='';
+  if(thr>0){
+    const lt=lastTouch(g), n=today();
+    if(!lt) cold='<span class="cold">not started</span>';
+    else{ const gap=diffDays(parseKey(lt),n);
+      if(gap>=thr) cold=`<span class="cold${gap>=thr*3?' deep':''}">untouched ${gap} days</span>`; }
+  }
+
+  if(g.type==='count'){
+    const target=g.target||40, c=goalCount(g,y,m);
+    right=`<span class="prog mono">${c>=target?'<span class="hit">met</span> ':''}<b>${c}</b> / ${target} this month</span>`;
+    prog='';
+    pace=`<div class="pace">${paceLine(c,target)}</div>`;
+    chips=g.subs.map(s=>{
+      const c2=day[s.id]||0;
+      const b=`<button class="chip ${c2?'on':''}" data-add="${s.id}">${tick()}${esc(s.title)}${c2?`<span class="n mono">+${c2}</span>`:''}</button>`;
+      return c2?`<span class="grp">${b}<button class="minus" data-minus="${s.id}">−</button></span>`:b;
+    }).join('');
+  }
+  else if(g.type==='list'){
+    const open=g.subs.filter(s=>!F[s.id]), fin=g.subs.filter(s=>F[s.id]);
+    const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
+    right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b> / ${g.subs.length}</span>`;
+    prog=pips(fin.length,g.subs.length);
+    chips=open.length?open.map(s=>`<button class="chip" data-add="${s.id}">${tick()}${esc(s.title)}</button>`).join('')
+      :'<span class="hint">Everything here is done.</span>';
+    if(fin.length) done=`<div class="doneline"><span class="lb">Done</span>${
+      fin.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}<em>${short(F[s.id])}</em></button>`).join('')}</div>`;
+  }
+  else{
+    const d=goalDays(g,y,m);
+    right=`<span class="prog mono"><b>${d}</b> day${d===1?'':'s'} this month</span>`;
+    chips=g.subs.map(s=>`<button class="chip ${day[s.id]?'on':''}" data-tog="${s.id}">${tick()}${esc(s.title)}</button>`).join('');
+  }
+
+  return `<div class="goal">
+    <div class="ghead"><h3>${esc(g.title)}${cold}</h3>${right}</div>
+    ${prog}${pace}<div class="chips">${chips}</div>${done}</div>`;
+}
+
+// The projection track is the app's thesis made visible: the dark segment is what
+// is actually done, the light segment is where the current rate lands you by month
+// end, and the grey remainder is the shortfall. Sentence below states the same in words.
+function track(done,target,proj){
+  const dp=Math.max(0,Math.min(100,done/target*100));
+  const pp=Math.max(dp,Math.min(100,(proj===undefined?done:proj)/target*100));
+  return `<div class="ptrack"><i class="done" style="width:${dp}%"></i>`
+       + (pp>dp?`<i class="proj" style="left:${dp}%;width:${pp-dp}%"></i>`:'')
+       + `</div>`;
+}
+function paceLine(done,target){
+  const n=today();
+  const isCur = view.y===n.getFullYear()&&view.m===n.getMonth();
+  const dim=daysIn(view.y,view.m);
+  const say=t=>`<p class="pline">${t}</p>`;
+  if(!isCur) return track(done,target) + say(done>=target
+    ? `<span class="em">met</span> · ${dim}-day month`
+    : `<span class="warn">${target-done} short</span> · month is over`);
+  const el=n.getDate(), left=dim-el;
+  if(done>=target) return track(done,target)
+    + say(`<span class="em">met</span> · ${left} day${left===1?'':'s'} left, extras count next month`);
+  if(done===0) return track(0,target)
+    + say(`${left} day${left===1?'':'s'} left · <span class="rate">${(target/Math.max(1,left+1)).toFixed(1)}</span> a day gets there`);
+  const rate=done/el, need=target-done, days=Math.ceil(need/rate);
+  const eta=new Date(n); eta.setDate(eta.getDate()+days);
+  const r=rate.toFixed(1);
+  if(days<=left) return track(done,target,target)
+    + say(`<span class="rate">${r}</span>/day · at this pace <span class="em">done ${MONS[eta.getMonth()]} ${eta.getDate()}</span>`);
+  const proj=Math.round(done+rate*left);
+  return track(done,target,proj)
+    + say(`<span class="rate">${r}</span>/day · about ${proj} by month end, <span class="warn">${target-proj} short</span> · needs <span class="rate">${(need/Math.max(1,left)).toFixed(1)}</span>/day`);
+}
+
+function pips(d,t){
+  if(t>150) return `<div class="bar"><i style="width:${Math.min(100,d/t*100)}%"></i></div>`;
+  let h=''; for(let i=0;i<t;i++) h+=`<div class="pip${i<d?' f':''}"></div>`;
+  return `<div class="pips">${h}</div>`;
+}
+const tick=()=>'<svg class="tick" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 5.2L3.6 8 9 1.8" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+
+function reviewPanel(){
+  const {y,m}=view, F=firstDone(), n=today();
+  const isCur=y===n.getFullYear()&&m===n.getMonth();
+  const rows=state.goals.map(g=>{
+    let v='',idle=false;
+    if(g.type==='count'){ const c=goalCount(g,y,m),t=g.target||40;
+      v=`<b>${c}</b> / ${t}`; idle=c===0; }
+    else if(g.type==='list'){ const f=g.subs.filter(s=>F[s.id]&&inMonth(F[s.id],y,m));
+      v=f.length?`<b>+${f.length}</b> ${f.map(s=>esc(s.title)).join(', ')}`:'—'; idle=!f.length; }
+    else { const d=goalDays(g,y,m); v=`<b>${d}</b> day${d===1?'':'s'}`; idle=d===0; }
+    return `<div class="rrow${idle?' idle':''}"><span>${esc(g.title)}</span><span class="rv">${v}</span></div>`;
+  }).join('');
+  const ah=adhocMonth(y,m);
+  const arow=`<div class="rrow${ah?'':' idle'}"><span>Ad-hoc</span><span class="rv">${
+    ah?`<b>${ah}</b> ${ah===1?'item':'items'}`:'—'}</span></div>`;
+  const idle=state.goals.filter(g=>goalDays(g,y,m)===0).map(g=>g.title);
+  return `${tabs()}
+    <p class="rcap">${MON[m]} ${y}${isCur?' · still in progress':''}</p>
+    <div class="rev">${rows}${arow}
+      ${idle.length?`<p class="rnote">Untouched all month: ${idle.map(esc).join(', ')}.<br>Next month either give it time or delete it.</p>`:''}
+    </div>`;
+}
+
+function achievements(){
+  const out=[], F=firstDone();
+  state.goals.forEach(g=>{
+    if(g.type==='list')
+      g.subs.forEach(s=>{ if(F[s.id]) out.push({d:F[s.id],g:g.title,t:s.title}); });
+    if(g.type==='count'){
+      const acc={}, tg=g.target||40;
+      Object.keys(state.logs).sort().forEach(k=>{
+        let add=0; g.subs.forEach(s=>add+=state.logs[k][s.id]||0);
+        if(!add) return;
+        const mk=k.slice(0,7), before=acc[mk]||0;
+        acc[mk]=before+add;
+        if(before<tg && acc[mk]>=tg)
+          out.push({d:k,g:g.title,t:`${MONS[+mk.slice(5)-1]} target met · ${tg}`,hit:true});
+      });
+    }
+  });
+  Object.entries(state.adhoc).forEach(([k,list])=>
+    list.forEach(t=>out.push({d:k,g:'Ad-hoc',t})));
+  return out.sort((a,b)=>a.d<b.d?1:-1);
+}
+
+function cols(data,h){
+  const max=Math.max(1,...data.map(d=>d.v));
+  return `<div class="cols" style="--n:${data.length}">${data.map((d,i)=>
+    `<button class="col" ${d.m!==undefined?`data-jm="${d.y}.${d.m}"`:'disabled'} title="${d.tip}">
+       <span class="box" style="height:${h}px"><span class="fill" style="height:${d.v?Math.max(2,d.v/max*100):0}%"></span></span>
+       <i>${d.lb}</i></button>`).join('')}</div>`;
+}
+
+function statsPanel(){
+  const n=today();
+  const ms=[];
+  for(let i=11;i>=0;i--){
+    const d=new Date(n.getFullYear(),n.getMonth()-i,1);
+    const v=activeDays(d.getFullYear(),d.getMonth());
+    ms.push({y:d.getFullYear(),m:d.getMonth(),v,lb:d.getMonth()+1,
+             tip:`${MONS[d.getMonth()]} ${d.getFullYear()} · ${v} active day${v===1?'':'s'}`});
+  }
+  const wd=Array(7).fill(0);
+  for(const k in state.logs) wd[parseKey(k).getDay()]+=dayTotal(k);
+  const wdata=wd.map((v,i)=>({v,lb:DOW[i],tip:`${DOWN[i]} · ${v} check-in${v===1?'':'s'}`}));
+
+  const share=state.goals.map(g=>({t:g.title,v:g.subs.reduce((a,s)=>a+subTotal(s.id),0)}))
+                         .concat([{t:'Ad-hoc',v:adhocAll()}])
+                         .filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  const tot=share.reduce((a,x)=>a+x.v,0)||1;
+
+  const ach=achievements();
+  const days=Object.keys(state.logs).length;
+  const hits=Object.keys(state.logs).reduce((a,k)=>a+dayTotal(k),0);
+  const first=Object.keys(state.logs).sort()[0];
+  const span=first?diffDays(parseKey(first),n)+1:0;
+
+  return `${tabs()}
+
+    <div class="tally mono" style="border:0;padding:10px 0 4px">
+      <span><b>${days}</b> day${days===1?'':'s'} logged</span>
+      <span><b>${hits}</b> check-in${hits===1?'':'s'}</span>
+      ${span?`<span><b>${Math.round(days/span*100)}</b>% attendance</span>`:''}
+    </div>
+    <p class="since">Since ${first?label(first):'—'}, ${span} day${span===1?'':'s'}.</p>
+
+    <h4 class="sh">Last 12 months · active days</h4>
+    ${cols(ms,72)}
+
+    <h4 class="sh">By weekday · total check-ins</h4>
+    ${cols(wdata,52)}
+
+    <h4 class="sh">By goal · share of check-ins</h4>
+    <div class="share">${share.map(x=>
+      `<div class="shrow"><span class="lb">${esc(x.t)}</span>
+        <span class="track"><i style="width:${x.v/tot*100}%"></i></span>
+        <span class="v mono">${x.v}</span></div>`).join('')||'<p class="hint">Nothing logged yet.</p>'}</div>
+
+    <h4 class="sh">Completed · ${ach.length} item${ach.length===1?'':'s'}</h4>
+    <div class="ach">${ach.length?ach.map(a=>
+      `<div class="arow${a.hit?' hit':''}">
+        <span class="ad mono">${short(a.d)}</span>
+        <span class="at">${esc(a.t)}</span>
+        <span class="ag">${esc(a.g)}</span></div>`).join('')
+      :'<p class="hint">Finished list items, and count goals that hit their monthly target, show up here.</p>'}</div>`;
+}
+
+function editor(){
+  const T={daily:'Daily',count:'Count',list:'List'};
+  return `<div class="edit">
+    ${state.goals.map(g=>`
+      <div class="erow lv1">
+        <input type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
+        <select data-gy="${g.id}">${Object.entries(T).map(([v,n])=>
+          `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>
+        ${g.type==='count'?`<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}" title="Monthly target">`:''}
+        <select data-gc="${g.id}" title="How often">${Object.entries(CAD).map(([v,c])=>
+          `<option value="${v}"${g.cad===v?' selected':''}>${c.n}</option>`).join('')}</select>
+        <button class="x" data-dg="${g.id}" title="Delete">×</button>
+      </div>
+      ${g.subs.map(s=>`<div class="erow sub">
+        <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
+        <button class="x" data-ds="${s.id}" title="Delete">×</button></div>`).join('')}
+      <button class="add" data-as="${g.id}">+ sub-goal</button>`).join('')}
+    ${state.goals.length<MAXGOALS
+      ? '<button class="add addgoal" id="ag">+ goal</button>'
+      : `<p class="cap">You already have ${MAXGOALS} goals. Delete one to add another.</p>`}
+    <p class="cap">A count goal's number is a <strong>monthly</strong> target; it resets to 0 on the 1st.<br>
+      The cadence on the right sets how long before a goal reads “untouched”: daily 3 days,
+      weekly 10, monthly 35, never means it stays quiet.</p>
+  </div>`;
+}
+
+/* ---------- events ---------- */
+const on=(q,f)=>document.querySelectorAll(q).forEach(f);
+function bind(){
+  on('[data-tog]',b=>b.onclick=()=>{const k=sel||todayKey();
+    bump(b.dataset.tog,(state.logs[k]||{})[b.dataset.tog]?-1:1);});
+  on('[data-add]',b=>b.onclick=()=>bump(b.dataset.add,1));
+  on('[data-minus]',b=>b.onclick=()=>bump(b.dataset.minus,-1));
+  on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
+  on('[data-dt]',b=>b.onclick=()=>delAdhoc(sel||todayKey(),+b.dataset.dt));
+  const ai=document.getElementById('adhocIn');
+  if(ai){
+    ai.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); addAdhoc(ai.value); } };
+    if(refocus){ refocus=false; ai.focus(); }
+  }
+  on('.d[data-k]',c=>c.onclick=()=>{ sel=c.dataset.k; panel='day'; render(); });
+  on('.ym[data-m]',b=>b.onclick=()=>{ view={y:view.y,m:+b.dataset.m};
+    const n=today(); const cur=view.y===n.getFullYear()&&view.m===n.getMonth();
+    panel=cur?'day':'review'; sel=cur?todayKey():null; render(); });
+
+  document.getElementById('prev').onclick=()=>shift(-1);
+  const nx=document.getElementById('next'); if(nx&&!nx.disabled) nx.onclick=()=>shift(1);
+  const bk=document.getElementById('back');
+  if(bk) bk.onclick=()=>{const n=today();view={y:n.getFullYear(),m:n.getMonth()};sel=todayKey();panel='day';render();};
+  on('[data-tab]',b=>b.onclick=()=>{
+    const p=b.dataset.tab;
+    // no day is selected while browsing another month, so the day view returns to today
+    if(p==='day'&&!sel){ const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey(); }
+    panel=p; render();});
+  on('[data-jm]',b=>b.onclick=()=>{ const[y,m]=b.dataset.jm.split('.').map(Number);
+    view={y,m}; const nn=today();
+    panel=(y===nn.getFullYear()&&m===nn.getMonth())?'day':'review';
+    sel=panel==='day'?todayKey():null; render(); });
+  document.getElementById('ed').onclick=()=>{editing=!editing;render();};
+
+  const ag=document.getElementById('ag');
+  if(ag) ag.onclick=()=>{ if(state.goals.length>=MAXGOALS)return;
+    state.goals.push({id:newId(),type:'daily',title:'New goal',subs:[{id:newId(),title:'New sub-goal'}]});save();render();};
+  on('[data-as]',b=>b.onclick=()=>{
+    state.goals.find(g=>g.id===b.dataset.as).subs.push({id:newId(),title:'New sub-goal'});save();render();});
+  on('[data-gt]',i=>i.oninput=()=>{state.goals.find(g=>g.id===i.dataset.gt).title=i.value;save();});
+  on('[data-gy]',s=>s.onchange=()=>{const g=state.goals.find(g=>g.id===s.dataset.gy);
+    g.type=s.value; if(g.type==='count'&&!g.target)g.target=40;
+    g.cad=DEFCAD[g.type]||'weekly'; save(); render();});
+  on('[data-gc]',s=>s.onchange=()=>{
+    state.goals.find(g=>g.id===s.dataset.gc).cad=s.value; save(); render();});
+  on('[data-gn]',i=>i.oninput=()=>{
+    state.goals.find(g=>g.id===i.dataset.gn).target=Math.max(1,+i.value||1); save();});
+  on('[data-st]',i=>i.oninput=()=>{
+    for(const g of state.goals){const s=g.subs.find(s=>s.id===i.dataset.st);if(s){s.title=i.value;break;}}save();});
+  on('[data-dg]',b=>b.onclick=()=>{state.goals=state.goals.filter(g=>g.id!==b.dataset.dg);save();render();});
+  on('[data-ds]',b=>b.onclick=()=>{state.goals.forEach(g=>g.subs=g.subs.filter(s=>s.id!==b.dataset.ds));save();render();});
+}
+
+function shift(d){
+  let m=view.m+d, y=view.y;
+  if(m<0){m=11;y--;} if(m>11){m=0;y++;}
+  view={y,m};
+  const n=today(), cur=y===n.getFullYear()&&m===n.getMonth();
+  panel=cur?'day':'review'; sel=cur?todayKey():null;
+  render();
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+# SPEC — Local Check-in Tracker (Tauri 2)
+
+## 0. Start here
+
+**The project folder already exists and is named `p2j`. Work directly inside it. Do not create a
+subdirectory, do not rename it, do not `cargo create-tauri-app`** (that scaffolder pulls in npm and a
+bundler, both of which this project explicitly rejects). Create the files listed in §3 by hand.
+
+`index.html` ships alongside this spec. It is the complete, working frontend — all HTML, CSS, and
+JavaScript in one file, roughly 700 lines. **Move it to `src/index.html` unchanged.** It is not a
+sketch or a starting point; it is the product. Your job in the first pass is to build the Rust shell
+around it and prove that data reaches disk.
+
+Note: the spec and **the application UI are both in English.** Keep user-facing strings, placeholders,
+and labels in English; the copy rules in §5.1 still apply (plain verbs, sentence case, no exclamation
+marks, no encouragement).
+
+---
+
+## 1. What this is
+
+A single-user desktop app for tracking daily progress against a small set of self-set goals. It runs
+entirely offline, stores everything in one JSON file on disk, and is intended to still work in five
+years. The person using it is the person who owns it — there are no other users, no accounts, no
+server.
+
+The design premise, which explains most of the decisions below: **a check-in log measures attendance,
+not progress.** Someone can be green for 200 straight days and still have finished nothing. So the
+app derives pace, projected completion, and dormancy from the raw log, and is sparing with the
+mechanics (badges, notifications) that optimize for attendance. A consecutive-day count was added
+later at the owner's request — see §6 — but it is reported as a plain number beside the other counts,
+with no celebration, no reminder to protect it, and no penalty screen when it ends.
+
+---
+
+## 2. Hard constraints
+
+These are settled decisions, not preferences. If a task seems to require breaking one, stop and ask.
+
+1. **All business logic lives in the frontend.** Rust does exactly three things: read a file, write a
+   file, report its path. Date math, progress, ETA, dormancy thresholds, and charts are all
+   JavaScript. This keeps the edit-reload loop instant instead of waiting on `cargo build`. Do not
+   move logic into Rust.
+2. **The frontend stays one file.** `src/index.html` contains all markup, styles, and script. No
+   splitting into modules, no npm, no bundler, no CSS preprocessor, no CDN `<script>` or `<link>`,
+   no charting library, no icon font. Charts are hand-drawn with flexbox and percentage heights;
+   keep it that way.
+3. **No network access of any kind.** No telemetry, no crash reporting, no update checks, no fonts
+   fetched at runtime. The app must work with the machine offline.
+4. **Progress is always derived, never stored.** See §4.1. This is the rule most likely to be broken
+   by a well-meaning refactor.
+5. **The storage layer is swappable and isolated.** All persistence goes through the `Store` object
+   in `index.html`. Never call `invoke` anywhere else.
+
+---
+
+## 3. Files to create
+
+```
+p2j/
+├── SPEC.md                          (this file)
+├── .gitignore
+├── src/
+│   └── index.html                   (the provided file, moved here unchanged)
+└── src-tauri/
+    ├── Cargo.toml
+    ├── build.rs
+    ├── tauri.conf.json
+    ├── capabilities/
+    │   └── default.json
+    └── src/
+        └── main.rs
+```
+
+### 3.1 `src-tauri/src/main.rs`
+
+```rust
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use std::fs;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager};
+
+fn data_file(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("no data directory: {e}"))?;
+    fs::create_dir_all(&dir).map_err(|e| format!("could not create directory: {e}"))?;
+    Ok(dir.join("checkin.json"))
+}
+
+#[tauri::command]
+fn load_data(app: AppHandle) -> Result<String, String> {
+    let path = data_file(&app)?;
+    match fs::read_to_string(&path) {
+        Ok(s) => Ok(s),
+        // First launch: no file yet. Not an error.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        Err(e) => Err(format!("read failed: {e}")),
+    }
+}
+
+#[tauri::command]
+fn save_data(app: AppHandle, data: String) -> Result<(), String> {
+    let path = data_file(&app)?;
+    // Write to a temp file, then rename. Rename within a directory is atomic, so a crash or
+    // power loss leaves either the old file or the new one — never a truncated JSON.
+    // This is the one place worth three extra lines: losing the log means losing everything.
+    let tmp = path.with_extension("json.tmp");
+    fs::write(&tmp, data).map_err(|e| format!("write failed: {e}"))?;
+    fs::rename(&tmp, &path).map_err(|e| format!("replace failed: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn data_path(app: AppHandle) -> Result<String, String> {
+    Ok(data_file(&app)?.to_string_lossy().into_owned())
+}
+
+fn main() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![load_data, save_data, data_path])
+        .run(tauri::generate_context!())
+        .expect("failed to start");
+}
+```
+
+### 3.2 `src-tauri/Cargo.toml`
+
+```toml
+[package]
+name = "checkin"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77"
+description = "Local check-in log"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+```
+
+### 3.3 `src-tauri/build.rs`
+
+```rust
+fn main() {
+    tauri_build::build()
+}
+```
+
+### 3.4 `src-tauri/tauri.conf.json`
+
+```json
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Check-in",
+  "version": "0.1.0",
+  "identifier": "com.checkin.app",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Check-in",
+        "width": 660,
+        "height": 900,
+        "minWidth": 420,
+        "resizable": true
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  }
+}
+```
+
+### 3.5 `src-tauri/capabilities/default.json`
+
+```json
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default permissions for the main window. Custom commands need no extra declaration.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
+```
+
+### 3.6 `.gitignore`
+
+```
+src-tauri/target/
+src-tauri/gen/
+.DS_Store
+*.tmp
+```
+
+---
+
+## 4. Data model
+
+One JSON file. Location is returned by the `data_path` command:
+
+| OS | Path |
+|---|---|
+| macOS | `~/Library/Application Support/com.checkin.app/checkin.json` |
+| Linux | `~/.local/share/com.checkin.app/checkin.json` |
+| Windows | `%APPDATA%\com.checkin.app\checkin.json` |
+
+```jsonc
+{
+  "goals": [
+    {
+      "id": "a1b2c3",
+      "title": "Problems",
+      "type": "count",      // "daily" | "count" | "list"
+      "cad": "daily",       // "daily" | "weekly" | "monthly" | "free" — drives dormancy
+      "target": 40,         // count only: per-MONTH quota
+      "subs": [ { "id": "d4e5f6", "title": "DP" } ]
+    }
+  ],
+  "logs": {
+    "2026-07-28": { "d4e5f6": 2, "x9y8z7": 1 }    // date → { subgoalId: times }
+  },
+  "adhoc": {
+    "2026-07-28": ["fixed the cache bug", "replied to HR"]  // date → free-text entries
+  }
+}
+```
+
+Written with `JSON.stringify(state, null, 1)` so the file stays human-readable and diffable.
+
+### 4.1 The one rule that matters: progress is computed, never stored
+
+`logs` and `adhoc` are the sole source of truth. Completion counts, monthly totals, pace, ETA,
+dormancy gaps, and every chart are recomputed from them on each render.
+
+Never introduce a field like `"completed": 23`. The moment a cached total exists, backfilling a
+missed day or deleting a wrong entry silently desynchronizes it. The dataset is a few thousand
+entries; recomputing costs nothing. If a change appears to need a cache for performance, it doesn't.
+
+### 4.2 Goal types
+
+| type | meaning | tapping a chip does | progress shown |
+|---|---|---|---|
+| `daily` | ongoing habit, no finish line | toggles 0/1 for that day | active days this month |
+| `count` | a per-month quota, e.g. 40 problems | +1, repeatable, `−` to undo | month total / target |
+| `list` | one-off backlog, e.g. topics to learn | marks done permanently, moves to a struck-through "DONE" row with its date | done / total |
+
+`count` targets are **monthly** and reset naturally on the 1st, because only that month's logs are
+summed. This is what gives the cycle an ending. `list` is not month-scoped; it spans months.
+
+### 4.3 Dormancy follows cadence, not task nature
+
+`cad` sets how long a goal can sit untouched before its heading shows `untouched N days`:
+
+| cad | threshold | intended for |
+|---|---|---|
+| `daily` | 3 days | things meant to happen every day |
+| `weekly` | 10 days | things meant to happen weekly |
+| `monthly` | 35 days | effectively only fires when a whole month is skipped |
+| `free` | never | anything that shouldn't nag |
+
+At 3× the threshold the label darkens. Thresholds live in the `CAD` constant. Changing a goal's
+`type` resets `cad` to the `DEFCAD` default for that type.
+
+The reasoning, so it isn't "simplified" back later: the first design split tasks into repeatable vs
+one-off, but "update the resume" is both repeatable and not something to be nagged about daily. The real
+variable is expected frequency, not task nature. Cadence subsumes the binary — a genuinely one-off
+task is just `free`.
+
+### 4.3.1 The consecutive-day count
+
+`streak()` walks back from today over days where `dayTotal > 0`, so an ad-hoc-only day keeps a run
+alive exactly as it keeps the calendar cell green. If today has nothing logged yet the walk starts
+from yesterday, so the number does not read 0 every morning before you have had a chance to check in.
+It is derived on every render like everything else in §4.1 — never stored.
+
+### 4.4 Ad-hoc tasks
+
+A fixed fourth section below the goals. Not part of `goals`, not counted against `MAXGOALS`, cannot
+be renamed or deleted, has no cadence and never shows a dormancy label. Type a line, press Enter,
+it's logged against the currently selected date.
+
+Why it is exempt from the 3-goal cap: without a scratch bucket, every stray task tempts you into
+creating a new goal, and the list rots within weeks. The ad-hoc section is the pressure valve that
+makes the cap survivable, not an exception to it.
+
+Ad-hoc entries count toward `dayTotal` (so a day of nothing but odd jobs still shows green on the
+calendar), appear in the stats distribution chart, and appear in the completion log. The month review
+shows only a count.
+
+---
+
+## 5. Interface
+
+Three views of the right pane, switched by the `panel` variable: `day` (check in), `review` (month
+summary), `stats`.
+
+**They are peers, so they share one switcher.** A tab row sits at the top of the pane: current view in
+`--ink` with a 2px underline on a hairline rail, the other two in `--muted`. All three tabs are always
+present in the same order, in every view — an earlier design gave each view a different heading plus a
+different pair of links, so the set of options changed depending on where you already were, and the
+current view read as a title rather than as a selected state.
+
+The middle tab names the month it will actually show: `This month` while the current month is in view,
+otherwise the month's own name (`June`). It must never read "This month" while displaying June.
+
+A `Back to today` link appears at the right of the tab row only when you are away from today — a
+different view, a different month, or a backfilled day. When a past day is selected its date is named
+beside that link, since the goals below then belong to that day rather than to today.
+
+**Day panel** — two panes above 820px wide, stacked below it (see §5.1).
+
+*Left pane*: month navigation, then the calendar as the hero. Green intensity by `dayTotal`, date
+numbers visible, today ringed, past days clickable for backfill, future days drawn as outlines.
+Consecutive active days are joined into a continuous bar; runs break at the week edge because the
+next day sits on the following row. Below the calendar a 12-cell year strip for jumping between
+months, then the counts: days in a row, active days this month, total check-ins.
+
+*Right pane*: the goals, each with its chips and — depending on type — pips or a projection track,
+then the ad-hoc input.
+
+**Pace** (count goals only) is the app's thesis made visible, and is drawn twice — once as a
+projection track, once in words:
+
+```
+[========------------·································]
+ ^ done   ^ projected by month end        ^ shortfall
+
+1.6/day · at this pace done Aug 3
+1.1/day · about 33 by month end, 7 short · needs 1.8/day
+```
+
+The dark segment is what is actually done; the light segment is where the current rate lands you by
+the end of the month; the grey remainder is the shortfall. The sentence below states the same thing
+in words: first half fact, second half actionable. Unlike a streak, missing a day nudges the slope
+instead of resetting to zero. The track is hand-drawn with absolute positioning and percentage
+widths — no charting library, per §2.2.
+
+**Review panel** — per-goal results for the viewed month, plus a line naming any goal untouched all
+month with the prompt: schedule it next month or delete it. Reached via the middle tab, or
+automatically when navigating to a past month. It carries only a small `.rcap` caption naming the
+month; it needs no heading, because the left pane's month navigation already states which month is in
+view.
+
+**Stats panel** — four blocks: active days per month over the last 12 months (bars are clickable and
+jump to that month), weekday distribution, per-goal share of check-ins, and the completion log
+(finished list items and months where a count goal hit its target, newest first).
+
+### 5.1 Design system
+
+The visual concept is **an instrument, not a scrapbook.** The app's whole claim is that attendance is
+not progress, so the quantities are the design: every number is set in tabular monospace, one step
+larger and darker than the label beside it. Everything else — surfaces, borders, headings — stays
+quiet so the figures carry the page.
+
+Colors are defined once in `:root`. **Change colors only by editing those variables**; never hardcode
+a hex value in a rule. (This rule was violated in nine places in an earlier revision; it is now clean,
+and `grep -n '#[0-9A-Fa-f]\{3,6\}' src/index.html` outside `:root` should stay empty.)
+
+```
+surfaces   --canvas #F6F7F9   --surface #FFFFFF
+type       --ink #0F1419      --body #39404A     --muted #6E7681
+lines      --faint #F1F3F6    --line #E4E7EC     --hair #EFF1F4
+activity   --c0 … --c4        five-step pine green (calendar, pips, charts, track)
+accent     --accent #1E7A57   --soft #EAF6F0     --edge #B6DFC9   --wash #DCEFE5
+states     --dust #98A0AB (dormant)  --alert #A9703A (deep dormancy, behind pace)
+           --danger #B4483F (destructive)        --ghost #C3C9D2 (disabled, future)
+radius     --r 8px (cells, chips, inputs)        --rs 6px (small controls)
+```
+
+Rules: 8px radii on cells, chips and inputs; 6px on small controls. **No shadows** anywhere except a
+3px focus ring. No gradients, no icon library, no typeface beyond the system stack plus
+`ui-monospace`. Headings are sentence case at real sizes — no uppercase letter-spaced eyebrows.
+Motion is limited to color transitions, the chip checkmark, and the projection track's width;
+`prefers-reduced-motion` is already handled. Copy is English, plain verbs, sentence case, no
+exclamation marks, no encouragement or congratulation.
+
+**Structure encodes meaning, so keep these two distinctions:**
+
+- **Discrete goals get pips, rate goals get the track.** A `list` goal is a countable set of things,
+  so it shows one pip per item. A `count` goal is a rate against a monthly quota, so it shows the
+  projection track. Do not give both to the same goal — the pips would just restate the track.
+- **Past days are filled, future days are outlined.** The calendar's fill carries activity level;
+  an unfilled outline means "hasn't happened yet", not "zero".
+
+**Do not redesign.** A request to "add feature X" means adding it in this visual language. It does
+not license changing the palette, swapping typefaces, adding icons, or introducing shadows. If a new
+element has no obvious home in the existing vocabulary, ask before inventing one.
+
+---
+
+## 6. Non-goals
+
+Do not build any of these without being asked explicitly:
+
+- Backend, accounts, cloud sync, multi-device
+- Any network request, telemetry, or crash reporting
+- ~~Consecutive-day streaks~~ — **built on request.** The original reasoning stands and is worth
+  re-reading before extending it: resetting to zero on one missed day is the single most effective
+  way to make someone abandon a tracker. What shipped is the count only — `streak()` plus the joined
+  calendar bar. Do **not** add the rest of the Duolingo apparatus on top of it: no streak freezes, no
+  "don't lose your streak" prompts, no confetti, no longest-streak record to chase, no notification.
+  If a missed day ever needs to feel expensive, that is the signal to remove this, not to reinforce it
+- Notifications, reminders, modals, celebration animations
+- More than 3 goals — `MAXGOALS` is a deliberate anti-feature; adding a fourth requires deleting one
+- A database. A single JSON file is sufficient and must stay readable by `cat` and loadable by pandas
+
+---
+
+## 7. First pass: build and verify, nothing else
+
+Do not add features in the first session. The goal is to prove the Rust shell works.
+
+```bash
+# Prerequisites (skip what's already present)
+cargo install tauri-cli --version "^2"
+# macOS : xcode-select --install
+# Ubuntu: sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
+#         libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+# Windows: Visual Studio Build Tools + WebView2
+
+cargo tauri icon <some-square-png>   # required once; build fails without icons
+cargo tauri dev
+```
+
+Verification checklist:
+
+1. The window opens and the calendar renders on the grid-paper background.
+2. The footer shows a real filesystem path — **not** `Browser local storage`. If it shows the latter,
+   `withGlobalTauri` is off and the app has silently fallen back to browser storage: it looks like
+   it's saving but nothing reaches disk. This is the single most likely failure and it is silent.
+3. Tap a chip, quit the app, relaunch — the check-in is still there.
+4. `cat` the JSON file; it should be indented and legible.
+5. `cargo tauri build` completes and produces a bundle.
+
+Report anything that fails before touching application code.
+
+### 7.1 Working on the frontend afterwards
+
+For style or logic changes, open `src/index.html` directly in a browser. It detects the absence of
+`window.__TAURI__` and falls back to browser storage, so you get save-and-reload iteration with no
+compile step. Note that browser-mode data is separate from the desktop app's file.
+
+---
+
+## 8. Backlog — ask before starting any of these
+
+In rough priority order. These are open questions, not queued work. Do one at a time, and confirm
+which one first.
+
+1. **The ETA is nonsense early in the month.** Three items done on the 1st projects "3/day, done by
+   the 10th". Options considered: suppress the line until the 5th, or smooth the rate. Currently
+   unhandled.
+2. **Export / import JSON.** The file is already on disk so this is low priority, but a button beats
+   hunting for the path.
+3. **Cadence thresholds (3 / 10 / 35 days) are guesses.** After a month or two of real use, adjust
+   the numbers in `CAD` based on which tier nags too often or too late.
+
+Two things worth knowing rather than fixing:
+
+- **The stats panel looks bad with little data.** For the first couple of weeks the bar charts are a
+  few lonely stubs and the weekday distribution is noise. That is expected. Do not "improve" it.
+- **If the ad-hoc section dominates the distribution chart**, that is a signal the three real goals
+  are set wrong, not a bug. No warning is implemented for this and none should be.
