@@ -99,19 +99,22 @@
      it. The figures are set in --sans, not --mono: SF Mono and Menlo both draw a slashed
      zero, which at this size reads as a symbol rather than a number, and an empty month
      is mostly zeros. `tabular-nums` keeps the column aligned without it. */
-  .tally{display:flex;flex-direction:column;padding:18px 0 0;
-    border-bottom:1px solid var(--line)}
-  .tally span{display:flex;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--hair)}
-  .tally span:last-child{border-bottom:0}
-  .tally b{font-family:var(--sans);font-variant-numeric:tabular-nums;
-    font-weight:500;color:var(--ink);font-size:26px;line-height:1;letter-spacing:-.025em;
-    min-width:54px;text-align:right;flex:none}
+  /* Each row is one line box of a FIXED height, and every part of it is inline, so the
+     figure, its denominator and its label all sit on that box's single baseline. Nothing
+     here is computed from font metrics: the row was previously as tall as whatever the
+     26px figure's line box happened to be, which differs between engines, so the rules
+     between rows landed on an uneven rhythm in the app while looking right in a test
+     browser. --rowh is the whole vertical rhythm of the block. */
+  .tally{--rowh:30px;border-bottom:1px solid var(--line);padding:16px 0 18px}
+  .tally span{display:block;height:var(--rowh);line-height:var(--rowh);white-space:nowrap}
+  .tally b{display:inline-block;font-family:var(--sans);font-variant-numeric:tabular-nums;
+    font-weight:500;color:var(--ink);font-size:20px;line-height:1;letter-spacing:-.02em;
+    min-width:42px;text-align:right}
   /* A denominator belongs to the figure it divides, so it sits tight against it — but
      outside the fixed-width column, or `0/30` and `0` would not line up on the same edge. */
-  .tally i{font-style:normal;font-weight:400;font-size:14px;color:var(--muted);
-    margin-left:2px;flex:none}
+  .tally i{font-style:normal;font-weight:400;font-size:12.5px;color:var(--muted);margin-left:1px}
   .tally em{font-style:normal;font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;
-    color:var(--muted);margin-left:14px}
+    color:var(--muted);margin-left:11px}
 
   /* three peer views on a rail, current one marked */
   .phead{display:flex;align-items:baseline;gap:12px;margin:26px 0 18px;
@@ -160,6 +163,7 @@
   .prog{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted);flex:none}
   .prog b{font-family:var(--sans);font-variant-numeric:tabular-nums;
     color:var(--ink);font-weight:500;font-size:17px;letter-spacing:-.02em}
+  .prog i{font-style:normal;margin-left:1px}
   .prog .hit{color:var(--accent);font-weight:500}
 
   /* the projection track states the app's whole argument: ink is what you did,
@@ -302,7 +306,7 @@
     .body{display:grid;grid-template-columns:344px minmax(0,1fr);align-items:stretch}
     .calcol{padding-right:34px;border-right:1px solid var(--line)}
     .panel{padding-left:34px}
-    .tally{border-bottom:0;padding:20px 0 0}
+    .tally{border-bottom:0;padding:18px 0 0}
     .panel .phead{margin-top:0}
     .calcol .nav{margin-bottom:16px}
     .foot{border-top:1px solid var(--hair);margin-top:34px;padding-top:22px}
@@ -311,18 +315,14 @@
   @media (max-width:620px){
     .sheet{padding:20px 16px 40px;border:0}
     .d{height:42px} .nav .m{min-width:112px}
-    .tally b{font-size:24px}
+    .tally{--rowh:29px}
   }
   /* Short viewports — a 13" MacBook leaves ~750px of webview. Same rhythm, tighter. */
   @media (max-height:820px){
     .sheet{padding-top:20px;padding-bottom:32px}
     .top{padding-bottom:12px}
     .d{height:37px}
-    /* no `gap` here: the readouts are a column of bordered rows, and a gap would
-       push the rule away from the row below it. Left over from the wrapping row
-       this used to be. */
-    .tally{padding:12px 0 0} .tally b{font-size:23px}
-    .tally span{padding:10px 0}
+    .tally{--rowh:27px;padding:12px 0 14px} .tally b{font-size:19px}
     .phead{margin:18px 0 13px}
     .goal{padding:14px 0}
     .chips{margin-top:10px}
@@ -559,18 +559,25 @@ function render(){
       </div>
     </div>
 
-    <div class="foot">
-      ${live().length<MAXGOALS ? '<button class="add addgoal" id="ag">+ goal</button>' : ''}
-      ${undoLine()}${archiveShelf()}
-      ${notice?`<p class="notice">${esc(notice)}</p>`:''}
-      ${saveErr?'<p class="store"><span class="bad">Write failed. Changes were not saved.</span></p>':''}
-    </div>`;
+    ${foot()}`;
   bind();
 }
 
 // The foot is where a removed goal goes: first the offer to take it straight back,
 // then the shelf of everything archived. Erasing the logs is the one thing here that
 // cannot be undone, so it is a separate control and it asks, naming the cost.
+// Everything in the footer is conditional, so the footer itself has to be: at three
+// goals with nothing archived and nothing to undo it holds nothing, and an empty one
+// still drew its top rule and padding — a line across the page under no content.
+function foot(){
+  const bits = [
+    live().length<MAXGOALS ? '<button class="add addgoal" id="ag">+ goal</button>' : '',
+    undoLine(), archiveShelf(),
+    notice?`<p class="notice">${esc(notice)}</p>`:'',
+    saveErr?'<p class="store"><span class="bad">Write failed. Changes were not saved.</span></p>':'',
+  ].join('');
+  return bits ? `<div class="foot">${bits}</div>` : '';
+}
 function undoLine(){
   if(!undo) return '';
   return `<p class="notice">${undo.kind==='archive'?'Archived':'Deleted'} “${esc(undo.title)}”.
@@ -653,7 +660,7 @@ function goalBlock(g,k,F){
 
   if(g.type==='count'){
     const target=g.target||40, c=goalCount(g,y,m);
-    right=`<span class="prog mono">${c>=target?'<span class="hit">met</span> ':''}<b>${c}</b> / ${target} this month</span>`;
+    right=`<span class="prog mono">${c>=target?'<span class="hit">met</span> ':''}<b>${c}</b><i>/${target}</i> this month</span>`;
     prog='';
     pace=`<div class="pace">${paceLine(c,target)}</div>`;
     chips=subs.map(s=>{
@@ -665,7 +672,7 @@ function goalBlock(g,k,F){
   else if(g.type==='list'){
     const open=subs.filter(s=>!F[s.id]), fin=subs.filter(s=>F[s.id]);
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
-    right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b> / ${subs.length}</span>`;
+    right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
     prog=pips(fin.length,subs.length);
     chips=open.length?open.map(s=>`<button class="chip" data-add="${s.id}">${esc(s.title)}</button>`).join('')
       :'<span class="hint">Everything here is done.</span>';

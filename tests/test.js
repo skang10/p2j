@@ -903,6 +903,19 @@ t('the footer offers no export, no import and no file path', async () => {
   no(html, 'checkin.json', 'the data-file path is not surfaced');
   no(html, 'Browser local storage');
 });
+// Regression: with three goals and nothing archived, every part of the footer is
+// conditional and all of them were empty — but the container still rendered, drawing
+// its top rule and padding as a line across the page under no content at all.
+t('a footer with nothing in it is not rendered', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.render();
+  eq(a.live().length, 3, 'at the cap, so there is no + goal button');
+  eq(a.undo, null); eq(a.notice, ''); eq(a.saveErr, false);
+  no(g.captured.app, 'class="foot"', 'no container, so no rule and no padding');
+  a.dropGoal(a.state.goals[0].id);                 // now there is something to undo
+  has(g.captured.app, 'class="foot"', 'and it comes back when it has content');
+});
 // The one thing the footer must still say. Persistence failing silently would be the
 // worst failure this app has, so it survived the strip.
 t('a failed write still reports itself in the footer', async () => {
