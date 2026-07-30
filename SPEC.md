@@ -222,7 +222,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 167 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 170 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -439,10 +439,7 @@ sub-goals, delete — while the other goals stay in check-in mode. The editor is
 control states what it is (`What a tap does`, `Monthly target`, `Say “untouched”`, `Sub-goals`) and
 every option states what it will do, rather than naming a kind. Fields that do not apply are absent —
 a non-count goal shows no monthly target, and no caption about one. `editing` holds the id of the goal
-being edited, or `null`. The `×` states which of the two removals in §4.5 it will perform — its
-tooltip reads `Archive this goal` or `Delete this goal` — and a goal with history carries one caption
-saying what survives (`Removing this goal archives it. The 15 check-ins it already has stay in past
-months; it leaves this screen.`). Archived sub-goals are listed below the live ones, greyed, each with
+being edited, or `null`. Archived sub-goals are listed below the live ones, greyed, each with
 `Restore`; that list is the only way back for a sub-goal, so it is not optional. There is no global edit mode: a single bottom toggle meant opening every
 goal at once to change one word, and it put the fields far from the goal they belonged to.
 
@@ -451,8 +448,25 @@ Two rules that keep this from trapping you:
 - **A goal with no sub-goals still renders**, as a heading plus its `Edit` control. It shows no chips
   because there is nothing to tap, but it must never disappear — the only way back to a goal is
   through the goal.
-- **Deleting the goal you are editing clears `editing`**, so the pane cannot be left pointing at
+- **Removing the goal you are editing clears `editing`**, so the pane cannot be left pointing at
   something that no longer exists.
+
+**An `×` at the top of a panel closes the panel; an `×` on a row removes that row.** These are two
+different controls that happened to share a glyph, and the editor had them backwards: its `×` sat
+beside the title and destroyed the goal. It reads as "put this away" in every other piece of software
+on the machine, which is how a goal was lost by someone meaning to close the editor. So:
+
+- The editor's `×` sits in its own header (`Edit goal   ×`) and does exactly what `Done` does.
+- Removing the goal is a button that says which of the two removals in §4.5 it will perform —
+  `Archive this goal` or `Delete this goal` — in its own zone below a rule, with one caption stating
+  what survives (`The 15 check-ins it already has stay in past months; it leaves this screen. You can
+  restore it from the footer.`) or that there is nothing to keep. It carries `--danger` on hover only:
+  archiving is a state, not an error, and the control that truly destroys logs lives in the footer.
+- Sub-goal rows and ad-hoc rows keep their `×`, because those are row-level removals.
+
+The fields stack — label above a full-width control — so the label, the value and the tap target
+share one left edge instead of sitting in three columns. `Done` is the pane's primary action and is
+the only filled button in the app.
 
 `+ goal` lives in the footer, below the goals, and opens the new goal's editor immediately. Above
 `MAXGOALS` it is replaced by the cap notice.
@@ -508,48 +522,83 @@ import is a `FileReader`, both in the frontend per §2.1.
 
 ### 5.2 Design system
 
-The visual concept is **an instrument, not a scrapbook.** The app's whole claim is that attendance is
-not progress, so the quantities are the design: every number is set in tabular monospace, one step
-larger and darker than the label beside it. Everything else — surfaces, borders, headings — stays
-quiet so the figures carry the page.
+The visual concept is **"Figure": the app is a plot of one person's attendance, not a dashboard.**
+The app's whole claim is that attendance is not progress, so the quantities are the design. Two rules
+generate the rest, and both are worth defending because each encodes something the product believes.
 
-Colors are defined once in `:root`. **Change colors only by editing those variables**; never hardcode
-a hex value in a rule. (This rule was violated in nine places in an earlier revision; it is now clean,
-and `grep -n '#[0-9A-Fa-f]\{3,6\}' src/index.html` outside `:root` should stay empty.)
+**1. Recorded facts are ink; colour is reserved for claims about the future.** Every logged fact —
+a calendar cell, a pip, a bar, a share track, a chip you have tapped — is drawn in one neutral ramp,
+`--c0` through `--c4`, darker with more activity. `--accent` appears only where the app asserts
+something that is not yet true: the projected segment of the track, the pace sentence, `met`, a
+finished item in the completion log. This keeps the palette from flattering attendance into progress
+— you cannot make a month look green by showing up.
+
+**2. The instrument speaks in mono; you speak in your own voice.** Chrome — counts, dates, labels,
+tabs, section heads, readouts — is `--mono`. The goal titles you typed, your ad-hoc entries, and the
+sentences the app addresses you in are set in `--sans`. The record is visibly separate from the thing
+recorded. No webfont: `ui-monospace` and the system stack only, so the app still renders offline in
+five years (§2.2, §2.3).
+
+**The signature is the calendar as a strip of presence.** A day you showed up is a solid block of ink
+with the date knocked out of it, and consecutive days merge into one continuous strip (`.d.cL/.cR`
+plus the `::before` bridge across the gap). A month therefore reads as a barcode: long unbroken runs,
+or scattered ticks. Runs break at the week edge because the next day sits on the following row. This
+is why the consecutive-day count needs no flame and no celebration (§4.3.1) — the shape is the record.
+
+Colors are defined once, in `:root`. **Change colors only by editing those variables**; never
+hardcode a hex value in a rule.
+`grep -n '#[0-9A-Fa-f]\{3,6\}' src/index.html` should match nothing outside a `--token:` line.
 
 ```
-surfaces   --canvas #F6F7F9   --surface #FFFFFF
-type       --ink #0F1419      --body #39404A     --muted #6E7681
-lines      --faint #F1F3F6    --line #E4E7EC     --hair #EFF1F4
-activity   --c0 … --c4        five-step pine green (calendar, pips, charts, track)
-accent     --accent #1E7A57   --soft #EAF6F0     --edge #B6DFC9   --wash #DCEFE5
-states     --dust #98A0AB (dormant)  --alert #A9703A (deep dormancy, behind pace)
-           --danger #B4483F (destructive)        --ghost #C3C9D2 (disabled, future)
-radius     --r 8px (cells, chips, inputs)        --rs 6px (small controls)
+surfaces  --paper #F2F4F7 (behind the sheet)   --surface #FFFFFF (the sheet)
+          --sunk  #EFF2F6 (tappable wells: chips)
+lines     --faint --hair --line                progressively stronger rules
+type      --ink --body --muted --dust --ghost
+activity  --c0 … --c4   #E9EDF1 → #141C29      one hue, five weights
+          --on    #FFFFFF                      type knocked out of a filled cell
+claims    --accent #0E7C87   + --soft --edge --wash
+states    --alert (behind pace, deep dormancy)  --danger (destructive)
+radius    --r 9px (cells, chips, inputs)        --rs 6px (small controls)
 ```
 
-Rules: 8px radii on cells, chips and inputs; 6px on small controls. **No shadows** anywhere except a
-3px focus ring. No gradients, no icon library, no typeface beyond the system stack plus
-`ui-monospace`. Headings are sentence case at real sizes — no uppercase letter-spaced eyebrows.
-Motion is limited to color transitions, the chip checkmark, and the projection track's width;
-`prefers-reduced-motion` is already handled. Copy is English, plain verbs, sentence case, no
-exclamation marks, no encouragement or congratulation.
+**Light only.** A dark theme shipped with this direction and was removed at the owner's request in
+July 2026; there is one set of tokens and no `prefers-color-scheme` block. `color-scheme` is declared
+as `light` rather than `light dark` — that is load-bearing, not tidying: on a machine set to dark
+mode the native select, caret and scrollbar otherwise keep rendering in dark chrome against the light
+page. If a dark theme is ever wanted again, it is a second token block and that one word, nothing
+else: no rule below hardcodes a colour.
 
-**Structure encodes meaning, so keep these two distinctions:**
+Rules: 9px radii on cells, chips and inputs; 6px on small controls. **No shadows** anywhere except a
+3px focus ring, which the boxed inputs and the primary button use in `--soft`. No gradients, no icon
+library. Headings are sentence case — the mono chrome carries light letter-spacing, but there are no
+uppercase eyebrows. Motion is limited to colour transitions, the chip checkmark, and the projection
+track's width; `prefers-reduced-motion` is already handled. Copy is English, plain verbs, sentence
+case, no exclamation marks, no encouragement or congratulation.
+
+**Structure encodes meaning, so keep these distinctions:**
 
 - **Discrete goals get pips, rate goals get the track.** A `list` goal is a countable set of things,
   so it shows one pip per item. A `count` goal is a rate against a monthly quota, so it shows the
   projection track. Do not give both to the same goal — the pips would just restate the track.
 - **Past days are filled, future days are outlined.** The calendar's fill carries activity level;
   an unfilled outline means "hasn't happened yet", not "zero".
+- **One token means "no data".** `--c0` is the empty calendar cell, the unfilled part of every track
+  and bar, the empty pip and every chart well, so absence looks the same everywhere.
+- **A tapped chip fills with ink**, in the same language as a filled day. Anything you did is ink.
+- **A sub-goal is set a step below the goal it belongs to** — 12px against the goal name's 15px, and
+  the same step for a finished list item on the `Done` line. The goal is the heading; its sub-goals
+  are the items under it, and the type has to say so before the indentation does.
 - **Archived reads as dormant, not as an error.** The `archived` marker beside a title in the review
   and the stats share (`i.gone`), the editor's archived sub-goal rows, and the archive shelf all use
   `--dust`, the same grey as a dormancy label — it is a state, not a warning. `--danger` appears only
   on the permanent delete, which is the only control that destroys anything (§4.5).
 
-**Do not redesign.** A request to "add feature X" means adding it in this visual language. It does
-not license changing the palette, swapping typefaces, adding icons, or introducing shadows. If a new
-element has no obvious home in the existing vocabulary, ask before inventing one.
+**Do not redesign.** This direction replaced an earlier one (cool greys, a pine-green GitHub-style
+activity ramp, no dark theme) at the owner's request in July 2026; the thesis in §1 survived the
+change untouched, and that is the test any future proposal has to pass. A request to "add feature X"
+means adding it in this visual language. It does not license changing the palette, swapping
+typefaces, adding icons, or introducing shadows. If a new element has no obvious home in the existing
+vocabulary, ask before inventing one.
 
 ---
 

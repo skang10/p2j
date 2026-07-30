@@ -1405,15 +1405,36 @@ t('dormancy reads the sub-goals you still have', async () => {
   has(a.goalBlock(a.state.goals[0], '2026-07-15', a.firstDone()), 'untouched 14 days',
       'the archived sub no longer keeps it warm');
 });
-t('the editor says what its delete button will actually do', async () => {
+// The × used to remove the goal. It reads as "close this panel" everywhere else in
+// software, and that is how a goal got destroyed by someone meaning to put the editor
+// away. Panel-level × now closes; removing is a button that says which removal it is.
+t('the editor × closes the editor and cannot remove anything', async () => {
   const g = await arch(); const a = g.api;
-  has(a.goalEditor(a.state.goals[0]), 'title="Archive this goal"');
-  has(a.goalEditor(a.state.goals[0]), 'Removing this goal archives it', 'and explains it once');
-  has(a.goalEditor(a.state.goals[0]), 'The 11 check-ins', 'naming what is kept');
+  const ed = a.goalEditor(a.state.goals[0]);
+  has(ed, '<button class="x" data-edit="" title="Close">', 'the × is a close control');
+  no(ed, 'class="x" data-dg', 'no × anywhere removes the goal');
+  eq((ed.match(/data-dg=/g) || []).length, 1, 'exactly one control removes the goal');
+});
+t('the editor names the removal it will perform, and what survives', async () => {
+  const g = await arch(); const a = g.api;
+  const ed = a.goalEditor(a.state.goals[0]);
+  has(ed, '<button class="drop" data-dg="g1">Archive this goal</button>', 'labelled, not an icon');
+  has(ed, 'The 11 check-ins it already has stay in past months', 'naming what is kept');
   a.state.goals.push(JSON.parse(JSON.stringify(unlogged)));
-  const ed = a.goalEditor(a.state.goals[3]);
-  has(ed, 'title="Delete this goal"', 'nothing logged, so it is a plain delete');
-  no(ed, 'Removing this goal archives it', 'and no caption about keeping check-ins');
+  const ed2 = a.goalEditor(a.state.goals[3]);
+  has(ed2, '>Delete this goal</button>', 'nothing logged, so it is a plain delete');
+  has(ed2, 'nothing to keep', 'and it says so');
+  no(ed2, 'stay in past months', 'no promise about check-ins it does not have');
+});
+t('sub-goal rows keep their × , because a row-level × removes that row', async () => {
+  const g = await arch(); const a = g.api;
+  const ed = a.goalEditor(a.state.goals[0]);
+  has(ed, 'data-ds="s1"', 'the sub-goal row still has its own remove control');
+  has(ed, 'class="x" data-ds="s1"', 'and it is still an ×');
+});
+t('Done is the primary button and closes the editor', async () => {
+  const g = await arch(); const a = g.api;
+  has(a.goalEditor(a.state.goals[0]), '<button class="btn pri" data-edit="">Done</button>');
 });
 t('the archived flag survives an export/import round trip', async () => {
   const g = await arch(); const a = g.api;

@@ -5,294 +5,352 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Check-in</title>
 <style>
+  /* ───────────────────────────────────────────────────────────────────────
+     "Figure" — this is a plot of one person's attendance, not a dashboard.
+     Two rules generate everything below.
+
+     1. Recorded facts are ink; colour is reserved for claims about the future.
+        Every logged fact — calendar cells, pips, bars, share tracks, a chip you
+        have tapped — is drawn in one neutral ramp, darker with more activity.
+        --accent appears only where the app asserts something that is not yet
+        true: the projected segment of a track, the pace sentence, "met". §1 as
+        a colour rule, so the palette cannot flatter attendance into progress.
+
+     2. The instrument speaks in mono; you speak in your own voice. Chrome —
+        counts, dates, labels, tabs, section heads — is monospace. The titles you
+        typed and the sentences the app addresses you in are set in the humanist
+        face, so the record is visibly separate from the thing recorded.
+
+     Both themes are the same tokens. Nothing below hardcodes a colour. */
   :root{
-    /* surfaces — cool neutral, no paper tint */
-    --canvas:#F6F7F9; --surface:#FFFFFF;
-    --ink:#0F1419; --body:#39404A; --muted:#6E7681;
-    --faint:#F1F3F6; --line:#E4E7EC; --hair:#EFF1F4;
-    /* activity ramp — five steps of pine green */
-    --c0:#EDF0F3; --c1:#CCE8DA; --c2:#93D3B4; --c3:#4EAE83; --c4:#1E7A57;
-    --accent:#1E7A57; --soft:#EAF6F0; --edge:#B6DFC9; --wash:#DCEFE5;
-    /* dormancy + warnings */
-    --dust:#98A0AB; --alert:#A9703A; --danger:#B4483F; --ghost:#C3C9D2;
-    --r:8px; --rs:6px; --gap:6px;
+    /* light only, by the owner's decision — see §5.2. This also has to say `light`
+       rather than `light dark`, or the native select, caret and scrollbar keep
+       rendering in dark chrome on a dark-mode machine against a light page. */
+    color-scheme:light;
+    /* surfaces */
+    --paper:#F2F4F7; --surface:#FFFFFF; --sunk:#EFF2F6;
+    --faint:#F7F9FB; --hair:#EDF0F4; --line:#DFE4EA;
+    /* type */
+    --ink:#0B1220; --body:#3C4654; --muted:#6B7785; --dust:#98A2B0; --ghost:#C3CAD4;
+    /* activity ramp — one hue, five weights: more check-ins, more ink */
+    --c0:#E9EDF1; --c1:#B9C2CE; --c2:#7C8A9C; --c3:#465468; --c4:#141C29;
+    --on:#FFFFFF;
+    /* the one colour: claims, not facts */
+    --accent:#0E7C87; --soft:#E4F3F4; --edge:#A8D6DA; --wash:#D2EAEC;
+    --alert:#8F5F12; --danger:#B4483F;
+    --r:9px; --rs:6px; --gap:5px;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{
-    background:var(--canvas);
-    color:var(--body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-  }
-  .sheet{max-width:620px;margin:0 auto;min-height:100%;background:var(--surface);
+  body{background:var(--paper);color:var(--body);font-family:var(--sans);
+    font-size:13.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .sheet{max-width:640px;margin:0 auto;min-height:100%;background:var(--surface);
     border-left:1px solid var(--line);border-right:1px solid var(--line);padding:26px 30px 48px}
-  .mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
   button{font-family:inherit}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
 
   /* top bar */
   .top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px}
-  .top h1{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
-  .nav{display:flex;align-items:center;justify-content:space-between;gap:2px;margin-bottom:12px}
-  .nav .m{font-size:13px;min-width:124px;text-align:center;color:var(--ink);font-weight:500;
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .top h1{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--ink)}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:2px;margin-bottom:14px}
+  .nav .m{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;
+    letter-spacing:.01em;min-width:124px;text-align:center;color:var(--ink);font-weight:500}
   .nav button{font-size:15px;line-height:1;color:var(--muted);background:0;border:0;cursor:pointer;
     width:26px;height:26px;border-radius:var(--rs);transition:background .12s,color .12s}
   .nav button:hover:not(:disabled){color:var(--ink);background:var(--faint)}
   .nav button:disabled{opacity:.25;cursor:default}
 
-  /* month calendar */
-  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--gap);margin-bottom:6px}
-  .dow i{font-style:normal;font-size:11px;font-weight:500;color:var(--muted);text-align:center}
+  /* ── the signature: a month as a strip of presence ──────────────────────
+     A day you showed up is a solid block of ink with the date knocked out of
+     it. Consecutive days merge into one continuous strip, so a month reads as
+     a barcode: long unbroken runs, or scattered ticks. Runs break at the week
+     edge because the next day sits on the following row, not beside this one. */
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--gap);margin-bottom:7px}
+  .dow i{font-style:normal;font-family:var(--mono);font-size:10px;font-weight:500;
+    letter-spacing:.06em;color:var(--dust);text-align:center}
   .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--gap)}
-  .d{height:42px;background:var(--c0);border:0;border-radius:var(--r);cursor:pointer;position:relative;
-    display:grid;place-items:center;transition:background .15s ease,box-shadow .12s ease}
-  /* consecutive days read as one continuous bar */
+  .d{height:44px;background:var(--c0);border:0;border-radius:var(--r);cursor:pointer;position:relative;
+    display:grid;place-items:center;transition:background .18s ease,box-shadow .12s ease}
   .d.cL{border-top-left-radius:0;border-bottom-left-radius:0}
   .d.cR{border-top-right-radius:0;border-bottom-right-radius:0}
   .d.cL::before{content:"";position:absolute;left:calc(var(--gap)*-1);top:0;bottom:0;
-    width:var(--gap);background-color:inherit}
-  .d .num{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    width:calc(var(--gap) + 1px);background-color:inherit}
+  .d .num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:11.5px;
+    color:var(--muted);transition:color .18s ease}
   .d[data-l="1"]{background:var(--c1)} .d[data-l="2"]{background:var(--c2)}
   .d[data-l="3"]{background:var(--c3)} .d[data-l="4"]{background:var(--c4)}
-  .d[data-l="1"] .num{color:var(--accent)}
-  .d[data-l="2"] .num,.d[data-l="3"] .num,.d[data-l="4"] .num{color:var(--surface)}
+  .d[data-l="1"] .num{color:var(--ink)}
+  .d[data-l="2"] .num,.d[data-l="3"] .num,.d[data-l="4"] .num{color:var(--on)}
   .d.pad{background:transparent;cursor:default}
   .d.future{background:transparent;box-shadow:inset 0 0 0 1px var(--hair);cursor:default}
   .d.future .num{color:var(--ghost)}
+  /* today is where you are, so it is the instrument's crosshair, not data */
   .d.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
   .d.sel{box-shadow:inset 0 0 0 2px var(--ink)}
+  .d.today.sel{box-shadow:inset 0 0 0 2px var(--ink),inset 0 0 0 4px var(--soft)}
   .d:not(.pad):not(.future):hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
 
-  /* year strip */
-  .year{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:10px 0 0}
-  .ym{height:20px;background:var(--c0);border:0;border-radius:var(--rs);cursor:pointer;
-    font-size:10px;color:var(--muted);display:flex;align-items:center;justify-content:center;
-    line-height:1;font-family:ui-monospace,Menlo,monospace;transition:box-shadow .12s}
+  /* year strip: twelve months at a glance, same ramp, one row */
+  .year{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin:12px 0 0}
+  .ym{height:22px;background:var(--c0);border:0;border-radius:var(--rs);cursor:pointer;
+    font-family:var(--mono);font-size:9.5px;color:var(--muted);display:flex;align-items:center;
+    justify-content:center;line-height:1;transition:box-shadow .12s,background .18s}
   .ym[data-l="1"]{background:var(--c1)} .ym[data-l="2"]{background:var(--c2)}
   .ym[data-l="3"]{background:var(--c3)} .ym[data-l="4"]{background:var(--c4)}
-  .ym[data-l="2"],.ym[data-l="3"],.ym[data-l="4"]{color:var(--surface)}
-  .ym.cur{box-shadow:inset 0 0 0 1.5px var(--ink)}
+  .ym[data-l="1"]{color:var(--ink)}
+  .ym[data-l="2"],.ym[data-l="3"],.ym[data-l="4"]{color:var(--on)}
+  .ym.cur{box-shadow:inset 0 0 0 1.5px var(--accent)}
   .ym:hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
 
-  .tally{display:flex;flex-wrap:wrap;gap:6px 22px;padding:18px 0 20px;
-    border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);align-items:baseline}
-  .tally b{font-weight:600;color:var(--ink);font-size:19px;letter-spacing:-.02em}
-
-  /* panel head — three peer views on a rail, current one marked */
-  .phead{display:flex;align-items:baseline;gap:12px;margin:24px 0 16px;
+  /* readouts: the three numbers the month comes down to, set as an instrument
+     panel — figure first at size, its label underneath in the chrome face */
+  .tally{display:flex;flex-direction:column;padding:16px 0 0;
     border-bottom:1px solid var(--line)}
-  .tabs{display:flex;align-items:baseline;gap:22px}
-  .tab{font:inherit;font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--muted);
-    background:0;border:0;padding:0 0 9px;cursor:pointer;position:relative;transition:color .12s}
+  .tally span{display:flex;align-items:baseline;gap:12px;padding:11px 0;
+    border-bottom:1px solid var(--hair);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted)}
+  .tally span:last-child{border-bottom:0}
+  .tally b{font-weight:500;color:var(--ink);font-size:25px;line-height:1;letter-spacing:-.02em;
+    min-width:62px;text-align:right;flex:none}
+
+  /* three peer views on a rail, current one marked */
+  .phead{display:flex;align-items:baseline;gap:12px;margin:26px 0 18px;
+    border-bottom:1px solid var(--line)}
+  .tabs{display:flex;align-items:baseline;gap:20px}
+  .tab{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.01em;color:var(--muted);
+    background:0;border:0;padding:0 0 10px;cursor:pointer;position:relative;transition:color .12s}
   .tab:hover{color:var(--body)}
   .tab.on{color:var(--ink)}
   .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;
-    background:var(--ink);border-radius:1px}
-  .ctx{font-size:12.5px;color:var(--muted);white-space:nowrap;padding-bottom:9px}
-  .rcap{font-size:12.5px;color:var(--muted);margin:-4px 0 10px}
+    background:var(--ink)}
+  .ctx{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;padding-bottom:10px}
+  .rcap{font-family:var(--mono);font-size:11px;letter-spacing:.02em;color:var(--muted);margin:-6px 0 12px}
   .lnk{font-size:12.5px;color:var(--muted);cursor:pointer;border:0;background:0;padding:0;
     transition:color .12s}
   .lnk:hover{color:var(--ink)}
   .lnk.q{color:var(--muted)}
 
   /* goal block */
-  .goal{padding:18px 0;border-bottom:1px solid var(--hair)}
+  .goal{padding:20px 0;border-bottom:1px solid var(--hair)}
   .goal:last-of-type{border-bottom:0}
   .ghead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
   .gright{display:flex;align-items:baseline;gap:14px;flex:none}
-  .gedit{font-size:12.5px}
-  .goal.ed{background:var(--faint);border-radius:var(--r);border-bottom:0;padding:14px 16px;margin:8px 0}
+  .gedit{font-size:12px}
+  .goal.ed{background:var(--faint);border-radius:var(--r);border:1px solid var(--line);
+    border-bottom:1px solid var(--line);padding:15px 17px 17px;margin:10px 0}
   .goal.ed .cap{padding-top:6px}
-  .edfoot{padding-top:2px}
-  .frow{display:flex;align-items:center;gap:12px;padding:5px 0;cursor:pointer}
-  .frow>span{font-size:12.5px;color:var(--muted);width:134px;flex:none}
-  .esep{height:1px;background:var(--line);margin:11px 0 9px}
-  .flab{font-size:12.5px;color:var(--muted);padding:0 0 3px}
-  .fcount{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;opacity:.7}
-  /* archived: present but no longer live, so it reads in the dormant grey (§4.5) */
-  i.gone{font-style:normal;font-size:11.5px;color:var(--dust);margin-left:8px}
-  .flab.gone{color:var(--dust);padding-top:10px}
+  .edfoot{padding-top:14px}
+  .frow{display:block;padding:7px 0;cursor:pointer}
+  .frow>span{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;
+    color:var(--muted);padding-bottom:6px}
+  .ehead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px}
+  .ehead h3{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.04em;color:var(--muted)}
+  .ehead .x:hover{color:var(--ink);background:var(--surface)}
+  .dzone{padding-top:2px}
+  .esep{height:1px;background:var(--line);margin:13px 0 11px}
+  .flab{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted);padding:0 0 5px}
+  .fcount{font-variant-numeric:tabular-nums;opacity:.7}
+  i.gone{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.02em;
+    color:var(--dust);margin-left:9px}
+  .flab.gone{color:var(--dust);padding-top:12px}
   .erow.sub.gone .sname{flex:1;font-size:13px;color:var(--dust)}
   .lnk.dgr{color:var(--danger)}
   .lnk.dgr:hover{color:var(--danger)}
   .done{font-weight:600;color:var(--accent)}
-  .goal h3{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.005em}
-  .goal h3 .cold{font-weight:400;font-size:12px;color:var(--dust);margin-left:9px}
+  /* the goal's own name is yours, so it is set in the humanist face */
+  .goal h3{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-.011em}
+  .goal h3 .cold{font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.02em;
+    color:var(--dust);margin-left:10px}
   .goal h3 .cold.deep{color:var(--alert)}
-  .prog{font-size:12px;color:var(--muted);flex:none}
-  .prog b{color:var(--ink);font-weight:600;font-size:13.5px}
-  .prog .hit{color:var(--accent);font-weight:600}
+  .prog{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted);flex:none}
+  .prog b{color:var(--ink);font-weight:500;font-size:17px;letter-spacing:-.02em}
+  .prog .hit{color:var(--accent);font-weight:500}
 
-  /* pace: the projection track — dark = done, light = where this rate lands you */
-  .pace{margin:11px 0 0}
-  .ptrack{position:relative;height:5px;background:var(--c0);border-radius:3px;overflow:hidden}
+  /* the projection track states the app's whole argument: ink is what you did,
+     accent is where this rate lands you, the well is the shortfall */
+  .pace{margin:13px 0 0}
+  .ptrack{position:relative;height:6px;background:var(--c0);border-radius:3px;overflow:hidden}
   .ptrack i{position:absolute;top:0;bottom:0;display:block;transition:width .25s ease,left .25s ease}
   .ptrack .done{left:0;background:var(--c4);border-radius:3px}
-  .ptrack .proj{background:var(--c2)}
-  .pline{font-size:12px;color:var(--muted);margin:7px 0 0}
-  .pline .em{color:var(--ink);font-weight:500}
+  .ptrack .proj{background:var(--accent)}
+  .pline{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+  .pline .em{color:var(--accent);font-weight:500}
   .pline .warn{color:var(--alert)}
-  .pline .rate{color:var(--ink);font-weight:600;
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .pline .rate{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);font-weight:500}
 
-  .pips{display:flex;flex-wrap:wrap;gap:4px;margin:11px 0 0}
-  .pip{width:10px;height:10px;background:var(--c0);border-radius:3px}
+  .pips{display:flex;flex-wrap:wrap;gap:4px;margin:13px 0 0}
+  .pip{width:11px;height:11px;background:var(--c0);border-radius:3px}
   .pip.f{background:var(--c4)}
-  .bar{height:5px;background:var(--c0);border-radius:3px;margin:11px 0 0;overflow:hidden}
+  .bar{height:6px;background:var(--c0);border-radius:3px;margin:13px 0 0;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--c4);border-radius:3px}
 
-  .chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
-  .chip{font:inherit;font-size:13.5px;line-height:1.4;padding:8px 13px;border:1px solid var(--line);
-    background:var(--surface);color:var(--body);border-radius:var(--r);cursor:pointer;
+  /* a chip you have tapped is a recorded fact, so it fills with ink — the same
+     language as a filled day on the calendar */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:13px}
+  .chip{font:inherit;font-size:12px;line-height:1.4;padding:7px 11px;border:1px solid transparent;
+    background:var(--sunk);color:var(--body);border-radius:var(--r);cursor:pointer;
     transition:border-color .12s,background .12s,color .12s;
     display:inline-flex;align-items:center;gap:7px}
-  .chip:hover{border-color:var(--muted);color:var(--ink)}
-  .chip .tick{width:10px;height:10px;opacity:0;transition:opacity .12s;flex:none}
-  .chip.on{background:var(--soft);border-color:var(--edge);color:var(--accent);font-weight:500}
-  .chip.on:hover{border-color:var(--c3)}
+  .chip:hover{border-color:var(--c1);color:var(--ink)}
+  .chip .tick{width:9px;height:9px;opacity:0;transition:opacity .12s;flex:none}
+  .chip.on{background:var(--c4);border-color:var(--c4);color:var(--on);font-weight:500}
+  .chip.on:hover{background:var(--c3);border-color:var(--c3)}
   .chip.on .tick{opacity:1}
-  .chip .n{font-size:12px;opacity:.8;font-variant-numeric:tabular-nums;
-    font-family:ui-monospace,Menlo,monospace}
+  .chip .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:10.5px;opacity:.75}
   .grp{display:inline-flex}
   .grp .chip{border-radius:var(--r) 0 0 var(--r)}
-  .minus{font-size:14px;line-height:1;padding:8px 11px;border:1px solid var(--edge);border-left:0;
-    background:var(--soft);color:var(--accent);cursor:pointer;border-radius:0 var(--r) var(--r) 0;
-    transition:background .12s}
-  .minus:hover{background:var(--wash)}
+  .minus{font-size:13px;line-height:1;padding:7px 10px;border:1px solid var(--c4);border-left:0;
+    background:var(--c4);color:var(--on);cursor:pointer;border-radius:0 var(--r) var(--r) 0;
+    transition:background .12s,border-color .12s}
+  .minus:hover{background:var(--c3);border-color:var(--c3)}
 
-  .doneline{margin-top:12px;font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;
+  .doneline{margin-top:14px;font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;
     gap:5px 12px;align-items:baseline}
-  .doneline .lb{font-size:12px;color:var(--dust)}
-  .undone{font:inherit;font-size:12.5px;background:0;border:0;padding:0;cursor:pointer;color:var(--muted);
+  .doneline .lb{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--dust)}
+  .undone{font:inherit;font-size:12px;background:0;border:0;padding:0;cursor:pointer;color:var(--muted);
     text-decoration:line-through;text-decoration-color:var(--ghost);transition:color .12s}
   .undone:hover{color:var(--ink)}
-  .undone em{font-style:normal;opacity:.6;font-variant-numeric:tabular-nums;margin-left:4px;
-    font-family:ui-monospace,Menlo,monospace}
+  .undone em{font-style:normal;font-family:var(--mono);font-variant-numeric:tabular-nums;
+    opacity:.6;margin-left:5px}
   .hint{font-size:13px;color:var(--muted)}
 
   /* month review */
   .rev{padding:8px 0 0}
   .rrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
-    padding:11px 0;border-bottom:1px solid var(--hair);font-size:14px;color:var(--ink)}
-  .rrow .rv{font-size:12.5px;color:var(--muted);flex:none}
-  .rrow .rv b{color:var(--ink);font-weight:600;font-family:ui-monospace,Menlo,monospace;
-    font-variant-numeric:tabular-nums}
+    padding:12px 0;border-bottom:1px solid var(--hair);font-size:14px;color:var(--ink)}
+  .rrow .rv{font-family:var(--mono);font-size:11.5px;color:var(--muted);flex:none}
+  .rrow .rv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;font-size:13px}
   .rrow.idle{color:var(--dust)}
-  .rnote{margin-top:18px;font-size:12.5px;color:var(--muted);line-height:1.7}
+  .rnote{margin-top:20px;font-size:12.5px;color:var(--muted);line-height:1.75}
 
   /* ad-hoc tasks */
-  .goal.tmp{border-bottom:0;padding-top:18px}
-  .tlist{display:flex;flex-direction:column;margin:4px 0 6px}
-  .trow{display:flex;align-items:baseline;gap:9px;padding:5px 0;font-size:14px;color:var(--ink)}
+  .goal.tmp{border-bottom:0;padding-top:20px}
+  .tlist{display:flex;flex-direction:column;margin:5px 0 7px}
+  .trow{display:flex;align-items:baseline;gap:9px;padding:5px 0;font-size:13.5px;color:var(--ink)}
   .trow .td{color:var(--ghost);flex:none}
   .trow .tt{flex:1}
   .trow .x{opacity:0;transition:opacity .12s}
   .trow:hover .x,.trow .x:focus-visible{opacity:1}
-  .tin{width:100%;font-size:14px;border:1px solid var(--line)!important;border-radius:var(--r);
-    padding:9px 12px;margin-top:6px;background:var(--surface)}
+  .tin{width:100%;font-size:13.5px;border:1px solid var(--line)!important;border-radius:var(--r);
+    padding:10px 12px;margin-top:6px;background:var(--surface);color:var(--ink)}
   .tin::placeholder{color:var(--ghost)}
   .tin:focus{outline:0;border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--soft)}
 
   /* stats */
   .grow{flex:1}
-  .since{font-size:12.5px;color:var(--muted);padding:4px 0 2px}
-  .sh{font-size:13px;font-weight:600;color:var(--ink);letter-spacing:-.005em;
-    margin:28px 0 12px;padding-bottom:9px;border-bottom:1px solid var(--hair)}
-  .cols{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:5px;align-items:end}
-  .col{display:flex;flex-direction:column;gap:6px;background:0;border:0;padding:0;cursor:pointer}
+  .since{font-family:var(--mono);font-size:11px;color:var(--muted);padding:6px 0 2px}
+  .sh{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.04em;color:var(--muted);
+    margin:30px 0 13px;padding-bottom:10px;border-bottom:1px solid var(--hair)}
+  .cols{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:4px;align-items:end}
+  .col{display:flex;flex-direction:column;gap:7px;background:0;border:0;padding:0;cursor:pointer}
   .col:disabled{cursor:default}
-  .box{display:flex;align-items:flex-end;background:var(--faint);border-radius:var(--rs);overflow:hidden}
-  .fill{width:100%;background:var(--c3);border-radius:var(--rs) var(--rs) 0 0;transition:height .2s ease}
+  .box{display:flex;align-items:flex-end;background:var(--c0);border-radius:var(--rs);overflow:hidden}
+  .fill{width:100%;background:var(--c3);border-radius:var(--rs) var(--rs) 0 0;transition:height .2s ease,background .12s}
   .col:not(:disabled):hover .fill{background:var(--c4)}
-  .col i{font-style:normal;font-size:10px;color:var(--muted);text-align:center;
-    font-family:ui-monospace,Menlo,monospace}
-  .share{display:flex;flex-direction:column;gap:9px}
+  .col i{font-style:normal;font-family:var(--mono);font-size:9.5px;color:var(--muted);text-align:center}
+  .share{display:flex;flex-direction:column;gap:10px}
   .shrow{display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--ink)}
-  .shrow .lb{width:96px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .shrow .track{flex:1;height:9px;background:var(--faint);border-radius:5px;overflow:hidden}
+  .shrow .lb{width:104px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shrow .track{flex:1;height:10px;background:var(--c0);border-radius:5px;overflow:hidden}
   .shrow .track i{display:block;height:100%;background:var(--c3);border-radius:5px}
-  .shrow .v{font-size:12px;color:var(--muted);width:36px;text-align:right;flex:none;
-    font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .shrow .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:11.5px;
+    color:var(--muted);width:36px;text-align:right;flex:none}
   .ach{display:flex;flex-direction:column}
-  .arow{display:flex;align-items:baseline;gap:12px;padding:9px 0;
+  .arow{display:flex;align-items:baseline;gap:12px;padding:10px 0;
     border-bottom:1px solid var(--hair);font-size:13.5px;color:var(--ink)}
-  .arow .ad{font-size:11.5px;color:var(--muted);width:40px;flex:none;
-    font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .arow .ad{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:11px;
+    color:var(--muted);width:42px;flex:none}
   .arow .at{flex:1}
-  .arow .ag{font-size:11.5px;color:var(--dust);flex:none}
-  .arow.hit .at{color:var(--accent);font-weight:600}
+  .arow .ag{font-family:var(--mono);font-size:10.5px;color:var(--dust);flex:none}
+  .arow.hit .at{color:var(--accent);font-weight:500}
 
-  /* editor */
-  .foot{padding-top:28px}
-  .linkbtn{font:inherit;font-size:12.5px;color:var(--muted);background:0;border:0;
-    cursor:pointer;padding:0;transition:color .12s}
-  .linkbtn:hover{color:var(--ink)}
+  /* editor + footer */
+  .foot{padding-top:30px}
   .erow{display:flex;align-items:center;gap:7px;padding:6px 0}
-  .erow.sub{padding-left:18px}
-  input[type=text]{font:inherit;font-size:14px;border:0;border-bottom:1px solid transparent;background:0;
+  .erow.sub{padding-left:0}
+  input[type=text]{font:inherit;font-size:13.5px;border:0;border-bottom:1px solid transparent;background:0;
     padding:4px 0;flex:1;min-width:0;color:var(--ink);border-radius:0}
   input[type=text]:hover{border-bottom-color:var(--line)}
   input[type=text]:focus{outline:0;border-bottom-color:var(--accent)}
-  .erow.lv1 input[type=text]{font-weight:600}
   select,input[type=number]{font:inherit;font-size:12px;color:var(--muted);
     background:var(--surface);border:1px solid var(--line);border-radius:var(--rs);padding:5px 6px;flex:none;
     transition:border-color .12s,color .12s}
   input[type=number]{width:56px;text-align:center;font-variant-numeric:tabular-nums}
+  input.etitle{font-size:16px;font-weight:600;color:var(--ink);background:var(--surface);
+    border:1px solid var(--line);border-bottom-color:var(--line);border-radius:var(--r);
+    padding:10px 12px;width:100%;display:block;transition:border-color .12s}
+  input.etitle:hover{border-color:var(--muted)}
+  input.etitle:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--soft)}
+  .frow select{width:100%;font-size:13px;color:var(--ink);padding:9px 10px}
+  .frow input[type=number]{width:104px;font-size:13px;color:var(--ink);padding:9px 10px;text-align:left;
+    font-family:var(--mono)}
+  .goal.ed .erow.sub input[type=text]{font-size:13px;background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--rs);padding:8px 10px}
+  .goal.ed .erow.sub input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--soft)}
+  .goal.ed .add{padding-left:0}
   select:focus,input:focus{outline:0;border-color:var(--accent);color:var(--ink)}
   select:hover,input[type=number]:hover{border-color:var(--muted)}
   .x{font:inherit;font-size:16px;line-height:1;color:var(--ghost);background:0;border:0;cursor:pointer;
     padding:3px 5px;flex:none;border-radius:var(--rs);transition:color .12s,background .12s}
   .x:hover{color:var(--danger);background:var(--faint)}
-  .add{font:inherit;font-size:13px;color:var(--muted);background:0;border:0;cursor:pointer;
-    padding:5px 0 5px 18px;text-align:left;transition:color .12s}
+  .add{font:inherit;font-size:12.5px;color:var(--muted);background:0;border:0;cursor:pointer;
+    padding:5px 0;text-align:left;transition:color .12s}
   .add:hover{color:var(--accent)}
-  .addgoal{padding-left:0;margin-top:12px;color:var(--accent);font-weight:500}
-  .cap{font-size:12px;color:var(--muted);padding-top:10px;line-height:1.6}
-  .tools{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;padding-top:14px}
+  .addgoal{margin-top:14px;color:var(--accent);font-weight:500}
+  .drop{font:inherit;font-size:12.5px;color:var(--body);background:var(--surface);cursor:pointer;
+    border:1px solid var(--line);border-radius:var(--rs);padding:8px 13px;
+    transition:color .12s,border-color .12s}
+  .drop:hover{color:var(--danger);border-color:var(--danger)}
+  .btn{font:inherit;font-size:12.5px;font-weight:500;cursor:pointer;border-radius:var(--rs);
+    padding:9px 19px;border:1px solid transparent;transition:background .12s,border-color .12s}
+  .btn.pri{background:var(--accent);color:var(--on);border-color:var(--accent)}
+  .btn.pri:hover{background:var(--ink);border-color:var(--ink)}
+  .btn:focus-visible{outline:0;box-shadow:0 0 0 3px var(--soft)}
+  .cap{font-size:12px;color:var(--muted);padding-top:10px;line-height:1.65}
+  .tools{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;padding-top:16px}
   .tools a.lnk{text-decoration:none}
   .tools a.lnk:hover{text-decoration:underline;text-underline-offset:3px}
   .warnrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px;
     font-size:12.5px;color:var(--alert)}
   .pick{font-weight:600;color:var(--accent);cursor:pointer}
   .notice{font-size:12.5px;color:var(--muted);padding-top:10px}
-  .store{font-size:11px;color:var(--ghost);padding-top:16px;word-break:break-all;
-    font-family:ui-monospace,Menlo,monospace}
-  .store .bad{color:var(--danger);font-family:inherit}
+  .store{font-family:var(--mono);font-size:10.5px;color:var(--ghost);padding-top:18px;word-break:break-all}
+  .store .bad{color:var(--danger);font-family:var(--sans)}
 
-  /* Desktop: calendar and the day's work sit side by side, divided by a rule.
-     Everything stays above the fold instead of scrolling a phone-shaped column. */
+  /* Desktop: the record on the left, the day's work on the right, divided by a
+     rule. Everything stays above the fold instead of scrolling a phone column. */
   @media (min-width:820px){
-    .sheet{max-width:1000px;padding:28px 36px 36px}
-    /* the window's own title bar already says "Check-in" — don't repeat it */
-    .top{display:none}
-    .body{display:grid;grid-template-columns:336px minmax(0,1fr);align-items:stretch}
-    .calcol{padding-right:32px;border-right:1px solid var(--line)}
-    .panel{padding-left:32px}
-    .tally{border-bottom:0;padding:16px 0 0}
+    .sheet{max-width:1020px;padding:30px 38px 38px}
+    .top{display:none}          /* the window's title bar already says "Check-in" */
+    .body{display:grid;grid-template-columns:344px minmax(0,1fr);align-items:stretch}
+    .calcol{padding-right:34px;border-right:1px solid var(--line)}
+    .panel{padding-left:34px}
+    .tally{border-bottom:0;padding:20px 0 0}
     .panel .phead{margin-top:0}
-    .calcol .nav{margin-bottom:14px}
-    .foot{border-top:1px solid var(--hair);margin-top:32px;padding-top:20px}
-    .d{height:40px}
-    .cal,.dow{--gap:5px}
+    .calcol .nav{margin-bottom:16px}
+    .foot{border-top:1px solid var(--hair);margin-top:34px;padding-top:22px}
+    .d{height:42px}
   }
   @media (max-width:620px){
     .sheet{padding:20px 16px 40px;border:0}
-    .d{height:40px} .nav .m{min-width:112px}
+    .d{height:42px} .nav .m{min-width:112px}
+    .tally b{font-size:24px}
   }
   /* Short viewports — a 13" MacBook leaves ~750px of webview. Same rhythm, tighter. */
   @media (max-height:820px){
     .sheet{padding-top:20px;padding-bottom:32px}
     .top{padding-bottom:12px}
-    .d{height:36px} .cal,.dow{--gap:5px}
-    .tally{padding:13px 0 15px} .tally b{font-size:18px}
-    .phead{margin:16px 0 12px}
-    .goal{padding:13px 0}
-    .chips{margin-top:9px}
-    .pips,.bar,.pace{margin-top:8px}
-    .sh{margin:20px 0 9px;padding-bottom:7px}
-    .foot{padding-top:20px}
+    .d{height:37px}
+    .tally{padding:15px 0 16px;gap:12px 22px} .tally b{font-size:23px}
+    .phead{margin:18px 0 13px}
+    .goal{padding:14px 0}
+    .chips{margin-top:10px}
+    .pips,.bar,.pace{margin-top:9px}
+    .sh{margin:22px 0 10px;padding-bottom:8px}
+    .foot{padding-top:22px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -774,15 +832,15 @@ function goalEditor(g){
   const field=(lb,ctrl)=>`<label class="frow"><span>${lb}</span>${ctrl}</label>`;
   const kept=goalCount(g), keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);
   return `<div class="goal ed">
-    <div class="erow lv1">
-      <input type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
-      <button class="x" data-dg="${g.id}" title="${keep?'Archive this goal':'Delete this goal'}">×</button>
-    </div>
+    <div class="ehead"><h3>Edit goal</h3>
+      <button class="x" data-edit="" title="Close">×</button></div>
+    <input class="etitle" type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
     ${field('What a tap does',
       `<select data-gy="${g.id}">${Object.entries(TAP).map(([v,n])=>
         `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>`)}
     ${g.type==='count'?field('Monthly target',
-      `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`):''}
+      `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`)
+      +'<p class="cap">The target resets to 0 on the 1st of each month.</p>':''}
     ${field('Say “untouched”',
       `<select data-gc="${g.id}">${Object.entries(CAD).map(([v,c])=>
         `<option value="${v}"${g.cad===v?' selected':''}>${cadName(c)}</option>`).join('')}</select>`)}
@@ -794,14 +852,19 @@ function goalEditor(g){
     ${gone.length?`<p class="flab gone">Archived <span class="fcount">${gone.length}</span></p>
       ${gone.map(s=>`<div class="erow sub gone"><span class="sname">${esc(s.title)}</span>
         <button class="lnk" data-rs="${s.id}">Restore</button></div>`).join('')}`:''}
-    <div class="erow edfoot">
-      <button class="add" data-as="${g.id}">+ sub-goal</button>
-      <span class="grow"></span>
-      <button class="lnk done" data-edit="">Done</button>
+    <button class="add" data-as="${g.id}">+ sub-goal</button>
+    <div class="esep"></div>
+    <div class="dzone">
+      <button class="drop" data-dg="${g.id}">${keep?'Archive this goal':'Delete this goal'}</button>
+      <p class="cap">${keep
+        ? `The ${kept} check-in${kept===1?'':'s'} it already has stay in past months;
+           it leaves this screen. You can restore it from the footer.`
+        : 'It has no check-ins, so there is nothing to keep.'}</p>
     </div>
-    ${g.type==='count'?'<p class="cap">The target resets to 0 on the 1st of each month.</p>':''}
-    ${keep?`<p class="cap">Removing this goal archives it. The ${kept} check-in${kept===1?'':'s'}
-      it already has stay in past months; it leaves this screen.</p>`:''}
+    <div class="erow edfoot">
+      <span class="grow"></span>
+      <button class="btn pri" data-edit="">Done</button>
+    </div>
   </div>`;
 }
 
@@ -940,7 +1003,7 @@ function statsPanel(){
     <div class="tally mono" style="border:0;padding:10px 0 4px">
       <span><b>${days}</b> day${days===1?'':'s'} logged</span>
       <span><b>${hits}</b> check-in${hits===1?'':'s'}</span>
-      ${span?`<span><b>${Math.round(days/span*100)}</b>% attendance</span>`:''}
+      ${span?`<span><b>${Math.round(days/span*100)}%</b> attendance</span>`:''}
     </div>
     <p class="since">Since ${first?label(first):'—'}, ${span} day${span===1?'':'s'}.</p>
 
