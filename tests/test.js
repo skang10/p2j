@@ -640,11 +640,19 @@ t('the run appears in the tally, pluralised', async () => {
   a.render();
   has(g.captured.app, '<b>2</b><em>days in a row');
 });
-t('the tally hides the run when there is none', async () => {
+// The run is the only readout left under the calendar and it hides itself at zero,
+// so the container has to go with it — an empty one would draw its rule under nothing,
+// the same way the footer did.
+t('the readout block disappears entirely when there is no run', async () => {
   const g = await bootReady();
   g.api.state.logs = {};
   g.api.render();
   no(g.captured.app, 'in a row');
+  no(g.captured.app, 'class="tally mono"', 'no container, so no rule');
+  no(g.captured.app, 'active this month', 'the active-days readout is gone for good');
+  g.api.sel = g.api.todayKey();
+  g.api.bump(g.api.state.goals[0].subs[0].id, 1);
+  has(g.captured.app, 'class="tally mono"', 'and it returns once there is a run');
 });
 
 // ---------- joining consecutive days in the calendar ----------

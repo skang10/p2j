@@ -531,8 +531,6 @@ function render(){
   const n=today(), tk=todayKey();
   const isCur = view.y===n.getFullYear() && view.m===n.getMonth();
   const canNext = view.y<n.getFullYear() || (view.y===n.getFullYear()&&view.m<n.getMonth());
-  const act=activeDays(view.y,view.m), dim=daysIn(view.y,view.m);
-  const elapsed = isCur ? n.getDate() : dim;
   const run=streak();
 
   document.getElementById('app').innerHTML=`
@@ -549,10 +547,9 @@ function render(){
         </div>
         <div class="dow">${DOW.map(d=>`<i>${d}</i>`).join('')}</div>
         <div class="cal">${calendar(tk)}</div>
-        <div class="tally mono">
-          ${run?`<span><b>${run}</b><em>day${run===1?'':'s'} in a row</em></span>`:''}
-          <span><b>${act}</b><i>/${elapsed}</i><em>active this month</em></span>
-        </div>
+        ${run?`<div class="tally mono">
+          <span><b>${run}</b><em>day${run===1?'':'s'} in a row</em></span>
+        </div>`:''}
       </div>
       <div class="panel">
         ${panel==='stats' ? statsPanel() : panel==='review' ? reviewPanel() : dayPanel(sel||tk,tk)}
