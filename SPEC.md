@@ -584,8 +584,20 @@ which one first.
    here` — which is a fact rather than a prediction. A met target still reports `met` on any date, so
    the cutoff cannot hide a real result. `ETAMIN` is a named constant beside `CAD` and `DEFCAD`.
 2. ~~**Export / import JSON.**~~ **Built.** See §5.1.
-3. **Cadence thresholds (3 / 10 / 35 days) are guesses.** After a month or two of real use, adjust
-   the numbers in `CAD` based on which tier nags too often or too late.
+3. **Cadence thresholds (3 / 10 / 35 days) are guesses.** Still open, and deliberately so — it needs
+   a month or two of real logs to tell which tier nags too often or too late, and that data does not
+   exist yet. Guessing again would not be an improvement over the current guess.
+
+   The change itself is now one line. `CAD` holds only the numbers, and both the dormancy check and
+   the editor's wording read from them (`cadName()` renders `after 10 days` from `CAD.weekly.d`), so
+   editing a threshold updates the behaviour and the copy together with nothing to keep in sync:
+
+   ```js
+   const CAD={daily:{d:3},weekly:{d:10},monthly:{d:35},free:{d:0}};
+   ```
+
+   The tests assert the tiers via `coldHead()` at each boundary, so a retune will fail them loudly
+   and show exactly which expectations to move.
 
 Two things worth knowing rather than fixing:
 
