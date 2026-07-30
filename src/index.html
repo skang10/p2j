@@ -131,7 +131,6 @@
   .lnk{font-size:12.5px;color:var(--muted);cursor:pointer;border:0;background:0;padding:0;
     transition:color .12s}
   .lnk:hover{color:var(--ink)}
-  .lnk.q{color:var(--muted)}
 
   /* goal block */
   .goal{padding:20px 0;border-bottom:1px solid var(--hair)}
@@ -162,9 +161,6 @@
   .done{font-weight:600;color:var(--accent)}
   /* the goal's own name is yours, so it is set in the humanist face */
   .goal h3{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-.011em}
-  .goal h3 .cold{font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.02em;
-    color:var(--dust);margin-left:10px}
-  .goal h3 .cold.deep{color:var(--alert)}
   .prog{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted);flex:none}
   .prog b{color:var(--ink);font-weight:500;font-size:17px;letter-spacing:-.02em}
   .prog .hit{color:var(--accent);font-weight:500}
@@ -225,19 +221,6 @@
   .rrow .rv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;font-size:13px}
   .rrow.idle{color:var(--dust)}
   .rnote{margin-top:20px;font-size:12.5px;color:var(--muted);line-height:1.75}
-
-  /* ad-hoc tasks */
-  .goal.tmp{border-bottom:0;padding-top:20px}
-  .tlist{display:flex;flex-direction:column;margin:5px 0 7px}
-  .trow{display:flex;align-items:baseline;gap:9px;padding:5px 0;font-size:13.5px;color:var(--ink)}
-  .trow .td{color:var(--ghost);flex:none}
-  .trow .tt{flex:1}
-  .trow .x{opacity:0;transition:opacity .12s}
-  .trow:hover .x,.trow .x:focus-visible{opacity:1}
-  .tin{width:100%;font-size:13.5px;border:1px solid var(--line)!important;border-radius:var(--r);
-    padding:10px 12px;margin-top:6px;background:var(--surface);color:var(--ink)}
-  .tin::placeholder{color:var(--ghost)}
-  .tin:focus{outline:0;border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--soft)}
 
   /* stats */
   .grow{flex:1}
@@ -364,13 +347,9 @@ const DOWN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturda
 const MON=['January','February','March','April','May','June',
            'July','August','September','October','November','December'];
 const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-// Dormancy follows the expected cadence, not the nature of the task
-const CAD={daily:{d:3},weekly:{d:10},monthly:{d:35},free:{d:0}};
-const cadName=c=>c.d?`after ${c.d} days`:'never';
-const DEFCAD={count:'daily',list:'monthly',daily:'weekly'};
 const ETAMIN=5;   // days that must have elapsed before a rate is worth projecting (§8.1)
 let state={goals:[],logs:{}};
-let view=null, sel=null, panel='day', editing=null, dataPath='', saveErr=false, refocus=false;
+let view=null, sel=null, panel='day', editing=null, dataPath='', saveErr=false;
 let confirming=false, notice='';   // import is destructive, so it asks first
 let undo=null, purging=null;       // the last goal removed, and one awaiting a permanent delete
 
@@ -414,9 +393,8 @@ async function load(){
   try{ dataPath = await Store.where(); }catch(e){ dataPath=''; }
   if(!state.goals||!state.goals.length) state=seed();
   if(!state.logs) state.logs={};
-  if(!state.adhoc) state.adhoc={};   // ad-hoc: date -> array of strings
   state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
-    if(!CAD[g.cad]) g.cad=DEFCAD[g.type]||'weekly'; });
+    delete g.cad; });   // cadence is gone; drop the dead field on the way through
   const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey();
   render();
 }
@@ -430,13 +408,13 @@ function save(){
 }
 function seed(){
   return {logs:{},goals:[
-    {id:newId(),type:'count',cad:'daily',target:40,title:'Problems',subs:[
+    {id:newId(),type:'count',target:40,title:'Problems',subs:[
       {id:newId(),title:'Arrays / strings'},{id:newId(),title:'Lists / trees'},
       {id:newId(),title:'DP'},{id:newId(),title:'Other'}]},
-    {id:newId(),type:'list',cad:'monthly',title:'To learn',subs:[
+    {id:newId(),type:'list',title:'To learn',subs:[
       {id:newId(),title:'Rolling IC'},{id:newId(),title:'Block bootstrap'},
       {id:newId(),title:'PSI / CSI'},{id:newId(),title:'Kalman filter'}]},
-    {id:newId(),type:'daily',cad:'weekly',title:'Job hunt',subs:[
+    {id:newId(),type:'daily',title:'Job hunt',subs:[
       {id:newId(),title:'Applications'},{id:newId(),title:'Resume'},{id:newId(),title:'Interview prep'}]}
   ]};
 }
@@ -458,7 +436,6 @@ function parseImport(text){
   if(!Array.isArray(d.goals)) throw new Error('no goals list');
   const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
   if(d.logs!==undefined&&!obj(d.logs)) throw new Error('logs is not a map');
-  if(d.adhoc!==undefined&&!obj(d.adhoc)) throw new Error('adhoc is not a map');
   for(const g of d.goals){
     if(!obj(g)||typeof g.title!=='string'||typeof g.id!=='string')
       throw new Error('a goal is missing its id or title');
@@ -470,26 +447,21 @@ function applyImport(text){
   const d=parseImport(text);
   state=d;
   if(!state.logs) state.logs={};
-  if(!state.adhoc) state.adhoc={};
   state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
-    if(!CAD[g.cad]) g.cad=DEFCAD[g.type]||'weekly'; });
+    delete g.cad; });   // cadence is gone; drop the dead field on the way through
   const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey();
   panel='day'; editing=null; confirming=false; undo=null; purging=null;
-  const days=Object.keys(state.logs).length+Object.keys(state.adhoc).length;
+  const days=Object.keys(state.logs).length;
   notice=`Imported ${state.goals.length} goal${state.goals.length===1?'':'s'} and ${days} dated entr${days===1?'y':'ies'}.`;
   save(); render();
 }
 
 /* ---------- derived ---------- */
-const dayTotal=k=>Object.values(state.logs[k]||{}).reduce((a,b)=>a+b,0)
-                 +(state.adhoc[k]||[]).length;
-const adhocMonth=(y,m)=>{let n=0;for(const k in state.adhoc) if(inMonth(k,y,m)) n+=state.adhoc[k].length;return n;};
-const adhocAll=()=>Object.values(state.adhoc).reduce((a,x)=>a+x.length,0);
+const dayTotal=k=>Object.values(state.logs[k]||{}).reduce((a,b)=>a+b,0);
 const level=n=>n===0?0:n===1?1:n===2?2:n<=4?3:4;
-// Every date with any activity, sorted. A day can exist in `adhoc` without ever
-// appearing in `logs`, and it is still a day you did something — anything that
-// measures activity must walk this, not `logs` alone.
-const dayKeys=()=>[...new Set([...Object.keys(state.logs),...Object.keys(state.adhoc)])].sort();
+// Every date with any activity, sorted. Kept as the single entry point for
+// "which days count", so a second source of activity can be added back in one place.
+const dayKeys=()=>Object.keys(state.logs).sort();
 function subTotal(id,y,m){
   let n=0;
   for(const k in state.logs){ if(y!==undefined&&!inMonth(k,y,m))continue; n+=state.logs[k][id]||0; }
@@ -499,13 +471,6 @@ function firstDone(){
   const m={};
   Object.keys(state.logs).sort().forEach(d=>Object.keys(state.logs[d]).forEach(s=>{if(!m[s])m[s]=d;}));
   return m;
-}
-// Dormancy asks whether you are still working on this, so it reads the sub-goals you
-// still have. An archived one you touched yesterday must not keep the goal looking warm.
-function lastTouch(g){
-  let best=null;
-  for(const k in state.logs) if(liveSubs(g).some(s=>state.logs[k][s.id])) if(!best||k>best) best=k;
-  return best;
 }
 function activeDays(y,m){
   let n=0; for(const k of dayKeys()) if(inMonth(k,y,m)&&dayTotal(k)>0) n++;
@@ -596,19 +561,6 @@ function bump(id,delta){
   undo=null;   // checking in is moving on: the offer to undo a removal expires here
   save(); render();
 }
-function addAdhoc(text){
-  const t=text.trim(); if(!t) return;
-  const k=sel||todayKey();
-  state.adhoc[k]=state.adhoc[k]||[];
-  state.adhoc[k].push(t);
-  refocus=true; undo=null; save(); render();
-}
-function delAdhoc(k,i){
-  (state.adhoc[k]||[]).splice(i,1);
-  if(!state.adhoc[k].length) delete state.adhoc[k];
-  save(); render();
-}
-
 // Take one sub-goal out of every day it appears in. The only way logs are destroyed,
 // shared by the "undone" control and by a permanent delete (§4.5).
 function stripSub(id){
@@ -753,19 +705,7 @@ function dayPanel(k,tk){
   const F=firstDone();
   return `${tabs()}
     ${live().length?live().map(g=>goalBlock(g,k,F)).join('')
-      :'<p class="hint" style="padding:10px 0">No goals here. Use “+ goal” below to add one.</p>'}
-    ${adhocBlock(k)}`;
-}
-
-function adhocBlock(k){
-  const list=state.adhoc[k]||[];
-  return `<div class="goal tmp">
-    <div class="ghead"><h3>Ad-hoc</h3>${list.length?`<span class="prog mono"><b>${list.length}</b> ${list.length===1?'item':'items'}</span>`:''}</div>
-    ${list.length?`<div class="tlist">${list.map((t,i)=>
-      `<div class="trow"><span class="td">·</span><span class="tt">${esc(t)}</span>
-        <button class="x" data-dt="${i}" title="Delete">×</button></div>`).join('')}</div>`:''}
-    <input type="text" id="adhocIn" class="tin" placeholder="What else did you do? Enter to log" autocomplete="off">
-  </div>`;
+      :'<p class="hint" style="padding:10px 0">No goals here. Use “+ goal” below to add one.</p>'}`;
 }
 
 function goalBlock(g,k,F){
@@ -780,18 +720,6 @@ function goalBlock(g,k,F){
       : 'No sub-goals yet. Edit to add one.'}</p></div>`;
   const {y,m}=view, day=state.logs[k]||{};
   let right='',prog='',pace='',chips='',done='';
-
-  // dormancy
-  const thr=(CAD[g.cad]||CAD.weekly).d;
-  let cold='';
-  // A goal nobody has touched yet says nothing: its chips are already empty and its
-  // count already reads 0, so a label would only be restating them back at you. The
-  // dormancy label exists to mark a gap that opened after you had started.
-  if(thr>0){
-    const lt=lastTouch(g), n=today();
-    if(lt){ const gap=diffDays(parseKey(lt),n);
-      if(gap>=thr) cold=`<span class="cold${gap>=thr*3?' deep':''}">untouched ${gap} days</span>`; }
-  }
 
   if(g.type==='count'){
     const target=g.target||40, c=goalCount(g,y,m);
@@ -821,7 +749,7 @@ function goalBlock(g,k,F){
   }
 
   return `<div class="goal">
-    <div class="ghead"><h3>${esc(g.title)}${cold}</h3><div class="gright">${right}${ed}</div></div>
+    <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${right}${ed}</div></div>
     ${prog}${pace}<div class="chips">${chips}</div>${done}</div>`;
 }
 
@@ -843,9 +771,6 @@ function goalEditor(g){
     ${g.type==='count'?field('Monthly target',
       `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`)
       +'<p class="cap">The target resets to 0 on the 1st of each month.</p>':''}
-    ${field('Say “untouched”',
-      `<select data-gc="${g.id}">${Object.entries(CAD).map(([v,c])=>
-        `<option value="${v}"${g.cad===v?' selected':''}>${cadName(c)}</option>`).join('')}</select>`)}
     <div class="esep"></div>
     <p class="flab">Sub-goals${subs.length?` <span class="fcount">${subs.length}</span>`:''}</p>
     ${subs.map(s=>`<div class="erow sub">
@@ -932,13 +857,10 @@ function reviewPanel(){
     return `<div class="rrow${idle?' idle':''}"><span>${esc(g.title)}${
       g.archived?'<i class="gone">archived</i>':''}</span><span class="rv">${v}</span></div>`;
   }).join('');
-  const ah=adhocMonth(y,m);
-  const arow=`<div class="rrow${ah?'':' idle'}"><span>Ad-hoc</span><span class="rv">${
-    ah?`<b>${ah}</b> ${ah===1?'item':'items'}`:'—'}</span></div>`;
   const idle=live().filter(g=>goalDays(g,y,m)===0).map(g=>g.title);
   return `${tabs()}
     <p class="rcap">${MON[m]} ${y}${isCur?' · still in progress':''}</p>
-    <div class="rev">${rows}${arow}
+    <div class="rev">${rows}
       ${idle.length?`<p class="rnote">Untouched all month: ${idle.map(esc).join(', ')}.<br>Next month either give it time or archive it.</p>`:''}
     </div>`;
 }
@@ -960,8 +882,6 @@ function achievements(){
       });
     }
   });
-  Object.entries(state.adhoc).forEach(([k,list])=>
-    list.forEach(t=>out.push({d:k,g:'Ad-hoc',t})));
   return out.sort((a,b)=>a.d<b.d?1:-1);
 }
 
@@ -989,7 +909,6 @@ function statsPanel(){
   // every goal, archived included: this is a share of what was actually logged
   const share=state.goals.map(g=>({t:g.title,gone:!!g.archived,
                                    v:g.subs.reduce((a,s)=>a+subTotal(s.id),0)}))
-                         .concat([{t:'Ad-hoc',v:adhocAll()}])
                          .filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
   const tot=share.reduce((a,x)=>a+x.v,0)||1;
 
@@ -1038,12 +957,6 @@ function bind(){
   on('[data-add]',b=>b.onclick=()=>bump(b.dataset.add,1));
   on('[data-minus]',b=>b.onclick=()=>bump(b.dataset.minus,-1));
   on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
-  on('[data-dt]',b=>b.onclick=()=>delAdhoc(sel||todayKey(),+b.dataset.dt));
-  const ai=document.getElementById('adhocIn');
-  if(ai){
-    ai.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); addAdhoc(ai.value); } };
-    if(refocus){ refocus=false; ai.focus(); }
-  }
   on('.d[data-k]',c=>c.onclick=()=>{ sel=c.dataset.k; panel='day'; render(); });
   on('.ym[data-m]',b=>b.onclick=()=>{ view={y:view.y,m:+b.dataset.m};
     const n=today(); const cur=view.y===n.getFullYear()&&view.m===n.getMonth();
@@ -1083,17 +996,14 @@ function bind(){
   const ag=document.getElementById('ag');
   if(ag) ag.onclick=()=>{ if(live().length>=MAXGOALS)return;
     const id=newId();
-    state.goals.push({id,type:'daily',cad:DEFCAD.daily,title:'New goal',
+    state.goals.push({id,type:'daily',title:'New goal',
                       subs:[{id:newId(),title:'New sub-goal'}]});
     editing=id; panel='day'; undo=null; save(); render();};
   on('[data-as]',b=>b.onclick=()=>{
     state.goals.find(g=>g.id===b.dataset.as).subs.push({id:newId(),title:'New sub-goal'});save();render();});
   on('[data-gt]',i=>i.oninput=()=>{state.goals.find(g=>g.id===i.dataset.gt).title=i.value;save();});
   on('[data-gy]',s=>s.onchange=()=>{const g=state.goals.find(g=>g.id===s.dataset.gy);
-    g.type=s.value; if(g.type==='count'&&!g.target)g.target=40;
-    g.cad=DEFCAD[g.type]||'weekly'; save(); render();});
-  on('[data-gc]',s=>s.onchange=()=>{
-    state.goals.find(g=>g.id===s.dataset.gc).cad=s.value; save(); render();});
+    g.type=s.value; if(g.type==='count'&&!g.target)g.target=40; save(); render();});
   on('[data-gn]',i=>i.oninput=()=>{
     state.goals.find(g=>g.id===i.dataset.gn).target=Math.max(1,+i.value||1); save();});
   on('[data-st]',i=>i.oninput=()=>{

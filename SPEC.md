@@ -26,7 +26,7 @@ server.
 
 The design premise, which explains most of the decisions below: **a check-in log measures attendance,
 not progress.** Someone can be green for 200 straight days and still have finished nothing. So the
-app derives pace, projected completion, and dormancy from the raw log, and is sparing with the
+app derives pace and projected completion from the raw log, and is sparing with the
 mechanics (badges, notifications) that optimize for attendance. A consecutive-day count was added
 later at the owner's request — see §6 — but it is reported as a plain number beside the other counts,
 with no celebration, no reminder to protect it, and no penalty screen when it ends.
@@ -38,7 +38,7 @@ with no celebration, no reminder to protect it, and no penalty screen when it en
 These are settled decisions, not preferences. If a task seems to require breaking one, stop and ask.
 
 1. **All business logic lives in the frontend.** Rust does exactly three things: read a file, write a
-   file, report its path. Date math, progress, ETA, dormancy thresholds, and charts are all
+   file, report its path. Date math, progress, ETA and charts are all
    JavaScript. This keeps the edit-reload loop instant instead of waiting on `cargo build`. Do not
    move logic into Rust.
 2. **The frontend stays one file.** `src/index.html` contains all markup, styles, and script. No
@@ -222,7 +222,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 170 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 153 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -242,7 +242,7 @@ Two consequences worth knowing:
   `${LEFT} days left` passed for a month and then failed on the 30th.
 
 Coverage is the derived layer and the render output: date maths including a DST boundary, every
-derived count, all three goal types, all six `paceLine` branches, dormancy at each threshold, the
+derived count, all three goal types, all six `paceLine` branches, the
 projection track's geometry, streak runs and how they break, HTML escaping in all three panels,
 legacy-file migration, pluralisation, the two-pane structure, the §4.1 no-cached-totals invariant,
 and the §4.5 archive rule — including the one that matters most there, that archiving a goal leaves
@@ -270,7 +270,6 @@ One JSON file. Location is returned by the `data_path` command:
       "id": "a1b2c3",
       "title": "Problems",
       "type": "count",      // "daily" | "count" | "list"
-      "cad": "daily",       // "daily" | "weekly" | "monthly" | "free" — drives dormancy
       "target": 40,         // count only: per-MONTH quota
       "archived": true,     // optional, §4.5: kept for the record, off the check-in screen
       "subs": [ { "id": "d4e5f6", "title": "DP" } ]   // a sub may carry "archived" too
@@ -278,9 +277,6 @@ One JSON file. Location is returned by the `data_path` command:
   ],
   "logs": {
     "2026-07-28": { "d4e5f6": 2, "x9y8z7": 1 }    // date → { subgoalId: times }
-  },
-  "adhoc": {
-    "2026-07-28": ["fixed the cache bug", "replied to HR"]  // date → free-text entries
   }
 }
 ```
@@ -289,15 +285,15 @@ Written with `JSON.stringify(state, null, 1)` so the file stays human-readable a
 
 ### 4.1 The one rule that matters: progress is computed, never stored
 
-`logs` and `adhoc` are the sole source of truth. Completion counts, monthly totals, pace, ETA,
-dormancy gaps, and every chart are recomputed from them on each render.
+`logs` is the sole source of truth. Completion counts, monthly totals, pace, ETA and every chart are
+recomputed from it on each render.
 
-**Anything counting *days* must walk `dayKeys()`, not `Object.keys(state.logs)`.** A day whose only
-activity is an ad-hoc entry exists in `adhoc` and never in `logs`. Six counters originally iterated
-`logs` alone, so such a day was coloured green on the calendar (`dayTotal` includes ad-hoc) while
-being skipped by the active-day tally, the check-in total, the weekday chart, days-logged, and the
-"since" date. `dayKeys()` unions both maps and sorts, so the calendar and the counters cannot
-disagree.
+**Anything counting *days* must walk `dayKeys()`, not `Object.keys(state.logs)` directly.** This was
+once load-bearing: ad-hoc entries lived in a second map and a day holding only those existed there
+and never in `logs`, so six counters that iterated `logs` alone disagreed with the calendar about
+which days were active. Ad-hoc is gone (§4.4) and the two are the same set again, but the single
+entry point stays — if a second source of activity is ever added, there is one function to change
+rather than six.
 
 Never introduce a field like `"completed": 23`. The moment a cached total exists, backfilling a
 missed day or deleting a wrong entry silently desynchronizes it. The dataset is a few thousand
@@ -318,59 +314,36 @@ the user experiences.
 `count` targets are **monthly** and reset naturally on the 1st, because only that month's logs are
 summed. This is what gives the cycle an ending. `list` is not month-scoped; it spans months.
 
-### 4.3 Dormancy follows cadence, not task nature
+### 4.3 The consecutive-day count
 
-`cad` sets how long a goal can sit untouched before its heading shows `untouched N days`:
-
-| cad | threshold | intended for |
-|---|---|---|
-| `daily` | 3 days | things meant to happen every day |
-| `weekly` | 10 days | things meant to happen weekly |
-| `monthly` | 35 days | effectively only fires when a whole month is skipped |
-| `free` | never | anything that shouldn't nag |
-
-At 3× the threshold the label darkens. **A goal that has never been touched carries no label at
-all** — it is new, not dormant. It briefly read `not started`, which was the app telling you off on
-day one, and was removed in July 2026: the empty chips and the `0` beside the title already say the
-same thing, and the label only earns its place once a gap has opened after you had started.
-
-Thresholds live in the `CAD` constant, and the editor labels
-them by rendering the number itself — `after 3 days`, `after 10 days`, `never` — via `cadName()`.
-Retuning `CAD` (§8.3) therefore retunes the copy, with no second place to keep in sync.
-
-Note the trap this replaced: `CAD.daily` and the `daily` goal *type* both used to render as **Daily**,
-in two dropdowns side by side in the same row, meaning entirely different things — "a tap marks the
-day done" versus "nag me after 3 days". Changing a goal's
-`type` resets `cad` to the `DEFCAD` default for that type, and a newly created goal is written with
-an explicit `cad` from the start — an earlier version omitted it, so the dropdown showed `Daily`
-while dormancy fell back to `Weekly`, and the label silently changed on the next launch.
-
-The reasoning, so it isn't "simplified" back later: the first design split tasks into repeatable vs
-one-off, but "update the resume" is both repeatable and not something to be nagged about daily. The real
-variable is expected frequency, not task nature. Cadence subsumes the binary — a genuinely one-off
-task is just `free`.
-
-### 4.3.1 The consecutive-day count
-
-`streak()` walks back from today over days where `dayTotal > 0`, so an ad-hoc-only day keeps a run
-alive exactly as it keeps the calendar cell green. If today has nothing logged yet the walk starts
+`streak()` walks back from today over days where `dayTotal > 0`, by the same measure that colours
+the calendar cell, so the two can never disagree. If today has nothing logged yet the walk starts
 from yesterday, so the number does not read 0 every morning before you have had a chance to check in.
 It is derived on every render like everything else in §4.1 — never stored.
 
-### 4.4 Ad-hoc tasks
+### 4.4 Removed: ad-hoc tasks, and cadence
 
-A fixed fourth section below the goals. Not part of `goals`, not counted against `MAXGOALS`, cannot
-be renamed or deleted, has no cadence and never shows a dormancy label. Type a line, press Enter,
-it's logged against the currently selected date.
+Both were removed at the owner's request in July 2026. Recorded here rather than deleted, because
+each was argued for at length and a future reader will otherwise re-invent them.
 
-Why it is exempt from the 3-goal cap: without a scratch bucket, every stray task tempts you into
-creating a new goal, and the list rots within weeks. The ad-hoc section is the pressure valve that
-makes the cap survivable, not an exception to it.
+**Ad-hoc** was a fourth section below the goals: free text, logged against the selected date, exempt
+from `MAXGOALS`. The argument for it was that without a scratch bucket every stray task tempts you
+into creating a new goal and the list rots within weeks — the pressure valve that made the 3-goal cap
+survivable. If the cap starts to feel tight, that argument is the first place to look.
 
-Ad-hoc entries count toward `dayTotal` (so a day of nothing but odd jobs still shows green on the
-calendar), count as an active day, appear in the stats distribution chart, and appear in the
-completion log. The month review shows only a count. An ad-hoc-only day is activity in every place
-activity is measured — see the `dayKeys()` note in §4.1.
+**Cadence** (`cad`, one of `daily` / `weekly` / `monthly` / `free`) set how long a goal could sit
+untouched before its heading read `untouched N days`, darkening at 3× the threshold. Its own
+reasoning: the first design split tasks into repeatable vs one-off, but "update the resume" is both
+repeatable and not something to be nagged about daily, so the real variable is expected frequency,
+not task nature. The thresholds (3 / 10 / 35 days) were never validated against real logs, which is
+what §8.3 was waiting for.
+
+What replaced neither: the month review still names any goal untouched for a whole month (§5), which
+is the once-a-month version of what dormancy said continuously.
+
+A file written by an older version still parses. `cad` is a setting with nothing in it, so `load()`
+deletes it on the way through; `adhoc` held lines somebody typed, so it is left in the file
+untouched — removing a feature must not delete the writing. It simply no longer counts as activity.
 
 ### 4.5 Removing a goal archives it; only one control erases logs
 
@@ -435,13 +408,12 @@ Consecutive active days are joined into a continuous bar; runs break at the week
 next day sits on the following row. Below the calendar a 12-cell year strip for jumping between
 months, then the counts: days in a row, active days this month, total check-ins.
 
-*Right pane*: the goals, each with its chips and — depending on type — pips or a projection track,
-then the ad-hoc input.
+*Right pane*: the goals, each with its chips and — depending on type — pips or a projection track.
 
 **Editing is per goal, in place.** Each goal carries its own `Edit` control on the right of its
-heading; clicking it swaps that one goal for its editor — title, type, monthly target, cadence,
-sub-goals, delete — while the other goals stay in check-in mode. The editor is a labelled form: every
-control states what it is (`What a tap does`, `Monthly target`, `Say “untouched”`, `Sub-goals`) and
+heading; clicking it swaps that one goal for its editor — title, type, monthly target, sub-goals,
+removal — while the other goals stay in check-in mode. The editor is a labelled form: every
+control states what it is (`What a tap does`, `Monthly target`, `Sub-goals`) and
 every option states what it will do, rather than naming a kind. Fields that do not apply are absent —
 a non-count goal shows no monthly target, and no caption about one. `editing` holds the id of the goal
 being edited, or `null`. Archived sub-goals are listed below the live ones, greyed, each with
@@ -467,7 +439,7 @@ on the machine, which is how a goal was lost by someone meaning to close the edi
   what survives (`The 15 check-ins it already has stay in past months; it leaves this screen. You can
   restore it from the footer.`) or that there is nothing to keep. It carries `--danger` on hover only:
   archiving is a state, not an error, and the control that truly destroys logs lives in the footer.
-- Sub-goal rows and ad-hoc rows keep their `×`, because those are row-level removals.
+- Sub-goal rows keep their `×`, because that is a row-level removal.
 
 The fields stack — label above a full-width control — so the label, the value and the tap target
 share one left edge instead of sitting in three columns. `Done` is the pane's primary action and is
@@ -516,7 +488,7 @@ different format.
 two-step confirmation rather than a modal, per §6.
 
 `parseImport()` validates before anything is assigned: it must parse as JSON, be a plain object, have
-an array `goals` whose every member has a string `id` and `title`, and `logs`/`adhoc` must be maps if
+an array `goals` whose every member has a string `id` and `title`, and `logs` must be a map if
 present. A rejection reports the reason (`Import failed: no goals list. Nothing was changed.`) and
 leaves the state untouched — picking the wrong file must never be able to wipe the log. A valid file
 with an empty `goals` array **is** accepted: deliberately empty is a legitimate state to restore.
@@ -539,8 +511,8 @@ finished item in the completion log. This keeps the palette from flattering atte
 — you cannot make a month look green by showing up.
 
 **2. The instrument speaks in mono; you speak in your own voice.** Chrome — counts, dates, labels,
-tabs, section heads, readouts — is `--mono`. The goal titles you typed, your ad-hoc entries, and the
-sentences the app addresses you in are set in `--sans`. The record is visibly separate from the thing
+tabs, section heads, readouts — is `--mono`. The goal titles you typed and the sentences the app
+addresses you in are set in `--sans`. The record is visibly separate from the thing
 recorded. No webfont: `ui-monospace` and the system stack only, so the app still renders offline in
 five years (§2.2, §2.3).
 
@@ -562,7 +534,7 @@ type      --ink --body --muted --dust --ghost
 activity  --c0 … --c4   #E9EDF1 → #141C29      one hue, five weights
           --on    #FFFFFF                      type knocked out of a filled cell
 claims    --accent #0E7C87   + --soft --edge --wash
-states    --alert (behind pace, deep dormancy)  --danger (destructive)
+states    --alert (behind pace)                 --danger (destructive)
 radius    --r 9px (cells, chips, inputs)        --rs 6px (small controls)
 ```
 
@@ -595,7 +567,7 @@ case, no exclamation marks, no encouragement or congratulation.
   are the items under it, and the type has to say so before the indentation does.
 - **Archived reads as dormant, not as an error.** The `archived` marker beside a title in the review
   and the stats share (`i.gone`), the editor's archived sub-goal rows, and the archive shelf all use
-  `--dust`, the same grey as a dormancy label — it is a state, not a warning. `--danger` appears only
+  `--dust`, the muted grey — it is a state, not a warning. `--danger` appears only
   on the permanent delete, which is the only control that destroys anything (§4.5).
 
 **Do not redesign.** This direction replaced an earlier one (cool greys, a pine-green GitHub-style
@@ -681,26 +653,15 @@ which one first.
    project "3/day, done by the 10th". The projection is now suppressed until `ETAMIN` (5) days have
    elapsed; before that the line states the rate still required — `29 days left · 1.3 a day from
    here` — which is a fact rather than a prediction. A met target still reports `met` on any date, so
-   the cutoff cannot hide a real result. `ETAMIN` is a named constant beside `CAD` and `DEFCAD`.
+   the cutoff cannot hide a real result. `ETAMIN` is a named constant beside the other tunables.
 2. ~~**Export / import JSON.**~~ **Built.** See §5.1.
-3. **Cadence thresholds (3 / 10 / 35 days) are guesses.** Still open, and deliberately so — it needs
-   a month or two of real logs to tell which tier nags too often or too late, and that data does not
-   exist yet. Guessing again would not be an improvement over the current guess.
-
-   The change itself is now one line. `CAD` holds only the numbers, and both the dormancy check and
-   the editor's wording read from them (`cadName()` renders `after 10 days` from `CAD.weekly.d`), so
-   editing a threshold updates the behaviour and the copy together with nothing to keep in sync:
-
-   ```js
-   const CAD={daily:{d:3},weekly:{d:10},monthly:{d:35},free:{d:0}};
-   ```
-
-   The tests assert the tiers via `coldHead()` at each boundary, so a retune will fail them loudly
-   and show exactly which expectations to move.
+3. ~~**Cadence thresholds (3 / 10 / 35 days) are guesses.**~~ **Moot.** Cadence was removed
+   before the thresholds were ever validated against real logs — see §4.4 for what it did and the
+   reasoning behind it, which is what a replacement would have to answer.
 
 Two things worth knowing rather than fixing:
 
 - **The stats panel looks bad with little data.** For the first couple of weeks the bar charts are a
   few lonely stubs and the weekday distribution is noise. That is expected. Do not "improve" it.
-- **If the ad-hoc section dominates the distribution chart**, that is a signal the three real goals
-  are set wrong, not a bug. No warning is implemented for this and none should be.
+- **If one goal dominates the distribution chart**, that is a signal the three goals are set wrong,
+  not a bug. No warning is implemented for this and none should be.

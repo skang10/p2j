@@ -4,7 +4,7 @@ const { boot, bootReady } = require('./harness');
 // Pin the date so month-boundary behaviour is asserted, not left to the calendar.
 async function onDate(iso) {
   const g = await bootReady({ now: iso });
-  g.api.state.logs = {}; g.api.state.adhoc = {};
+  g.api.state.logs = {};
   return g;
 }
 
@@ -76,11 +76,11 @@ async function fixture() {
   const g = await bootReady();
   g.api.state = {
     goals: [
-      { id: 'g1', type: 'count', cad: 'daily', target: 10, title: 'Problems',
+      { id: 'g1', type: 'count', target: 10, title: 'Problems',
         subs: [{ id: 's1', title: 'DP' }, { id: 's2', title: 'Trees' }] },
-      { id: 'g2', type: 'list', cad: 'monthly', title: 'To learn',
+      { id: 'g2', type: 'list', title: 'To learn',
         subs: [{ id: 'l1', title: 'A' }, { id: 'l2', title: 'B' }, { id: 'l3', title: 'C' }] },
-      { id: 'g3', type: 'daily', cad: 'weekly', title: 'Job hunt',
+      { id: 'g3', type: 'daily', title: 'Job hunt',
         subs: [{ id: 'd1', title: 'Applications' }] },
     ],
     logs: {
@@ -90,16 +90,15 @@ async function fixture() {
       '2026-07-10': { s1: 3, l1: 1 },
       '2026-08-01': { s2: 4 },
     },
-    adhoc: { '2026-07-03': ['fix bug', 'reply to email'], '2026-08-02': ['x'] },
   };
   g.api.view = { y: 2026, m: 6 };
   return g.api;
 }
 
-t('dayTotal sums logs and ad-hoc together', async () => {
+t('dayTotal sums the check-ins logged against a day', async () => {
   const a = await fixture();
-  eq(a.dayTotal('2026-07-02'), 3, 'logs only');
-  eq(a.dayTotal('2026-07-03'), 1 + 2, 'log + 2 ad-hoc');
+  eq(a.dayTotal('2026-07-02'), 3, 'two subs, 2 + 1');
+  eq(a.dayTotal('2026-07-03'), 1);
   eq(a.dayTotal('2026-01-01'), 0, 'empty day');
 });
 t('subTotal scopes to month when asked', async () => {
@@ -124,41 +123,14 @@ t('activeDays counts days with any activity', async () => {
   eq(a.activeDays(2026, 6), 3, '07-02, 07-03, 07-10');
   eq(a.activeDays(2026, 5), 1);
 });
-// SPEC §4.4: an ad-hoc entry is activity. It used to colour the calendar cell but
-// be skipped by every counter, because they walked `logs` and ad-hoc-only days
-// exist solely in `adhoc`.
-t('an ad-hoc-only day counts everywhere the calendar says it does', async () => {
+// Everything that measures activity goes through dayKeys(), so there is one place
+// to change if a second source of activity is ever added back.
+t('dayKeys lists every logged day once, sorted', async () => {
   const a = await fixture();
-  a.state.adhoc['2026-07-20'] = ['odd jobs only'];
-  eq(a.dayTotal('2026-07-20'), 1, 'the cell renders green');
-  eq(a.activeDays(2026, 6), 4, 'and the day is counted as active');
-  a.view = { y: 2026, m: 6 };
-  has(a.calendar('2026-07-28'), 'data-l="1" data-k="2026-07-20"', 'cell is shaded');
-});
-t('dayKeys unions logs and adhoc without duplicating a shared date', async () => {
-  const a = await fixture();
-  // 2026-07-03 exists in both maps
   const ks = a.dayKeys();
   eq(ks.filter(k => k === '2026-07-03').length, 1, 'no duplicate');
-  ok(ks.includes('2026-08-02'), 'an adhoc-only date is present');
   eq(ks, [...ks].sort(), 'sorted, so ks[0] is the earliest activity');
-});
-t('an ad-hoc-only month is not invisible to the stats panel', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  a.state.logs = {}; a.state.adhoc = { '2026-07-20': ['a', 'b'] };
-  a.view = { y: 2026, m: 6 };
-  eq(a.activeDays(2026, 6), 1, 'one active day');
-  a.panel = 'stats'; a.render();
-  has(g.captured.app, '<b>1</b> day logged');
-  has(g.captured.app, '<b>2</b> check-ins');
-  has(g.captured.app, 'Since Jul 20', 'and the span starts at the ad-hoc day');
-});
-t('adhocMonth / adhocAll', async () => {
-  const a = await fixture();
-  eq(a.adhocMonth(2026, 6), 2);
-  eq(a.adhocMonth(2026, 7), 1);
-  eq(a.adhocAll(), 3);
+  eq(ks[0], '2026-06-30');
 });
 t('firstDone records the earliest date per sub', async () => {
   const a = await fixture();
@@ -166,12 +138,6 @@ t('firstDone records the earliest date per sub', async () => {
   eq(F.s1, '2026-06-30', 'earliest wins, not latest');
   eq(F.l1, '2026-07-10');
   eq(F.l2, undefined, 'untouched sub absent');
-});
-t('lastTouch returns the goal\'s most recent day', async () => {
-  const a = await fixture();
-  eq(a.lastTouch(a.state.goals[0]), '2026-08-01');
-  eq(a.lastTouch(a.state.goals[2]), '2026-07-03');
-  eq(a.lastTouch({ subs: [{ id: 'nope' }] }), null, 'never touched');
 });
 
 // ---------- check-in mutations ----------
@@ -198,23 +164,6 @@ t('bump keeps sibling subs on the same day', async () => {
   a.sel = '2026-07-02';
   a.bump('s1', -2);
   eq(a.state.logs['2026-07-02'], { s2: 1 }, 's2 survives');
-});
-t('addAdhoc trims and ignores blank input', async () => {
-  const a = await fixture();
-  a.sel = '2026-07-15';
-  a.addAdhoc('  weekly report  ');
-  eq(a.state.adhoc['2026-07-15'], ['weekly report']);
-  a.addAdhoc('   ');
-  eq(a.state.adhoc['2026-07-15'], ['weekly report'], 'blank rejected');
-  a.addAdhoc('second thing');
-  eq(a.state.adhoc['2026-07-15'], ['weekly report', 'second thing']);
-});
-t('delAdhoc removes one entry and prunes the empty date', async () => {
-  const a = await fixture();
-  a.delAdhoc('2026-07-03', 0);
-  eq(a.state.adhoc['2026-07-03'], ['reply to email']);
-  a.delAdhoc('2026-07-03', 0);
-  eq(a.state.adhoc['2026-07-03'], undefined, 'date key removed');
 });
 t('clearSub wipes a sub everywhere and prunes emptied days', async () => {
   const a = await fixture();
@@ -290,7 +239,7 @@ t('pips bar clamps overflow at 100%', async () => {
 });
 
 // ---------- achievements ----------
-t('achievements: list completions, count-goal target hits, ad-hoc, newest first', async () => {
+t('achievements: list completions and count-goal target hits, newest first', async () => {
   const a = await fixture();
   a.state.logs = {
     '2026-07-01': { s1: 4 },
@@ -300,42 +249,40 @@ t('achievements: list completions, count-goal target hits, ad-hoc, newest first'
     '2026-07-05': { l1: 1 },
     '2026-08-20': { s1: 20 },  // new month -> fires again
   };
-  a.state.adhoc = { '2026-07-06': ['odd job'] };
   const out = a.achievements();
   const hits = out.filter(x => x.hit);
   eq(hits.length, 2, 'one hit per month, fired once each');
   eq(hits.map(x => x.d).sort(), ['2026-07-03', '2026-08-20']);
   ok(out.some(x => x.t === 'A' && x.d === '2026-07-05'), 'list item recorded');
-  ok(out.some(x => x.t === 'odd job' && x.g === 'Ad-hoc'), 'ad-hoc recorded');
   const dates = out.map(x => x.d);
   eq(dates, [...dates].sort().reverse(), 'sorted newest first');
 });
 t('achievements is empty for a fresh log', async () => {
   const a = await fixture();
-  a.state.logs = {}; a.state.adhoc = {};
+  a.state.logs = {};
   eq(a.achievements().length, 0);
 });
 
 // ---------- rendering ----------
-t('day panel renders calendar, goals, chips and the ad-hoc input', async () => {
+t('day panel renders the calendar, the goals and their chips', async () => {
   const g = await bootReady();
   const a = g.api;
   a.panel = 'day';
   a.render();
   const html = g.captured.app;
   has(html, 'class="cal"'); has(html, 'class="year"');
-  has(html, 'id="adhocIn"', 'ad-hoc input present');
   has(html, 'Problems'); has(html, 'To learn'); has(html, 'Job hunt');
-  has(html, 'Ad-hoc', 'ad-hoc section present');
   has(html, 'data-add='); has(html, 'data-tog=');
+  no(html, 'Ad-hoc', 'the ad-hoc section is gone');
+  no(html, 'id="adhocIn"');
 });
-t('review panel renders a row per goal plus the ad-hoc row', async () => {
+t('review panel renders one row per goal and nothing else', async () => {
   const g = await bootReady();
   const a = g.api;
   a.panel = 'review'; a.render();
   const html = g.captured.app;
   has(html, 'class="rev"');
-  eq((html.match(/class="rrow/g) || []).length, 4, '3 goals + ad-hoc');
+  eq((html.match(/class="rrow/g) || []).length, 3, 'three goals, no ad-hoc row');
 });
 t('review panel names goals untouched all month', async () => {
   const g = await bootReady();
@@ -373,7 +320,7 @@ t('editing one goal opens its editor in place and leaves the others alone', asyn
   const html = g.captured.app;
   eq((html.match(/class="goal ed"/g) || []).length, 1, 'exactly one goal is in edit mode');
   has(html, `data-gt="${target.id}"`, 'its title is editable');
-  has(html, `data-gy="${target.id}"`); has(html, `data-gc="${target.id}"`);
+  has(html, `data-gy="${target.id}"`);
   has(html, `data-gn="${target.id}"`, 'count goal exposes its monthly target');
   has(html, `data-dg="${target.id}"`, 'and can be deleted');
   // the untouched goals still render as normal check-in blocks
@@ -432,15 +379,6 @@ t('goal titles are escaped in every panel', async () => {
     has(g.captured.app, '&lt;script&gt;', p + ' panel escaped');
   }
 });
-t('ad-hoc text is escaped', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  a.sel = a.todayKey();
-  a.addAdhoc('<b>bold</b>');
-  a.panel = 'day'; a.render();
-  no(g.captured.app, '<b>bold</b>');
-  has(g.captured.app, '&lt;b&gt;bold&lt;/b&gt;');
-});
 t('a goal with no subs stays reachable instead of vanishing', async () => {
   const g = await bootReady();
   const a = g.api;
@@ -475,46 +413,6 @@ t('year strip renders 12 months and marks the current one', async () => {
   const s = g.api.yearStrip();
   eq((s.match(/class="ym /g) || []).length, 12);
   eq((s.match(/cur/g) || []).length, 1);
-});
-
-// ---------- dormancy (§4.3) ----------
-// Build a goal last touched `gap` days ago and render its heading.
-async function coldHead(cad, gap) {
-  const a = await fixture();
-  const g = { id: 'gx', type: 'daily', cad, title: 'X', subs: [{ id: 'sx', title: 's' }] };
-  a.state.goals = [g];
-  const d = a.today(); d.setDate(d.getDate() - gap);
-  a.state.logs = gap === null ? {} : { [a.key(d)]: { sx: 1 } };
-  a.state.adhoc = {};
-  a.view = { y: a.today().getFullYear(), m: a.today().getMonth() };
-  return a.goalBlock(g, a.todayKey(), a.firstDone());
-}
-t('dormancy: daily goal is quiet under 3 days, nags at 3', async () => {
-  no(await coldHead('daily', 2), 'untouched', '2 days is under threshold');
-  has(await coldHead('daily', 3), 'untouched 3 days');
-});
-t('dormancy: weekly threshold is 10 days', async () => {
-  no(await coldHead('weekly', 9), 'untouched');
-  has(await coldHead('weekly', 10), 'untouched 10 days');
-});
-t('dormancy: monthly threshold is 35 days', async () => {
-  no(await coldHead('monthly', 34), 'untouched');
-  has(await coldHead('monthly', 35), 'untouched 35 days');
-});
-t('dormancy: free never nags, however long the gap', async () => {
-  no(await coldHead('free', 400), 'class="cold"', 'no label of any kind');
-});
-t('dormancy: label darkens at 3x the threshold', async () => {
-  no(await coldHead('daily', 8), 'cold deep', 'under 3x stays light');
-  has(await coldHead('daily', 9), 'cold deep', '3x = 9 days darkens');
-});
-// A goal you have not started yet is not dormant, it is new. The empty chips and the
-// 0 already say so, and the label was the app telling you off on day one.
-t('dormancy: a never-touched goal carries no label at all', async () => {
-  const html = await coldHead('daily', null);
-  no(html, 'class="cold"', 'no dormancy label');
-  no(html, 'not started', 'the old copy is gone');
-  has(html, '<h3>X', 'the heading still renders');
 });
 
 // ---------- goal-type completion states ----------
@@ -552,22 +450,20 @@ t('daily goal chips toggle rather than accumulate', async () => {
 
 // Regression: the "+ goal" handler used to omit `cad`, so the dropdown showed Daily
 // while dormancy fell back to Weekly, and a restart silently swapped the label.
-t('a newly added goal carries an explicit cadence', async () => {
+t('a newly added goal is written with everything load() needs', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state.goals.pop();
   const before = a.state.goals.length;
-  // mirror what the #ag click handler does
-  const id = a.newId();
-  a.state.goals.push({ id, type: 'daily', cad: a.DEFCAD.daily, title: 'New goal',
+  const id = a.newId();          // mirror what the #ag click handler does
+  a.state.goals.push({ id, type: 'daily', title: 'New goal',
                        subs: [{ id: a.newId(), title: 'New sub-goal' }] });
   const fresh = a.state.goals[a.state.goals.length - 1];
   eq(a.state.goals.length, before + 1);
-  eq('cad' in fresh, true, 'cad is written up front');
-  eq(fresh.cad, 'weekly', 'matching DEFCAD for a daily goal');
-  eq(a.CAD[fresh.cad].d, 10, 'so dormancy and the dropdown agree immediately');
-  // and load() would not change it on the next launch
-  eq(a.DEFCAD[fresh.type], fresh.cad, 'stable across a restart');
+  eq([fresh.type, fresh.subs.length], ['daily', 1]);
+  const copy = JSON.parse(JSON.stringify(a.state));
+  a.applyImport(JSON.stringify(copy));
+  eq(a.state.goals[a.state.goals.length - 1], fresh, 'a round trip changes nothing');
 });
 
 // ---------- pluralisation (English translation introduced these) ----------
@@ -601,24 +497,12 @@ t('tally and stats pluralise check-ins and days', async () => {
   no(g.captured.app, '<b>1</b> days logged');
   has(g.captured.app, 'Completed · 0 items', 'zero is plural');
 });
-t('ad-hoc count pluralises', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  a.sel = a.todayKey();
-  a.addAdhoc('one');
-  a.panel = 'day'; a.render();
-  has(g.captured.app, '<b>1</b> item<');
-  a.addAdhoc('two');
-  a.render();
-  has(g.captured.app, '<b>2</b> items<');
-});
 t('no "1 <noun>s" anywhere in a single-item render', async () => {
   const g = await bootReady();
   const a = g.api;
-  a.state.logs = {}; a.state.adhoc = {};
+  a.state.logs = {};
   a.sel = a.todayKey();
   a.bump(a.state.goals[2].subs[0].id, 1);
-  a.addAdhoc('one');
   for (const p of ['day', 'review', 'stats']) {
     a.panel = p; a.render();
     const bad = (g.captured.app.match(/\b1 (day|item|check-in)s\b/g) || []);
@@ -752,12 +636,6 @@ t('streak breaks on a missed day', async () => {
   delete a.state.logs[a.key(gap)];            // punch a hole in the middle
   eq(a.streak(), 1, 'only today survives the break');
 });
-t('streak counts an ad-hoc-only day', async () => {
-  const a = await withRun(2, 0);
-  const d = a.today(); d.setDate(d.getDate() - 2);
-  a.state.adhoc[a.key(d)] = ['odd job'];      // third day back, ad-hoc only
-  eq(a.streak(), 3, 'ad-hoc keeps a run alive, same as the calendar colouring');
-});
 t('streak is 0 when the run ended before yesterday', async () => {
   const a = await withRun(6, 2);              // finished two days ago
   eq(a.streak(), 0);
@@ -885,9 +763,8 @@ t('every editor control carries a label', async () => {
   const html = g.captured.app;
   has(html, '<span>What a tap does</span>');
   has(html, '<span>Monthly target</span>');
-  has(html, '<span>Say “untouched”</span>');
   has(html, 'Sub-goals');
-  eq((html.match(/class="frow"/g) || []).length, 3, 'three labelled fields on a count goal');
+  eq((html.match(/class="frow"/g) || []).length, 2, 'two labelled fields on a count goal');
 });
 t('the type options describe what tapping does, not the internal kind', async () => {
   const g = await bootReady();
@@ -899,20 +776,6 @@ t('the type options describe what tapping does, not the internal kind', async ()
   has(html, 'Crosses it off for good');
   for (const jargon of ['>Daily<', '>Count<', '>List<'])
     no(html, jargon, 'no implementation vocabulary in the picker');
-});
-t('cadence options state the actual threshold in days', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  a.editing = a.state.goals[0].id; a.render();
-  const html = g.captured.app;
-  has(html, 'after 3 days'); has(html, 'after 10 days'); has(html, 'after 35 days'); has(html, '>never<');
-});
-t('cadence labels are derived from CAD, so retuning it retunes the copy', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  eq(a.cadName(a.CAD.weekly), 'after 10 days');
-  eq(a.cadName(a.CAD.free), 'never');
-  eq(a.cadName({ d: 7 }), 'after 7 days', 'a changed threshold changes the label');
 });
 t('"Daily" no longer appears anywhere, so the two pickers cannot be confused', async () => {
   const g = await bootReady();
@@ -927,7 +790,7 @@ t('a non-count goal drops the monthly-target field and its caption', async () =>
   const a = g.api;
   a.editing = a.state.goals[1].id; a.render();           // the list goal
   const html = g.captured.app;
-  eq((html.match(/class="frow"/g) || []).length, 2, 'only two fields apply');
+  eq((html.match(/class="frow"/g) || []).length, 1, 'only one field applies');
   no(html, 'Monthly target');
   no(html, 'resets to 0 on the 1st', 'the caption is about the target, so it goes too');
 });
@@ -1031,15 +894,13 @@ t('a browser reload restores what was saved', async () => {
   const a = g.api;
   a.sel = a.todayKey();
   a.bump(a.state.goals[0].subs[0].id, 3);
-  a.addAdhoc('wrote it down');
   await new Promise(r => setTimeout(r, 400));
   const saved = g.store.get('checkin-v3');
   // a second boot sharing the same storage is the reload
   const g2 = await bootReady();
   g2.store.set('checkin-v3', saved);
   await g2.api.load();
-  eq(g2.api.dayTotal(g2.api.todayKey()), 4, '3 check-ins + 1 ad-hoc survived');
-  eq(g2.api.state.adhoc[g2.api.todayKey()], ['wrote it down']);
+  eq(g2.api.dayTotal(g2.api.todayKey()), 3, 'the check-ins survived');
 });
 t('the footer never shows a write error on the happy path', async () => {
   const g = await bootReady();
@@ -1068,7 +929,7 @@ t('export carries no cached totals, only the source of truth', async () => {
   const a = await fixture();
   const href = a.exportHref();
   const body = JSON.parse(decodeURIComponent(href.slice(href.indexOf(',') + 1)));
-  eq(Object.keys(body).sort(), ['adhoc', 'goals', 'logs']);
+  eq(Object.keys(body).sort(), ['goals', 'logs']);
 });
 t('import round-trips an exported file', async () => {
   const src = await fixture();
@@ -1078,14 +939,13 @@ t('import round-trips an exported file', async () => {
   g.api.applyImport(body);
   eq(g.api.state.goals.map(x => x.title), ['Problems', 'To learn', 'Job hunt']);
   eq(g.api.subTotal('s1'), 10, 'the log came with it');
-  eq(g.api.state.adhoc['2026-07-03'], ['fix bug', 'reply to email']);
 });
 t('import normalises an old file the same way load() does', async () => {
   const g = await bootReady();
   g.api.applyImport(JSON.stringify({ goals: [{ id: 'a', title: 'legacy' }] }));
   const goal = g.api.state.goals[0];
-  eq(goal.type, 'daily'); eq(goal.subs, []); eq(goal.cad, 'weekly');
-  eq(g.api.state.logs, {}); eq(g.api.state.adhoc, {});
+  eq(goal.type, 'daily'); eq(goal.subs, []);
+  eq(g.api.state.logs, {});
 });
 t('import lands you back on today, with no editor open', async () => {
   const g = await bootReady();
@@ -1113,7 +973,6 @@ t('import rejects malformed input and leaves the data untouched', async () => {
     ['{}', 'no goals list'],
     ['{"goals":"nope"}', 'no goals list'],
     ['{"goals":[],"logs":[]}', 'logs is not a map'],
-    ['{"goals":[],"adhoc":7}', 'adhoc is not a map'],
     ['{"goals":[{"id":"a"}]}', 'a goal is missing its id or title'],
     ['{"goals":[{"title":"a"}]}', 'a goal is missing its id or title'],
     ['{"goals":[{"id":"a","title":"b","subs":{}}]}', 'subs is not a list'],
@@ -1158,12 +1017,12 @@ t('the file input is present but never shown', async () => {
 });
 
 // ---------- the §4.1 invariant ----------
-t('persisted JSON stores only goals, logs and adhoc — no cached totals', async () => {
+t('persisted JSON stores only goals and logs — no cached totals', async () => {
   const a = await fixture();
   const round = JSON.parse(JSON.stringify(a.state));
-  eq(Object.keys(round).sort(), ['adhoc', 'goals', 'logs']);
+  eq(Object.keys(round).sort(), ['goals', 'logs']);
   for (const g of round.goals) {
-    const bad = Object.keys(g).filter(k => !['id', 'type', 'cad', 'target', 'title', 'subs'].includes(k));
+    const bad = Object.keys(g).filter(k => !['id', 'type', 'target', 'title', 'subs', 'archived'].includes(k));
     eq(bad, [], 'unexpected goal fields');
     for (const s of g.subs) eq(Object.keys(s).sort(), ['id', 'title']);
   }
@@ -1189,24 +1048,24 @@ t('load reads an existing file instead of seeding', async () => {
   eq(g.api.state.goals[0].title, 'old goal');
   eq(g.api.subTotal('b'), 2);
 });
-t('load backfills a missing adhoc map', async () => {
+t('load drops the dead cadence field from an older file', async () => {
   const g = await loadFrom({ goals: [{ id: 'a', type: 'daily', cad: 'weekly', title: 'g', subs: [{ id: 'b', title: 'x' }] }], logs: {} });
-  eq(g.api.state.adhoc, {}, 'adhoc created');
-  eq(g.api.dayTotal('2026-07-01'), 0, 'dayTotal no longer throws');
+  eq('cad' in g.api.state.goals[0], false, 'a setting that no longer does anything is tidied away');
+  eq(g.api.dayTotal('2026-07-01'), 0);
+});
+// The distinction is deliberate: `cad` was a setting with nothing in it, but `adhoc`
+// held lines somebody typed. Removing the feature must not delete the writing.
+t('load leaves an older file\'s ad-hoc entries alone rather than deleting them', async () => {
+  const g = await loadFrom({ goals: [{ id: 'a', type: 'daily', title: 'g', subs: [{ id: 'b', title: 'x' }] }],
+                             logs: {}, adhoc: { '2026-07-03': ['fix bug'] } });
+  eq(g.api.state.adhoc, { '2026-07-03': ['fix bug'] }, 'still in the file');
+  eq(g.api.dayTotal('2026-07-03'), 0, 'but it no longer counts as activity');
+  eq(g.api.dayKeys(), [], 'and it is not a logged day');
 });
 t('load defaults a missing goal type and subs array', async () => {
   const g = await loadFrom({ goals: [{ id: 'a', title: 'no type' }], logs: {} });
   eq(g.api.state.goals[0].type, 'daily');
   eq(g.api.state.goals[0].subs, []);
-});
-t('load repairs a missing or unknown cadence from DEFCAD', async () => {
-  const g = await loadFrom({ goals: [
-    { id: 'a', type: 'count', title: 'c', subs: [] },
-    { id: 'b', type: 'list', title: 'l', subs: [] },
-    { id: 'c', type: 'daily', cad: 'hourly', title: 'd', subs: [] },
-  ], logs: {} });
-  eq(g.api.state.goals.map(x => x.cad), ['daily', 'monthly', 'weekly'],
-     'count->daily, list->monthly, bogus daily->weekly');
 });
 t('load seeds when the file is empty, blank, or an empty object', async () => {
   for (const raw of ['', '   ', '{}']) {
@@ -1397,17 +1256,19 @@ t('an archived sub-goal is untappable but has a way back in the editor', async (
   eq(a.state.goals[0].subs[0].archived, undefined);
   has(a.dayPanel('2026-07-15', '2026-07-15'), 'data-add="s1"', 'tappable again');
 });
-t('dormancy reads the sub-goals you still have', async () => {
+// The archived sub's own history is what must survive; nothing in the UI reads it
+// as recent activity any more, but the goal's totals still count it.
+t('an archived sub-goal keeps counting toward the goal it belongs to', async () => {
   const g = await bootReady({ now: '2026-07-15' });
   const a = g.api;
-  a.state = { goals: [{ id: 'x', type: 'daily', cad: 'weekly', title: 'X',
+  a.state = { goals: [{ id: 'x', type: 'daily', title: 'X',
                         subs: [{ id: 'a1', title: 'old' }, { id: 'b1', title: 'new' }] }],
-              logs: { '2026-07-01': { a1: 1 }, '2026-07-14': { b1: 1 } }, adhoc: {} };
+              logs: { '2026-07-01': { a1: 1 }, '2026-07-14': { b1: 1 } } };
   a.view = { y: 2026, m: 6 };
-  no(a.goalBlock(a.state.goals[0], '2026-07-15', a.firstDone()), 'untouched', 'warm via b1');
+  eq(a.goalDays(a.state.goals[0], 2026, 6), 2, 'both days count while both subs are live');
   a.dropSub('b1');
-  has(a.goalBlock(a.state.goals[0], '2026-07-15', a.firstDone()), 'untouched 14 days',
-      'the archived sub no longer keeps it warm');
+  eq(a.goalDays(a.state.goals[0], 2026, 6), 2, 'and still do once one is archived');
+  no(a.goalBlock(a.state.goals[0], '2026-07-15', a.firstDone()), 'data-tog="b1"', 'but it is untappable');
 });
 // The × used to remove the goal. It reads as "close this panel" everywhere else in
 // software, and that is how a goal got destroyed by someone meaning to put the editor
