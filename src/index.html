@@ -318,7 +318,11 @@
     .sheet{padding-top:20px;padding-bottom:32px}
     .top{padding-bottom:12px}
     .d{height:37px}
-    .tally{padding:15px 0 16px;gap:12px 22px} .tally b{font-size:23px}
+    /* no `gap` here: the readouts are a column of bordered rows, and a gap would
+       push the rule away from the row below it. Left over from the wrapping row
+       this used to be. */
+    .tally{padding:12px 0 0} .tally b{font-size:23px}
+    .tally span{padding:10px 0}
     .phead{margin:18px 0 13px}
     .goal{padding:14px 0}
     .chips{margin-top:10px}
