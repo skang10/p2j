@@ -297,6 +297,7 @@ const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','D
 const CAD={daily:{d:3},weekly:{d:10},monthly:{d:35},free:{d:0}};
 const cadName=c=>c.d?`after ${c.d} days`:'never';
 const DEFCAD={count:'daily',list:'monthly',daily:'weekly'};
+const ETAMIN=5;   // days that must have elapsed before a rate is worth projecting (§8.1)
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, dataPath='', saveErr=false, refocus=false;
 
@@ -325,9 +326,9 @@ const Store = (() => {
       write: (s) => invoke('save_data', { data: s }),
       where: ()  => invoke('data_path') };
   }
-  return { kind:'browser',                    // browser fallback
-    read:  async ()  => { const r = await window.storage.get(KEY); return r ? r.value : ''; },
-    write: async (s) => { await window.storage.set(KEY, s); },
+  return { kind:'browser',                    // browser fallback (§7.1): localStorage
+    read:  async ()  => localStorage.getItem(KEY) || '',
+    write: async (s) => { localStorage.setItem(KEY, s); },
     where: async ()  => 'Browser local storage' };
 })();
 
@@ -373,6 +374,10 @@ const dayTotal=k=>Object.values(state.logs[k]||{}).reduce((a,b)=>a+b,0)
 const adhocMonth=(y,m)=>{let n=0;for(const k in state.adhoc) if(inMonth(k,y,m)) n+=state.adhoc[k].length;return n;};
 const adhocAll=()=>Object.values(state.adhoc).reduce((a,x)=>a+x.length,0);
 const level=n=>n===0?0:n===1?1:n===2?2:n<=4?3:4;
+// Every date with any activity, sorted. A day can exist in `adhoc` without ever
+// appearing in `logs`, and it is still a day you did something — anything that
+// measures activity must walk this, not `logs` alone.
+const dayKeys=()=>[...new Set([...Object.keys(state.logs),...Object.keys(state.adhoc)])].sort();
 function subTotal(id,y,m){
   let n=0;
   for(const k in state.logs){ if(y!==undefined&&!inMonth(k,y,m))continue; n+=state.logs[k][id]||0; }
@@ -389,7 +394,7 @@ function lastTouch(g){
   return best;
 }
 function activeDays(y,m){
-  let n=0; for(const k in state.logs) if(inMonth(k,y,m)&&dayTotal(k)>0) n++;
+  let n=0; for(const k of dayKeys()) if(inMonth(k,y,m)&&dayTotal(k)>0) n++;
   return n;
 }
 function goalDays(g,y,m){
@@ -442,7 +447,7 @@ function render(){
   const canNext = view.y<n.getFullYear() || (view.y===n.getFullYear()&&view.m<n.getMonth());
   const act=activeDays(view.y,view.m), dim=daysIn(view.y,view.m);
   const elapsed = isCur ? n.getDate() : dim;
-  let hits=0; for(const k in state.logs) if(inMonth(k,view.y,view.m)) hits+=dayTotal(k);
+  let hits=0; for(const k of dayKeys()) if(inMonth(k,view.y,view.m)) hits+=dayTotal(k);
   const run=streak();
 
   document.getElementById('app').innerHTML=`
@@ -661,7 +666,13 @@ function paceLine(done,target){
     + say(`<span class="em">met</span> · ${left} day${left===1?'':'s'} left, extras count next month`);
   if(done===0) return track(0,target)
     + say(`${left} day${left===1?'':'s'} left · <span class="rate">${(target/Math.max(1,left+1)).toFixed(1)}</span> a day gets there`);
-  const rate=done/el, need=target-done, days=Math.ceil(need/rate);
+  const need=target-done;
+  // Early in the month a rate measured over two or three days projects nonsense:
+  // three done on the 1st reads "3/day, finished by the 10th". Until ETAMIN days
+  // have elapsed, state what is still required instead of predicting. §8.1
+  if(el<ETAMIN) return track(done,target)
+    + say(`${left} day${left===1?'':'s'} left · <span class="rate">${(need/Math.max(1,left)).toFixed(1)}</span> a day from here`);
+  const rate=done/el, days=Math.ceil(need/rate);
   const eta=new Date(n); eta.setDate(eta.getDate()+days);
   const r=rate.toFixed(1);
   if(days<=left) return track(done,target,target)
@@ -741,7 +752,7 @@ function statsPanel(){
              tip:`${MONS[d.getMonth()]} ${d.getFullYear()} · ${v} active day${v===1?'':'s'}`});
   }
   const wd=Array(7).fill(0);
-  for(const k in state.logs) wd[parseKey(k).getDay()]+=dayTotal(k);
+  for(const k of dayKeys()) wd[parseKey(k).getDay()]+=dayTotal(k);
   const wdata=wd.map((v,i)=>({v,lb:DOW[i],tip:`${DOWN[i]} · ${v} check-in${v===1?'':'s'}`}));
 
   const share=state.goals.map(g=>({t:g.title,v:g.subs.reduce((a,s)=>a+subTotal(s.id),0)}))
@@ -750,9 +761,10 @@ function statsPanel(){
   const tot=share.reduce((a,x)=>a+x.v,0)||1;
 
   const ach=achievements();
-  const days=Object.keys(state.logs).length;
-  const hits=Object.keys(state.logs).reduce((a,k)=>a+dayTotal(k),0);
-  const first=Object.keys(state.logs).sort()[0];
+  const ks=dayKeys();
+  const days=ks.length;
+  const hits=ks.reduce((a,k)=>a+dayTotal(k),0);
+  const first=ks[0];
   const span=first?diffDays(parseKey(first),n)+1:0;
 
   return `${tabs()}

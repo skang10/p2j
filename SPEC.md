@@ -222,7 +222,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 115 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 139 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -235,6 +235,11 @@ Two consequences worth knowing:
   sync; edit `index.html` and the next run tests the edit.
 - Because the script calls `load()` on evaluation, `bootReady()` awaits that before returning.
   Tests that touch `state` or `view` must use it, or they race the first render.
+- `bootReady({ now: '2026-01-02' })` pins what the script sees as today, so month ends, leap days
+  and the §8.1 ETA cutoff are asserted directly rather than only on whatever date the suite happens
+  to run. Only the no-argument `new Date()` is pinned; `new Date(y, m, d)` still does real
+  arithmetic. Prefer this over deriving expectations from the real clock — an assertion written as
+  `${LEFT} days left` passed for a month and then failed on the 30th.
 
 Coverage is the derived layer and the render output: date maths including a DST boundary, every
 derived count, all three goal types, all six `paceLine` branches, dormancy at each threshold, the
@@ -284,6 +289,13 @@ Written with `JSON.stringify(state, null, 1)` so the file stays human-readable a
 
 `logs` and `adhoc` are the sole source of truth. Completion counts, monthly totals, pace, ETA,
 dormancy gaps, and every chart are recomputed from them on each render.
+
+**Anything counting *days* must walk `dayKeys()`, not `Object.keys(state.logs)`.** A day whose only
+activity is an ad-hoc entry exists in `adhoc` and never in `logs`. Six counters originally iterated
+`logs` alone, so such a day was coloured green on the calendar (`dayTotal` includes ad-hoc) while
+being skipped by the active-day tally, the check-in total, the weekday chart, days-logged, and the
+"since" date. `dayKeys()` unions both maps and sorts, so the calendar and the counters cannot
+disagree.
 
 Never introduce a field like `"completed": 23`. The moment a cached total exists, backfilling a
 missed day or deleting a wrong entry silently desynchronizes it. The dataset is a few thousand
@@ -349,8 +361,9 @@ creating a new goal, and the list rots within weeks. The ad-hoc section is the p
 makes the cap survivable, not an exception to it.
 
 Ad-hoc entries count toward `dayTotal` (so a day of nothing but odd jobs still shows green on the
-calendar), appear in the stats distribution chart, and appear in the completion log. The month review
-shows only a count.
+calendar), count as an active day, appear in the stats distribution chart, and appear in the
+completion log. The month review shows only a count. An ad-hoc-only day is activity in every place
+activity is measured — see the `dayKeys()` note in §4.1.
 
 ---
 
@@ -523,8 +536,18 @@ Report anything that fails before touching application code.
 ### 7.1 Working on the frontend afterwards
 
 For style or logic changes, open `src/index.html` directly in a browser. It detects the absence of
-`window.__TAURI__` and falls back to browser storage, so you get save-and-reload iteration with no
+`window.__TAURI__` and falls back to `localStorage`, so you get save-and-reload iteration with no
 compile step. Note that browser-mode data is separate from the desktop app's file.
+
+Some browsers refuse `localStorage` on a `file://` origin; if the footer shows
+`Write failed. Changes were not saved.`, serve the directory instead:
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1 -d src    # then open http://127.0.0.1:8000
+```
+
+(The fallback originally called `window.storage`, which is not a browser API at all. The page
+rendered, so the workflow looked fine, but every save threw and every edit was lost.)
 
 ---
 
@@ -533,9 +556,11 @@ compile step. Note that browser-mode data is separate from the desktop app's fil
 In rough priority order. These are open questions, not queued work. Do one at a time, and confirm
 which one first.
 
-1. **The ETA is nonsense early in the month.** Three items done on the 1st projects "3/day, done by
-   the 10th". Options considered: suppress the line until the 5th, or smooth the rate. Currently
-   unhandled.
+1. ~~**The ETA is nonsense early in the month.**~~ **Resolved.** Three items done on the 1st used to
+   project "3/day, done by the 10th". The projection is now suppressed until `ETAMIN` (5) days have
+   elapsed; before that the line states the rate still required — `29 days left · 1.3 a day from
+   here` — which is a fact rather than a prediction. A met target still reports `met` on any date, so
+   the cutoff cannot hide a real result. `ETAMIN` is a named constant beside `CAD` and `DEFCAD`.
 2. **Export / import JSON.** The file is already on disk so this is low priority, but a button beats
    hunting for the path.
 3. **Cadence thresholds (3 / 10 / 35 days) are guesses.** After a month or two of real use, adjust

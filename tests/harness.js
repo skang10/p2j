@@ -9,13 +9,30 @@ const HTML = path.join(__dirname, '..', 'src', 'index.html');
 
 const NAMES = `KEY DOW MAXGOALS CAD DEFCAD
 pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId esc cadName TAP
-Store load save seed
-dayTotal adhocMonth adhocAll level subTotal firstDone lastTouch activeDays goalDays goalCount streak
+Store load save seed ETAMIN
+dayTotal adhocMonth adhocAll level dayKeys subTotal firstDone lastTouch activeDays goalDays goalCount streak
 bump addAdhoc delAdhoc clearSub
 render calendar yearStrip dayPanel adhocBlock goalBlock paceLine pips tick
 reviewPanel achievements cols statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
 
 const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'dataPath', 'saveErr', 'refocus'];
+
+// A Date subclass whose no-arg constructor returns a fixed instant. Every other
+// form (new Date(y, m, d), new Date(str), Date.now()) behaves normally, because
+// the app relies on those for real arithmetic.
+function fixedDate(iso) {
+  if (!iso) return Date;
+  const [y, m, d] = iso.split('-').map(Number);
+  const fixed = new Date(y, m - 1, d, 12, 0, 0);      // midday, so DST cannot shift the date
+  class D extends Date {
+    constructor(...args) {
+      if (args.length === 0) super(fixed.getTime());
+      else super(...args);
+    }
+    static now() { return fixed.getTime(); }
+  }
+  return D;
+}
 
 function makeElement(id) {
   return {
@@ -32,7 +49,9 @@ function makeElement(id) {
   };
 }
 
-// opts.storage: false to omit window.storage entirely (real-browser condition)
+// opts.now: 'YYYY-MM-DD' pins what the script sees as today, so date-dependent
+// behaviour (month ends, leap days, the early-month ETA cutoff) can be asserted
+// instead of being tested only on whatever day the suite happens to run.
 function boot(opts = {}) {
   const src = fs.readFileSync(HTML, 'utf8');
   const m = src.match(/<script>([\s\S]*?)<\/script>/);
@@ -57,14 +76,15 @@ function boot(opts = {}) {
     querySelectorAll() { return []; },
   };
 
+  // The browser backend talks to localStorage, so the stub has to be one.
   const store = new Map();
+  const localStorage = {
+    getItem(k) { return store.has(k) ? store.get(k) : null; },
+    setItem(k, v) { store.set(k, String(v)); },
+    removeItem(k) { store.delete(k); },
+    clear() { store.clear(); },
+  };
   const win = {};
-  if (opts.storage !== false) {
-    win.storage = {
-      async get(k) { return store.has(k) ? { value: store.get(k) } : null; },
-      async set(k, v) { store.set(k, v); },
-    };
-  }
   if (opts.tauri) win.__TAURI__ = opts.tauri;
 
   const logs = { warn: [], error: [] };
@@ -76,7 +96,9 @@ function boot(opts = {}) {
       warn: (...a) => logs.warn.push(a.map(String).join(' ')),
       error: (...a) => logs.error.push(a.map(String).join(' ')),
     },
-    setTimeout, clearTimeout, Math, Date, JSON, Object, Array, String, Number,
+    setTimeout, clearTimeout, Math, JSON, Object, Array, String, Number, Set,
+    localStorage,
+    Date: fixedDate(opts.now),
   };
   ctx.globalThis = ctx;
   vm.createContext(ctx);

@@ -1,6 +1,13 @@
 // Frontend logic tests for src/index.html. Run: node test.js
 const { boot, bootReady } = require('./harness');
 
+// Pin the date so month-boundary behaviour is asserted, not left to the calendar.
+async function onDate(iso) {
+  const g = await bootReady({ now: iso });
+  g.api.state.logs = {}; g.api.state.adhoc = {};
+  return g;
+}
+
 let pass = 0, fail = 0;
 const fails = [];
 const TESTS = [];
@@ -117,16 +124,35 @@ t('activeDays counts days with any activity', async () => {
   eq(a.activeDays(2026, 6), 3, '07-02, 07-03, 07-10');
   eq(a.activeDays(2026, 5), 1);
 });
-// KNOWN DISCREPANCY vs SPEC §4.4: activeDays/goal charts iterate state.logs only,
-// so a day whose only activity is ad-hoc is coloured green on the calendar
-// (dayTotal counts it) but is not counted as an active day in the tally or stats.
-t('ad-hoc-only day: green on the calendar but absent from the active-day tally', async () => {
+// SPEC §4.4: an ad-hoc entry is activity. It used to colour the calendar cell but
+// be skipped by every counter, because they walked `logs` and ad-hoc-only days
+// exist solely in `adhoc`.
+t('an ad-hoc-only day counts everywhere the calendar says it does', async () => {
   const a = await fixture();
   a.state.adhoc['2026-07-20'] = ['odd jobs only'];
-  eq(a.dayTotal('2026-07-20'), 1, 'dayTotal sees it, so the cell renders green');
-  eq(a.activeDays(2026, 6), 3, 'but activeDays skips it — 4 would be consistent');
+  eq(a.dayTotal('2026-07-20'), 1, 'the cell renders green');
+  eq(a.activeDays(2026, 6), 4, 'and the day is counted as active');
   a.view = { y: 2026, m: 6 };
   has(a.calendar('2026-07-28'), 'data-l="1" data-k="2026-07-20"', 'cell is shaded');
+});
+t('dayKeys unions logs and adhoc without duplicating a shared date', async () => {
+  const a = await fixture();
+  // 2026-07-03 exists in both maps
+  const ks = a.dayKeys();
+  eq(ks.filter(k => k === '2026-07-03').length, 1, 'no duplicate');
+  ok(ks.includes('2026-08-02'), 'an adhoc-only date is present');
+  eq(ks, [...ks].sort(), 'sorted, so ks[0] is the earliest activity');
+});
+t('an ad-hoc-only month is not invisible to the stats panel', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.state.logs = {}; a.state.adhoc = { '2026-07-20': ['a', 'b'] };
+  a.view = { y: 2026, m: 6 };
+  eq(a.activeDays(2026, 6), 1, 'one active day');
+  a.panel = 'stats'; a.render();
+  has(g.captured.app, '<b>1</b> day logged');
+  has(g.captured.app, '<b>2</b> check-ins');
+  has(g.captured.app, 'Since Jul 20', 'and the span starts at the ad-hoc day');
 });
 t('adhocMonth / adhocAll', async () => {
   const a = await fixture();
@@ -221,7 +247,8 @@ t('paceLine: current month, already met', async () => {
 t('paceLine: current month, nothing done yet', async () => {
   const a = await fixture();
   a.view = { y: TY, m: TM };
-  has(a.paceLine(0, 40), `${LEFT} days left`);
+  // pluralise the way the app does, or this breaks on the 30th of a 31-day month
+  has(a.paceLine(0, 40), `${LEFT} day${LEFT === 1 ? '' : 's'} left`);
 });
 t('paceLine: current month, on pace projects an ETA', async () => {
   if (LEFT === 0) return;             // last day of month: no room to project
@@ -899,6 +926,126 @@ t('a non-count goal drops the monthly-target field and its caption', async () =>
   eq((html.match(/class="frow"/g) || []).length, 2, 'only two fields apply');
   no(html, 'Monthly target');
   no(html, 'resets to 0 on the 1st', 'the caption is about the target, so it goes too');
+});
+
+// ---------- the early-month ETA (§8.1) ----------
+// A rate measured over two days projects nonsense: three done on the 1st used to
+// read "3.0/day · at this pace done Jan 10".
+t('no projection is offered before ETAMIN days have elapsed', async () => {
+  for (const day of ['01', '02', '03', '04']) {
+    const g = await onDate(`2026-01-${day}`);
+    const a = g.api;
+    a.view = { y: 2026, m: 0 };
+    const s = a.paceLine(3, 40);
+    no(s, 'at this pace', `Jan ${day}: must not predict`);
+    no(s, 'by month end', `Jan ${day}: must not project a total`);
+    has(s, 'a day from here', `Jan ${day}: states what is required instead`);
+  }
+});
+t('the projection appears once the rate has enough days behind it', async () => {
+  const g = await onDate('2026-01-05');
+  const a = g.api;
+  a.view = { y: 2026, m: 0 };
+  const s = a.paceLine(3, 40);
+  ok(/at this pace|by month end/.test(s), 'on the 5th a rate is worth reporting: ' + s);
+});
+t('ETAMIN is the documented cutoff, not a magic number', async () => {
+  const g = await onDate('2026-01-10');
+  eq(g.api.ETAMIN, 5);
+});
+t('the early-month line still states an achievable daily rate', async () => {
+  const g = await onDate('2026-01-02');
+  const a = g.api;
+  a.view = { y: 2026, m: 0 };
+  // 3 of 40 done, 29 days left -> 37/29 = 1.3 a day
+  has(a.paceLine(3, 40), '<span class="rate">1.3</span> a day from here');
+});
+t('a met target reports met even early in the month', async () => {
+  const g = await onDate('2026-01-02');
+  const a = g.api;
+  a.view = { y: 2026, m: 0 };
+  has(a.paceLine(40, 40), 'met', 'the cutoff must not suppress a real result');
+});
+
+// ---------- month boundaries, pinned ----------
+t('the last day of a month leaves zero days and never divides by zero', async () => {
+  const g = await onDate('2026-01-31');
+  const a = g.api;
+  a.view = { y: 2026, m: 0 };
+  for (const done of [0, 5, 39, 40, 99]) {
+    const s = a.paceLine(done, 40);
+    ok(!/NaN|Infinity|undefined/.test(s), `done=${done} produced: ${s}`);
+  }
+});
+t('a leap day is a real, clickable day', async () => {
+  const g = await onDate('2024-02-29');
+  const a = g.api;
+  eq(a.todayKey(), '2024-02-29');
+  eq(a.daysIn(2024, 1), 29);
+  a.view = { y: 2024, m: 1 };
+  has(a.calendar('2024-02-29'), 'data-k="2024-02-29"');
+});
+t('the streak spans a month boundary', async () => {
+  const g = await onDate('2026-03-02');
+  const a = g.api;
+  a.state.logs = { '2026-02-27': {x:1}, '2026-02-28': {x:1}, '2026-03-01': {x:1}, '2026-03-02': {x:1} };
+  eq(a.streak(), 4, 'Feb 28 -> Mar 1 is consecutive');
+});
+t('the streak spans a leap-day boundary', async () => {
+  const g = await onDate('2024-03-01');
+  const a = g.api;
+  a.state.logs = { '2024-02-28': {x:1}, '2024-02-29': {x:1}, '2024-03-01': {x:1} };
+  eq(a.streak(), 3, 'the 29th exists in 2024, so the run is unbroken');
+});
+t('a run of 3 in a 28-day February is not miscounted', async () => {
+  const g = await onDate('2026-02-28');
+  const a = g.api;
+  a.state.logs = { '2026-02-26': {x:1}, '2026-02-27': {x:1}, '2026-02-28': {x:1} };
+  eq(a.streak(), 3);
+  eq(a.activeDays(2026, 1), 3);
+});
+
+// ---------- the browser fallback actually works in a browser (§7.1) ----------
+// It used to call window.storage, which is not a browser API: the page rendered
+// but every save threw, so the documented styling workflow silently lost edits.
+t('the browser backend round-trips through localStorage', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  eq(a.Store.kind, 'browser');
+  a.sel = a.todayKey();
+  a.bump(a.state.goals[0].subs[0].id, 2);
+  await new Promise(r => setTimeout(r, 400));          // the 250ms debounce
+  eq(a.saveErr, false, 'the save must not fail');
+  const raw = g.store.get('checkin-v3');
+  ok(raw, 'something was written');
+  eq(typeof raw, 'string', 'localStorage holds strings');
+  const parsed = JSON.parse(raw);
+  eq(parsed.logs[a.todayKey()][a.state.goals[0].subs[0].id], 2);
+});
+t('a browser reload restores what was saved', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.sel = a.todayKey();
+  a.bump(a.state.goals[0].subs[0].id, 3);
+  a.addAdhoc('wrote it down');
+  await new Promise(r => setTimeout(r, 400));
+  const saved = g.store.get('checkin-v3');
+  // a second boot sharing the same storage is the reload
+  const g2 = await bootReady();
+  g2.store.set('checkin-v3', saved);
+  await g2.api.load();
+  eq(g2.api.dayTotal(g2.api.todayKey()), 4, '3 check-ins + 1 ad-hoc survived');
+  eq(g2.api.state.adhoc[g2.api.todayKey()], ['wrote it down']);
+});
+t('the footer never shows a write error on the happy path', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.sel = a.todayKey();
+  a.bump(a.state.goals[0].subs[0].id, 1);
+  await new Promise(r => setTimeout(r, 400));
+  a.render();
+  no(g.captured.app, 'Write failed', 'this is what the broken fallback used to show');
+  has(g.captured.app, 'Browser local storage');
 });
 
 // ---------- the §4.1 invariant ----------
