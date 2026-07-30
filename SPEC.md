@@ -222,7 +222,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 153 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 149 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -242,7 +242,7 @@ Two consequences worth knowing:
   `${LEFT} days left` passed for a month and then failed on the 30th.
 
 Coverage is the derived layer and the render output: date maths including a DST boundary, every
-derived count, all three goal types, all six `paceLine` branches, the
+derived count, all three goal types, every `paceLine` branch, the
 projection track's geometry, streak runs and how they break, HTML escaping in all three panels,
 legacy-file migration, pluralisation, the two-pane structure, the §4.1 no-cached-totals invariant,
 and the §4.5 archive rule — including the one that matters most there, that archiving a goal leaves
@@ -433,7 +433,7 @@ different controls that happened to share a glyph, and the editor had them backw
 beside the title and destroyed the goal. It reads as "put this away" in every other piece of software
 on the machine, which is how a goal was lost by someone meaning to close the editor. So:
 
-- The editor's `×` sits in its own header (`Edit goal   ×`) and does exactly what `Done` does.
+- The editor's `×` sits in its own header (`Edit goal   ×`) and does exactly what `Save` does.
 - Removing the goal is a button that says which of the two removals in §4.5 it will perform —
   `Archive this goal` or `Delete this goal` — in its own zone below a rule, with one caption stating
   what survives (`The 15 check-ins it already has stay in past months; it leaves this screen. You can
@@ -442,28 +442,37 @@ on the machine, which is how a goal was lost by someone meaning to close the edi
 - Sub-goal rows keep their `×`, because that is a row-level removal.
 
 The fields stack — label above a full-width control — so the label, the value and the tap target
-share one left edge instead of sitting in three columns. `Done` is the pane's primary action and is
-the only filled button in the app.
+share one left edge instead of sitting in three columns. `Save` is the pane's primary action and is
+the only filled button in the app. Note what it does not do: every field writes on `oninput`, so the
+edit is already on disk before the button is pressed and `×` loses nothing. It was labelled `Done`
+for that reason and relabelled at the owner's request; if anyone ever reads `Save` as "changes are
+pending until you click me", that is the cost being paid.
 
 `+ goal` lives in the footer, below the goals, and opens the new goal's editor immediately. Above
 `MAXGOALS` it is replaced by the cap notice.
 
-**Pace** (count goals only) is the app's thesis made visible, and is drawn twice — once as a
-projection track, once in words:
+**Pace** (count goals only) is the app's thesis made visible, as a track:
 
 ```
 [========------------·································]
  ^ done   ^ projected by month end        ^ shortfall
-
-1.6/day · at this pace done Aug 3
-1.1/day · about 33 by month end, 7 short · needs 1.8/day
 ```
 
-The dark segment is what is actually done; the light segment is where the current rate lands you by
-the end of the month; the grey remainder is the shortfall. The sentence below states the same thing
-in words: first half fact, second half actionable. Unlike a streak, missing a day nudges the slope
+The ink segment is what is actually done; the accent segment is where the current rate lands you by
+the end of the month; the well is the shortfall. Unlike a streak, missing a day nudges the slope
 instead of resetting to zero. The track is hand-drawn with absolute positioning and percentage
 widths — no charting library, per §2.2.
+
+It used to be drawn twice, the second time in words (`1.1/day · about 33 by month end, 7 short ·
+needs 1.8/day`). The sentence was removed in July 2026. What prompted it was its zero case —
+`N days left · 20.0 a day gets there`, a daily quota demanded of a goal you had not started, which
+is the same thing `not started` was doing in §4.3. The rest went with it rather than leaving one
+branch silent and six talking. **The arithmetic stayed**: `paceLine()` still computes the rate and
+the projected total, because those decide how far the projected segment reaches. Four branches
+collapse to a bare track — a past month, a met target, a goal with nothing done, and any date before
+`ETAMIN` — and each for the same reason as before: there is nothing to project.
+
+If the numbers are ever wanted back, they belong in words below the track, not inside it.
 
 **Review panel** — per-goal results for the viewed month, plus a line naming any goal untouched all
 month with the prompt: schedule it next month or delete it. Reached via the middle tab, or
@@ -506,7 +515,7 @@ generate the rest, and both are worth defending because each encodes something t
 **1. Recorded facts are ink; colour is reserved for claims about the future.** Every logged fact —
 a calendar cell, a pip, a bar, a share track, a chip you have tapped — is drawn in one neutral ramp,
 `--c0` through `--c4`, darker with more activity. `--accent` appears only where the app asserts
-something that is not yet true: the projected segment of the track, the pace sentence, `met`, a
+something that is not yet true: the projected segment of the track, `met`, a
 finished item in the completion log. This keeps the palette from flattering attendance into progress
 — you cannot make a month look green by showing up.
 
@@ -654,11 +663,13 @@ rendered, so the workflow looked fine, but every save threw and every edit was l
 In rough priority order. These are open questions, not queued work. Do one at a time, and confirm
 which one first.
 
-1. ~~**The ETA is nonsense early in the month.**~~ **Resolved.** Three items done on the 1st used to
-   project "3/day, done by the 10th". The projection is now suppressed until `ETAMIN` (5) days have
-   elapsed; before that the line states the rate still required — `29 days left · 1.3 a day from
-   here` — which is a fact rather than a prediction. A met target still reports `met` on any date, so
-   the cutoff cannot hide a real result. `ETAMIN` is a named constant beside the other tunables.
+1. ~~**The ETA is nonsense early in the month.**~~ **Resolved, then superseded.** Three items done
+   on the 1st used to project "3/day, done by the 10th". The projection is suppressed until `ETAMIN`
+   (5) days have elapsed. The wording that replaced it is gone with the rest of the pace sentence
+   (§5), but the cutoff itself still holds — before day 5 the track shows only what is done, and no
+   projected segment is drawn. A met target still fills the track on any date, so the cutoff cannot
+   hide a real result. `ETAMIN` is a named constant beside the other tunables.
+
 2. ~~**Export / import JSON.**~~ **Built.** See §5.1.
 3. ~~**Cadence thresholds (3 / 10 / 35 days) are guesses.**~~ **Moot.** Cadence was removed
    before the thresholds were ever validated against real logs — see §4.4 for what it did and the

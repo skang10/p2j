@@ -158,7 +158,6 @@
   .erow.sub.gone .sname{flex:1;font-size:13px;color:var(--dust)}
   .lnk.dgr{color:var(--danger)}
   .lnk.dgr:hover{color:var(--danger)}
-  .done{font-weight:600;color:var(--accent)}
   /* the goal's own name is yours, so it is set in the humanist face */
   .goal h3{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-.011em}
   .prog{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted);flex:none}
@@ -172,10 +171,6 @@
   .ptrack i{position:absolute;top:0;bottom:0;display:block;transition:width .25s ease,left .25s ease}
   .ptrack .done{left:0;background:var(--c4);border-radius:3px}
   .ptrack .proj{background:var(--accent)}
-  .pline{font-size:12.5px;color:var(--muted);margin:8px 0 0}
-  .pline .em{color:var(--accent);font-weight:500}
-  .pline .warn{color:var(--alert)}
-  .pline .rate{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);font-weight:500}
 
   .pips{display:flex;flex-wrap:wrap;gap:4px;margin:13px 0 0}
   .pip{width:11px;height:11px;background:var(--c0);border-radius:3px}
@@ -792,7 +787,7 @@ function goalEditor(g){
     </div>
     <div class="erow edfoot">
       <span class="grow"></span>
-      <button class="btn pri" data-edit="">Done</button>
+      <button class="btn pri" data-edit="">Save</button>
     </div>
   </div>`;
 }
@@ -807,33 +802,24 @@ function track(done,target,proj){
        + (pp>dp?`<i class="proj" style="left:${dp}%;width:${pp-dp}%"></i>`:'')
        + `</div>`;
 }
+// Pace is now shown only as the track: ink for what is done, accent for where this
+// rate lands you, the well for the shortfall. The sentence that used to restate it in
+// words was removed — including the one it opened with, which demanded a daily rate
+// from a goal you had not started. The arithmetic stays, because it decides how far
+// the projected segment reaches.
 function paceLine(done,target){
   const n=today();
   const isCur = view.y===n.getFullYear()&&view.m===n.getMonth();
-  const dim=daysIn(view.y,view.m);
-  const say=t=>`<p class="pline">${t}</p>`;
-  if(!isCur) return track(done,target) + say(done>=target
-    ? `<span class="em">met</span> · ${dim}-day month`
-    : `<span class="warn">${target-done} short</span> · month is over`);
-  const el=n.getDate(), left=dim-el;
-  if(done>=target) return track(done,target)
-    + say(`<span class="em">met</span> · ${left} day${left===1?'':'s'} left, extras count next month`);
-  if(done===0) return track(0,target)
-    + say(`${left} day${left===1?'':'s'} left · <span class="rate">${(target/Math.max(1,left+1)).toFixed(1)}</span> a day gets there`);
-  const need=target-done;
-  // Early in the month a rate measured over two or three days projects nonsense:
-  // three done on the 1st reads "3/day, finished by the 10th". Until ETAMIN days
-  // have elapsed, state what is still required instead of predicting. §8.1
-  if(el<ETAMIN) return track(done,target)
-    + say(`${left} day${left===1?'':'s'} left · <span class="rate">${(need/Math.max(1,left)).toFixed(1)}</span> a day from here`);
-  const rate=done/el, days=Math.ceil(need/rate);
-  const eta=new Date(n); eta.setDate(eta.getDate()+days);
-  const r=rate.toFixed(1);
-  if(days<=left) return track(done,target,target)
-    + say(`<span class="rate">${r}</span>/day · at this pace <span class="em">done ${MONS[eta.getMonth()]} ${eta.getDate()}</span>`);
-  const proj=Math.round(done+rate*left);
-  return track(done,target,proj)
-    + say(`<span class="rate">${r}</span>/day · about ${proj} by month end, <span class="warn">${target-proj} short</span> · needs <span class="rate">${(need/Math.max(1,left)).toFixed(1)}</span>/day`);
+  // A month that is over cannot project, and a met target has nothing left to project to.
+  if(!isCur || done>=target || done===0) return track(done,target);
+  const el=n.getDate(), left=daysIn(view.y,view.m)-el;
+  // Early in the month a rate measured over two or three days projects nonsense: three
+  // done on the 1st would reach all the way across. Until ETAMIN days have elapsed the
+  // track shows only what is actually done. §8.1
+  if(el<ETAMIN) return track(done,target);
+  const rate=done/el, days=Math.ceil((target-done)/rate);
+  return days<=left ? track(done,target,target)             // this pace arrives in time
+                    : track(done,target,Math.round(done+rate*left));
 }
 
 function pips(d,t){

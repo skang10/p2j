@@ -176,47 +176,36 @@ t('clearSub wipes a sub everywhere and prunes emptied days', async () => {
 });
 
 // ---------- pace line ----------
-t('paceLine: past month, target met', async () => {
+// Pace is drawn and no longer narrated, so what each branch has to get right is how
+// far the two segments reach. The geometry itself is asserted under "the projection
+// track" below; these cover which branch produces which shape.
+t('pace: a past month shows what was done and never projects', async () => {
   const a = await fixture();
   a.view = { y: 2020, m: 0 };
+  has(a.paceLine(40, 40), 'class="done" style="width:100%"');
+  no(a.paceLine(40, 40), 'class="proj"', 'a finished month has no future');
+  has(a.paceLine(33, 40), 'class="done" style="width:82.5%"');
+  no(a.paceLine(33, 40), 'class="proj"');
+});
+t('pace: a met target fills the track and projects nothing further', async () => {
+  const a = await fixture();
+  a.view = { y: TY, m: TM };
   const s = a.paceLine(40, 40);
-  has(s, 'met'); has(s, '31-day month');
+  has(s, 'width:100%'); no(s, 'class="proj"');
 });
-t('paceLine: past month, target missed', async () => {
-  const a = await fixture();
-  a.view = { y: 2020, m: 0 };
-  const s = a.paceLine(33, 40);
-  has(s, '7 short'); has(s, 'month is over');
-});
-t('paceLine: current month, already met', async () => {
+// The line this replaced opened with "N days left · 20.0 a day gets there" — a demand
+// made of a goal you had not started. Same principle as dropping "not started" (§4.3).
+t('pace: a goal with nothing done shows an empty track and asks for nothing', async () => {
   const a = await fixture();
   a.view = { y: TY, m: TM };
-  has(a.paceLine(40, 40), 'met');
+  const s = a.paceLine(0, 40);
+  has(s, 'class="done" style="width:0%"');
+  no(s, 'class="proj"', 'nothing to infer a rate from');
+  no(s, 'a day gets there', 'and it no longer asks for one');
 });
-t('paceLine: current month, nothing done yet', async () => {
-  const a = await fixture();
-  a.view = { y: TY, m: TM };
-  // pluralise the way the app does, or this breaks on the 30th of a 31-day month
-  has(a.paceLine(0, 40), `${LEFT} day${LEFT === 1 ? '' : 's'} left`);
-});
-t('paceLine: current month, on pace projects an ETA', async () => {
-  if (LEFT === 0) return;             // last day of month: no room to project
-  const a = await fixture();
-  a.view = { y: TY, m: TM };
-  const s = a.paceLine(TD, DIM);      // rate 1.0/day, needs exactly LEFT more days
-  has(s, 'at this pace'); has(s, 'done ');
-});
-t('paceLine: current month, behind pace warns and states the required rate', async () => {
-  const a = await fixture();
-  a.view = { y: TY, m: TM };
-  const s = a.paceLine(1, DIM * 10);
-  has(s, 'by month end'); has(s, ' short'); has(s, 'needs'); has(s, '/day');
-});
-t('paceLine never divides by zero on the last day of a month', async () => {
+t('pace never emits NaN or Infinity', async () => {
   const a = await fixture();
   a.view = { y: 2026, m: 6 };          // July, 31 days
-  const realToday = a.today;
-  // paceLine reads today() internally; assert the no-crash path via a past month instead
   const s = a.paceLine(1, 40);
   ok(!/NaN|Infinity/.test(s), 'got ' + s);
 });
@@ -557,11 +546,12 @@ t('count goals use the track, list goals use pips', async () => {
   const list = a.goalBlock(a.state.goals[1], '2026-07-02', a.firstDone());
   has(list, 'class="pips"'); no(list, 'class="ptrack"', 'discrete items do not get a rate track');
 });
-t('the pace sentence still states the rate in words', async () => {
+t('pace is drawn, never narrated', async () => {
   const a = await fixture();
   a.view = { y: TY, m: TM };
-  has(a.paceLine(1, DIM * 10), 'class="pline"');
-  has(a.paceLine(1, DIM * 10), 'class="rate"');
+  const s = a.paceLine(1, DIM * 10);
+  no(s, 'class="pline"'); no(s, 'class="rate"');
+  no(s, '/day'); no(s, 'short'); no(s, 'by month end');
 });
 
 // ---------- desktop two-pane structure ----------
@@ -796,42 +786,37 @@ t('a non-count goal drops the monthly-target field and its caption', async () =>
 });
 
 // ---------- the early-month ETA (§8.1) ----------
-// A rate measured over two days projects nonsense: three done on the 1st used to
-// read "3.0/day · at this pace done Jan 10".
-t('no projection is offered before ETAMIN days have elapsed', async () => {
+// A rate measured over two days projects nonsense: three done on the 1st would send
+// the projected segment all the way across the track.
+t('no projection segment is drawn before ETAMIN days have elapsed', async () => {
   for (const day of ['01', '02', '03', '04']) {
     const g = await onDate(`2026-01-${day}`);
     const a = g.api;
     a.view = { y: 2026, m: 0 };
     const s = a.paceLine(3, 40);
-    no(s, 'at this pace', `Jan ${day}: must not predict`);
-    no(s, 'by month end', `Jan ${day}: must not project a total`);
-    has(s, 'a day from here', `Jan ${day}: states what is required instead`);
+    no(s, 'class="proj"', `Jan ${day}: must not project`);
+    has(s, 'class="done" style="width:7.5%"', `Jan ${day}: but what is done still shows`);
   }
 });
 t('the projection appears once the rate has enough days behind it', async () => {
   const g = await onDate('2026-01-05');
   const a = g.api;
   a.view = { y: 2026, m: 0 };
-  const s = a.paceLine(3, 40);
-  ok(/at this pace|by month end/.test(s), 'on the 5th a rate is worth reporting: ' + s);
+  has(a.paceLine(3, 40), 'class="proj"', 'on the 5th a rate is worth drawing');
 });
 t('ETAMIN is the documented cutoff, not a magic number', async () => {
   const g = await onDate('2026-01-10');
   eq(g.api.ETAMIN, 5);
 });
-t('the early-month line still states an achievable daily rate', async () => {
+t('a met target still reads met early in the month', async () => {
   const g = await onDate('2026-01-02');
   const a = g.api;
+  a.state.goals = [{ id: 'gx', type: 'count', target: 2, title: 'X', subs: [{ id: 'sx', title: 's' }] }];
+  a.state.logs = { '2026-01-01': { sx: 2 } };
   a.view = { y: 2026, m: 0 };
-  // 3 of 40 done, 29 days left -> 37/29 = 1.3 a day
-  has(a.paceLine(3, 40), '<span class="rate">1.3</span> a day from here');
-});
-t('a met target reports met even early in the month', async () => {
-  const g = await onDate('2026-01-02');
-  const a = g.api;
-  a.view = { y: 2026, m: 0 };
-  has(a.paceLine(40, 40), 'met', 'the cutoff must not suppress a real result');
+  has(a.paceLine(2, 2), 'width:100%', 'the track fills');
+  has(a.goalBlock(a.state.goals[0], '2026-01-02', a.firstDone()), '>met<',
+      'the ETAMIN cutoff must not suppress a real result');
 });
 
 // ---------- month boundaries, pinned ----------
@@ -1297,9 +1282,9 @@ t('sub-goal rows keep their × , because a row-level × removes that row', async
   has(ed, 'data-ds="s1"', 'the sub-goal row still has its own remove control');
   has(ed, 'class="x" data-ds="s1"', 'and it is still an ×');
 });
-t('Done is the primary button and closes the editor', async () => {
+t('Save is the primary button and closes the editor', async () => {
   const g = await arch(); const a = g.api;
-  has(a.goalEditor(a.state.goals[0]), '<button class="btn pri" data-edit="">Done</button>');
+  has(a.goalEditor(a.state.goals[0]), '<button class="btn pri" data-edit="">Save</button>');
 });
 t('the archived flag survives an export/import round trip', async () => {
   const g = await arch(); const a = g.api;
