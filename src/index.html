@@ -186,16 +186,18 @@
   /* a chip you have tapped is a recorded fact, so it fills with ink — the same
      language as a filled day on the calendar */
   .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:13px}
+  /* No flex `gap` here: the spacing belongs to the count, so a chip without one
+     centres its label rather than reserving room for something that isn't drawn. */
   .chip{font:inherit;font-size:12px;line-height:1.4;padding:7px 11px;border:1px solid transparent;
     background:var(--sunk);color:var(--body);border-radius:var(--r);cursor:pointer;
     transition:border-color .12s,background .12s,color .12s;
-    display:inline-flex;align-items:center;gap:7px}
+    display:inline-flex;align-items:center}
   .chip:hover{border-color:var(--c1);color:var(--ink)}
-  .chip .tick{width:9px;height:9px;opacity:0;transition:opacity .12s;flex:none}
   .chip.on{background:var(--c4);border-color:var(--c4);color:var(--on);font-weight:500}
   .chip.on:hover{background:var(--c3);border-color:var(--c3)}
   .chip.on .tick{opacity:1}
-  .chip .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:10.5px;opacity:.75}
+  .chip .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:10.5px;
+    opacity:.75;margin-left:6px}
   .grp{display:inline-flex}
   .grp .chip{border-radius:var(--r) 0 0 var(--r)}
   .minus{font-size:13px;line-height:1;padding:7px 10px;border:1px solid var(--c4);border-left:0;
@@ -728,7 +730,7 @@ function goalBlock(g,k,F){
     pace=`<div class="pace">${paceLine(c,target)}</div>`;
     chips=subs.map(s=>{
       const c2=day[s.id]||0;
-      const b=`<button class="chip ${c2?'on':''}" data-add="${s.id}">${tick()}${esc(s.title)}${c2?`<span class="n mono">+${c2}</span>`:''}</button>`;
+      const b=`<button class="chip ${c2?'on':''}" data-add="${s.id}">${esc(s.title)}${c2?`<span class="n mono">+${c2}</span>`:''}</button>`;
       return c2?`<span class="grp">${b}<button class="minus" data-minus="${s.id}">−</button></span>`:b;
     }).join('');
   }
@@ -737,7 +739,7 @@ function goalBlock(g,k,F){
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b> / ${subs.length}</span>`;
     prog=pips(fin.length,subs.length);
-    chips=open.length?open.map(s=>`<button class="chip" data-add="${s.id}">${tick()}${esc(s.title)}</button>`).join('')
+    chips=open.length?open.map(s=>`<button class="chip" data-add="${s.id}">${esc(s.title)}</button>`).join('')
       :'<span class="hint">Everything here is done.</span>';
     if(fin.length) done=`<div class="doneline"><span class="lb">Done</span>${
       fin.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}<em>${short(F[s.id])}</em></button>`).join('')}</div>`;
@@ -745,7 +747,7 @@ function goalBlock(g,k,F){
   else{
     const d=goalDays(g,y,m);
     right=`<span class="prog mono"><b>${d}</b> day${d===1?'':'s'} this month</span>`;
-    chips=subs.map(s=>`<button class="chip ${day[s.id]?'on':''}" data-tog="${s.id}">${tick()}${esc(s.title)}</button>`).join('');
+    chips=subs.map(s=>`<button class="chip ${day[s.id]?'on':''}" data-tog="${s.id}">${esc(s.title)}</button>`).join('');
   }
 
   return `<div class="goal">
@@ -839,7 +841,6 @@ function pips(d,t){
   let h=''; for(let i=0;i<t;i++) h+=`<div class="pip${i<d?' f':''}"></div>`;
   return `<div class="pips">${h}</div>`;
 }
-const tick=()=>'<svg class="tick" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 5.2L3.6 8 9 1.8" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
 
 function reviewPanel(){
   const {y,m}=view, F=firstDone(), n=today();

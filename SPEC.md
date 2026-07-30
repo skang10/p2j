@@ -548,7 +548,7 @@ else: no rule below hardcodes a colour.
 Rules: 9px radii on cells, chips and inputs; 6px on small controls. **No shadows** anywhere except a
 3px focus ring, which the boxed inputs and the primary button use in `--soft`. No gradients, no icon
 library. Headings are sentence case — the mono chrome carries light letter-spacing, but there are no
-uppercase eyebrows. Motion is limited to colour transitions, the chip checkmark, and the projection
+uppercase eyebrows. Motion is limited to colour transitions and the projection
 track's width; `prefers-reduced-motion` is already handled. Copy is English, plain verbs, sentence
 case, no exclamation marks, no encouragement or congratulation.
 
@@ -562,6 +562,11 @@ case, no exclamation marks, no encouragement or congratulation.
 - **One token means "no data".** `--c0` is the empty calendar cell, the unfilled part of every track
   and bar, the empty pip and every chart well, so absence looks the same everywhere.
 - **A tapped chip fills with ink**, in the same language as a filled day. Anything you did is ink.
+  The fill is the whole signal: a checkmark inside the chip restated it, and because it sat in the
+  flex row whether or not it was drawn, every unticked chip reserved 15px it never used and its label
+  sat visibly off centre. **Nothing invisible may hold space in a chip** — if an element is not drawn,
+  it must not be laid out. The `+N` on a count chip stays, because that is information rather than
+  decoration, and it reads as a badge on the right while every label starts at the same left edge.
 - **A sub-goal is set a step below the goal it belongs to** — 12px against the goal name's 15px, and
   the same step for a finished list item on the `Done` line. The goal is the heading; its sub-goals
   are the items under it, and the type has to say so before the indentation does.

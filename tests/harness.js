@@ -14,7 +14,7 @@ dayTotal level dayKeys subTotal firstDone activeDays goalDays goalCount streak
 live liveSubs subLogged goalLogged hasData
 dropGoal dropSub restoreGoal restoreSub purgeGoal doUndo undoLine archiveShelf
 bump clearSub stripSub
-render calendar yearStrip dayPanel goalBlock paceLine pips tick
+render calendar yearStrip dayPanel goalBlock paceLine pips
 reviewPanel achievements cols statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
 
 const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'dataPath', 'saveErr',
