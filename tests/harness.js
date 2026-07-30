@@ -11,11 +11,11 @@ const NAMES = `KEY DOW MAXGOALS
 pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId esc TAP
 Store load save seed ETAMIN
 dayTotal level dayKeys subTotal firstDone activeDays goalDays goalCount streak
-live liveSubs subLogged goalLogged hasData
+live liveSubs subLogged goalLogged
 dropGoal dropSub restoreGoal restoreSub purgeGoal doUndo undoLine archiveShelf
 bump clearSub stripSub
 render calendar dayPanel goalBlock paceLine pips
-reviewPanel achievements cols statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
+achievements cols statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
 
 const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'dataPath', 'saveErr',
                  'notice', 'undo', 'purging'];

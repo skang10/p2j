@@ -333,8 +333,8 @@ repeatable and not something to be nagged about daily, so the real variable is e
 not task nature. The thresholds (3 / 10 / 35 days) were never validated against real logs, which is
 what §8.3 was waiting for.
 
-What replaced neither: the month review still names any goal untouched for a whole month (§5), which
-is the once-a-month version of what dormancy said continuously.
+Nothing replaced either of them. The month review carried the once-a-month version of what dormancy
+said continuously — and the review was removed too, see §5.
 
 A file written by an older version still parses. `cad` is a setting with nothing in it, so `load()`
 deletes it on the way through; `adhoc` held lines somebody typed, so it is left in the file
@@ -345,26 +345,25 @@ untouched — removing a feature must not delete the writing. It simply no longe
 Deleting a goal means "stop tracking this", not "this never happened". The two are different facts
 and the app used to conflate them: the goal vanished from `goals` while its entries stayed in `logs`,
 owned by nobody. Everything that reads log *values* — `dayTotal`, the calendar, `activeDays`,
-`streak` — kept counting them; everything that reads through `goals` — the review rows,
+`streak` — kept counting them; everything that reads through `goals` — the month review's rows,
 `achievements`, the chips — stopped. A past month could report 47 check-ins over rows adding up to
 20, with no label for the remainder, and a day whose only entry belonged to the deleted goal showed
-a filled calendar cell above an empty day panel.
+a filled calendar cell above an empty day panel. (The review has since been removed; the mismatch it
+made visible was never about that panel.)
 
 The rule that resolves it:
 
 - **A goal that has ever been logged is archived.** `archived: true`. It leaves the check-in screen,
-  stops counting against `MAXGOALS`, and is never named in the "untouched all month" note — it is no
-  longer something you are choosing not to do. Its logs stay, so the calendar, the streak and the
-  monthly totals are exactly what they were before.
+  stops counting against `MAXGOALS`. Its logs stay, so the calendar, the streak and every total are
+  exactly what they were before.
 - **A goal with no logs is deleted.** There is nothing to preserve, and an archive shelf full of
   goals that never happened is just clutter.
 - **The same rule one level down.** An archived sub-goal keeps counting toward its goal's totals
   (`goalCount`, `goalDays`, `subTotal` walk `g.subs`) but is no longer tappable (the chips walk
   `liveSubs`). `lastTouch` reads `liveSubs`, so a sub you archived yesterday cannot keep a goal
   looking warm.
-- **Past months keep the archived goal, marked; months it has nothing in drop the row.** Without the
-  row the review would not add up to the counts beside the calendar. With a row in every month it
-  would read as a goal you are still failing at.
+- **It stays in the record wherever the record is shown.** The stats panel credits it for what it
+  logged and marks the name `archived`, so a goal you no longer track cannot silently change a total.
 - **`stripSub()` is the only code that deletes log entries.** It is shared by the `undone` control
   and by the permanent delete, and nothing else may remove a log.
 
@@ -379,8 +378,7 @@ than silently making a fourth live goal.
 
 ## 5. Interface
 
-Three views of the right pane, switched by the `panel` variable: `day` (check in), `review` (month
-summary), `stats`.
+Two views of the right pane, switched by the `panel` variable: `day` (check in) and `stats`.
 
 **They are peers, so they share one switcher.** A tab row sits at the top of the pane: current view in
 `--ink` with a 2px underline on a hairline rail, the other two in `--muted`. All three tabs are always
@@ -479,11 +477,16 @@ collapse to a bare track — a past month, a met target, a goal with nothing don
 
 If the numbers are ever wanted back, they belong in words below the track, not inside it.
 
-**Review panel** — per-goal results for the viewed month, plus a line naming any goal untouched all
-month with the prompt: schedule it next month or delete it. Reached via the middle tab, or
-automatically when navigating to a past month. It carries only a small `.rcap` caption naming the
-month; it needs no heading, because the left pane's month navigation already states which month is in
-view.
+**Removed in July 2026: the month review.** It was the middle tab, and it also opened by itself when
+you navigated to a past month. It showed per-goal results for the month in view — a count against
+target, the list items finished, or days touched — plus a line naming any goal untouched all month
+with the prompt to give it time or archive it. The tab renamed itself to the month it would show, so
+it never read "This month" while displaying June.
+
+Its removal is why month navigation no longer touches the right pane: `‹ ›` and the stats chart move
+the calendar and leave the panel where it is. What it uniquely answered — "how did June go, goal by
+goal" — has no home now. The stats panel answers the all-time and twelve-month versions of the same
+question, not the per-month one.
 
 **Stats panel** — four blocks: active days per month over the last 12 months (bars are clickable and
 jump to that month), weekday distribution, per-goal share of check-ins, and the completion log
@@ -589,8 +592,8 @@ case, no exclamation marks, no encouragement or congratulation.
 - **A sub-goal is set a step below the goal it belongs to** — 12px against the goal name's 15px, and
   the same step for a finished list item on the `Done` line. The goal is the heading; its sub-goals
   are the items under it, and the type has to say so before the indentation does.
-- **Archived reads as dormant, not as an error.** The `archived` marker beside a title in the review
-  and the stats share (`i.gone`), the editor's archived sub-goal rows, and the archive shelf all use
+- **Archived reads as dormant, not as an error.** The `archived` marker beside a name in the stats
+  share (`i.gone`), the editor's archived sub-goal rows, and the archive shelf all use
   `--dust`, the muted grey — it is a state, not a warning. `--danger` appears only
   on the permanent delete, which is the only control that destroys anything (§4.5).
 

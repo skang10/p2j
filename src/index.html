@@ -128,7 +128,6 @@
   .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;
     background:var(--ink)}
   .ctx{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;padding-bottom:10px}
-  .rcap{font-family:var(--mono);font-size:11px;letter-spacing:.02em;color:var(--muted);margin:-6px 0 12px}
   .lnk{font-size:12.5px;color:var(--muted);cursor:pointer;border:0;background:0;padding:0;
     transition:color .12s}
   .lnk:hover{color:var(--ink)}
@@ -213,15 +212,6 @@
   .undone em{font-style:normal;font-family:var(--mono);font-variant-numeric:tabular-nums;
     opacity:.6;margin-left:5px}
   .hint{font-size:13px;color:var(--muted)}
-
-  /* month review */
-  .rev{padding:8px 0 0}
-  .rrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
-    padding:12px 0;border-bottom:1px solid var(--hair);font-size:14px;color:var(--ink)}
-  .rrow .rv{font-family:var(--mono);font-size:11.5px;color:var(--muted);flex:none}
-  .rrow .rv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;font-size:13px}
-  .rrow.idle{color:var(--dust)}
-  .rnote{margin-top:20px;font-size:12.5px;color:var(--muted);line-height:1.75}
 
   /* stats */
   .grow{flex:1}
@@ -462,7 +452,6 @@ const live=()=>state.goals.filter(g=>!g.archived);
 const liveSubs=g=>g.subs.filter(s=>!s.archived);
 const subLogged=id=>{ for(const k in state.logs) if(state.logs[k][id]) return true; return false; };
 const goalLogged=g=>g.subs.some(s=>subLogged(s.id));
-const hasData=(g,y,m)=>g.subs.some(s=>subTotal(s.id,y,m)>0);
 
 function dropGoal(id){
   const i=state.goals.findIndex(g=>g.id===id); if(i<0) return;
@@ -552,7 +541,7 @@ function render(){
         </div>`:''}
       </div>
       <div class="panel">
-        ${panel==='stats' ? statsPanel() : panel==='review' ? reviewPanel() : dayPanel(sel||tk,tk)}
+        ${panel==='stats' ? statsPanel() : dayPanel(sel||tk,tk)}
       </div>
     </div>
 
@@ -625,7 +614,7 @@ function tabs(){
   const showDate = panel==='day' && sel && sel!==tk;
   // the middle tab names the month it will actually show, so it never reads
   // "This month" while displaying June
-  const views=[['day','Today'],['review',isCur?'This month':MON[view.m]],['stats','Stats']];
+  const views=[['day','Today'],['stats','Stats']];
   return `<div class="phead">
       <nav class="tabs">${views.map(([p,name])=>
         `<button class="tab${panel===p?' on':''}" data-tab="${p}"${
@@ -765,30 +754,6 @@ function pips(d,t){
   return `<div class="pips">${h}</div>`;
 }
 
-function reviewPanel(){
-  const {y,m}=view, F=firstDone(), n=today();
-  const isCur=y===n.getFullYear()&&m===n.getMonth();
-  // An archived goal still holds up the months it was worked in — without its row the
-  // totals above the calendar would not add up. It drops out of the months it has
-  // nothing in, since it is no longer something you are choosing not to do.
-  const rows=state.goals.filter(g=>!g.archived||hasData(g,y,m)).map(g=>{
-    let v='',idle=false;
-    if(g.type==='count'){ const c=goalCount(g,y,m),t=g.target||40;
-      v=`<b>${c}</b> / ${t}`; idle=c===0; }
-    else if(g.type==='list'){ const f=g.subs.filter(s=>F[s.id]&&inMonth(F[s.id],y,m));
-      v=f.length?`<b>+${f.length}</b> ${f.map(s=>esc(s.title)).join(', ')}`:'—'; idle=!f.length; }
-    else { const d=goalDays(g,y,m); v=`<b>${d}</b> day${d===1?'':'s'}`; idle=d===0; }
-    return `<div class="rrow${idle?' idle':''}"><span>${esc(g.title)}${
-      g.archived?'<i class="gone">archived</i>':''}</span><span class="rv">${v}</span></div>`;
-  }).join('');
-  const idle=live().filter(g=>goalDays(g,y,m)===0).map(g=>g.title);
-  return `${tabs()}
-    <p class="rcap">${MON[m]} ${y}${isCur?' · still in progress':''}</p>
-    <div class="rev">${rows}
-      ${idle.length?`<p class="rnote">Untouched all month: ${idle.map(esc).join(', ')}.<br>Next month either give it time or archive it.</p>`:''}
-    </div>`;
-}
-
 function achievements(){
   const out=[], F=firstDone();
   state.goals.forEach(g=>{
@@ -894,8 +859,7 @@ function bind(){
     panel=p; render();});
   on('[data-jm]',b=>b.onclick=()=>{ const[y,m]=b.dataset.jm.split('.').map(Number);
     view={y,m}; const nn=today();
-    panel=(y===nn.getFullYear()&&m===nn.getMonth())?'day':'review';
-    sel=panel==='day'?todayKey():null; render(); });
+    panel='day'; sel=(y===nn.getFullYear()&&m===nn.getMonth())?todayKey():null; render(); });
   on('[data-edit]',b=>b.onclick=()=>{ editing=b.dataset.edit||null; render(); });
 
   const ag=document.getElementById('ag');
@@ -930,7 +894,7 @@ function shift(d){
   if(m<0){m=11;y--;} if(m>11){m=0;y++;}
   view={y,m};
   const n=today(), cur=y===n.getFullYear()&&m===n.getMonth();
-  panel=cur?'day':'review'; sel=cur?todayKey():null;
+  panel='day'; sel=cur?todayKey():null;
   render();
 }
 

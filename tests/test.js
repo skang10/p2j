@@ -266,21 +266,6 @@ t('day panel renders the calendar, the goals and their chips', async () => {
   no(html, 'Ad-hoc', 'the ad-hoc section is gone');
   no(html, 'id="adhocIn"');
 });
-t('review panel renders one row per goal and nothing else', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  a.panel = 'review'; a.render();
-  const html = g.captured.app;
-  has(html, 'class="rev"');
-  eq((html.match(/class="rrow/g) || []).length, 3, 'three goals, no ad-hoc row');
-});
-t('review panel names goals untouched all month', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  a.panel = 'review'; a.render();
-  has(g.captured.app, 'Untouched all month');
-  has(g.captured.app, 'or archive it');
-});
 t('stats panel renders all four blocks', async () => {
   const g = await bootReady();
   const a = g.api;
@@ -363,7 +348,7 @@ t('goal titles are escaped in every panel', async () => {
   // the stats share chart only lists goals with check-ins, so give it one
   a.sel = a.todayKey();
   a.bump(a.state.goals[0].subs[0].id, 1);
-  for (const p of ['day', 'review', 'stats']) {
+  for (const p of ['day', 'stats']) {
     a.panel = p; a.render();
     no(g.captured.app, '<script>x</script>', p + ' panel leaked raw markup');
     has(g.captured.app, '&lt;script&gt;', p + ' panel escaped');
@@ -383,17 +368,17 @@ t('render survives a completely empty state', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state = { goals: [], logs: {}, adhoc: {} };
-  for (const p of ['day', 'review', 'stats']) { a.panel = p; a.render(); ok(g.captured.app.length > 100, p); }
+  for (const p of ['day', 'stats']) { a.panel = p; a.render(); ok(g.captured.app.length > 100, p); }
   has(g.captured.app, 'Nothing logged yet');
 });
-t('navigating months keeps view in range and switches panel', async () => {
+t('navigating months moves the calendar and leaves the panel alone', async () => {
   const g = await bootReady();
   const a = g.api;
   a.view = { y: 2026, m: 0 };
   a.shift(-1);
   eq(a.view, { y: 2025, m: 11 }, 'wraps to December of the previous year');
-  eq(a.panel, 'review', 'past month opens the review panel');
-  eq(a.sel, null);
+  eq(a.panel, 'day', 'there is no review panel to switch to any more');
+  eq(a.sel, null, 'but no day in a past month is selected until you click one');
   a.view = { y: 2026, m: 11 };
   a.shift(1);
   eq(a.view, { y: 2027, m: 0 }, 'wraps to January of the next year');
@@ -458,14 +443,6 @@ t('daily goal says "1 day" and "2 days"', async () => {
   a.state.logs['2026-07-04'] = { d1: 1 };
   has(a.goalBlock(g, '2026-07-03', a.firstDone()), '<b>2</b> days this month');
 });
-t('review rows pluralise days', async () => {
-  const a = await fixture();
-  a.view = { y: 2026, m: 6 }; a.panel = 'review'; a.render();
-  const g = await bootReady();
-  g.api.state = a.state; g.api.view = { y: 2026, m: 6 }; g.api.panel = 'review'; g.api.render();
-  has(g.captured.app, '<b>1</b> day<');
-  no(g.captured.app, '<b>1</b> days');
-});
 t('the stats readouts pluralise check-ins and days', async () => {
   const g = await bootReady();
   const a = g.api;
@@ -488,7 +465,7 @@ t('no "1 <noun>s" anywhere in a single-item render', async () => {
   a.state.logs = {};
   a.sel = a.todayKey();
   a.bump(a.state.goals[2].subs[0].id, 1);
-  for (const p of ['day', 'review', 'stats']) {
+  for (const p of ['day', 'stats']) {
     a.panel = p; a.render();
     const bad = (g.captured.app.match(/\b1 (day|item|check-in)s\b/g) || []);
     eq(bad, [], p + ' panel has a singular/plural mismatch');
@@ -573,7 +550,7 @@ t('month nav sits inside the calendar column it controls', async () => {
 });
 t('all three panels render inside the panel pane', async () => {
   const g = await bootReady();
-  for (const p of ['day', 'review', 'stats']) {
+  for (const p of ['day', 'stats']) {
     g.api.panel = p; g.api.render();
     eq((g.captured.app.match(/class="panel"/g) || []).length, 1, p + ' pane count');
     eq((g.captured.app.match(/class="calcol"/g) || []).length, 1, p + ' keeps the calendar pane');
@@ -702,32 +679,33 @@ t('empty days are never joined', async () => {
 });
 
 // ---------- the view switcher ----------
-t('every view renders the same three tabs', async () => {
+t('every view renders the same two tabs', async () => {
   const g = await bootReady();
-  for (const p of ['day', 'review', 'stats']) {
+  for (const p of ['day', 'stats']) {
     g.api.panel = p; g.api.render();
-    eq((g.captured.app.match(/class="tab[ "]/g) || []).length, 3, p + ' tab count');
+    eq((g.captured.app.match(/class="tab[ "]/g) || []).length, 2, p + ' tab count');
     has(g.captured.app, 'data-tab="day"');
-    has(g.captured.app, 'data-tab="review"');
     has(g.captured.app, 'data-tab="stats"');
+    no(g.captured.app, 'data-tab="review"', 'the month review is gone');
   }
 });
 t('exactly one tab is marked current, and it matches the panel', async () => {
   const g = await bootReady();
-  for (const p of ['day', 'review', 'stats']) {
+  for (const p of ['day', 'stats']) {
     g.api.panel = p; g.api.render();
     eq((g.captured.app.match(/class="tab on"/g) || []).length, 1, p + ' has one active tab');
     has(g.captured.app, `class="tab on" data-tab="${p}" aria-current="page"`, p + ' marks itself');
   }
 });
-t('the month tab names the month it will actually show', async () => {
+// The tab rail used to carry a middle tab that renamed itself to whatever month was in
+// view. With the review gone the month is named only by the calendar's own heading.
+t('the tab rail no longer names a month', async () => {
   const g = await bootReady();
   const a = g.api;
-  a.view = { y: TY, m: TM }; a.render();
-  has(g.captured.app, '>This month<', 'current month reads "This month"');
   a.view = { y: 2026, m: 5 }; a.render();
-  has(g.captured.app, '>June<', 'a past month names itself');
-  no(g.captured.app, '>This month<', 'and no longer claims to be this month');
+  no(g.captured.app, '>This month<');
+  no(g.captured.app, 'class="tab">June<', 'the rail is two fixed labels now');
+  has(g.captured.app, 'June 2026', 'the calendar still says which month you are looking at');
 });
 t('back-to-today is offered only when you are away from today', async () => {
   const g = await bootReady();
@@ -1084,30 +1062,21 @@ t('an archived goal stops counting against MAXGOALS', async () => {
   a.dropGoal('g1'); a.render();
   has(g.captured.app, 'id="ag"', 'archiving frees the slot');
 });
-t('past months keep the archived goal, marked, and current ones drop it', async () => {
-  const g = await arch(); const a = g.api;
-  a.dropGoal('g1'); a.panel = 'review';
-  a.view = { y: 2026, m: 5 };                       // June: s1 logged on the 30th
-  let rp = a.reviewPanel();
-  has(rp, 'Problems', 'the month it has data still names it');
-  has(rp, '<i class="gone">archived</i>', 'and says why it is there');
-  a.view = { y: 2026, m: 3 };                       // April: nothing
-  no(a.reviewPanel(), 'Problems', 'a month it has nothing in drops the row');
-});
-t('an archived goal is never nagged about being untouched', async () => {
-  const g = await arch(); const a = g.api;
-  a.panel = 'review'; a.view = { y: 2026, m: 3 };
-  has(a.reviewPanel(), 'Job hunt', 'live and idle: it is named');
-  a.dropGoal('g3');
-  no(a.reviewPanel(), 'Job hunt', 'archived: no longer something you are skipping');
-});
-t('stats still credit an archived goal for what it logged', async () => {
+t('stats still credit an archived goal, and say it is archived', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1'); a.dropGoal('g2');
   const sp = a.statsPanel();
   has(sp, 'Problems', 'share of check-ins includes it');
   has(sp, 'class="v mono">11<', 'with its real total');
+  has(sp, '<i class="gone">archived</i>', 'and says why a name you no longer track is here');
   ok(a.achievements().some(x => x.t === 'A'), 'and a finished list item stays an achievement');
+});
+t('an archived goal is gone from the check-in screen but not from the record', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g3');
+  no(a.dayPanel('2026-07-15', '2026-07-15'), 'Job hunt', 'not something you are skipping');
+  eq(a.subTotal('d1'), 1, 'but the day it was worked still counts');
+  eq(a.dayTotal('2026-07-03'), 1);
 });
 t('undo takes an archived goal straight back', async () => {
   const g = await arch(); const a = g.api;
