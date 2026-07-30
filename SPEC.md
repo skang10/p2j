@@ -222,7 +222,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 149 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 167 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -244,8 +244,9 @@ Two consequences worth knowing:
 Coverage is the derived layer and the render output: date maths including a DST boundary, every
 derived count, all three goal types, all six `paceLine` branches, dormancy at each threshold, the
 projection track's geometry, streak runs and how they break, HTML escaping in all three panels,
-legacy-file migration, pluralisation, the two-pane structure, and the §4.1 no-cached-totals
-invariant.
+legacy-file migration, pluralisation, the two-pane structure, the §4.1 no-cached-totals invariant,
+and the §4.5 archive rule — including the one that matters most there, that archiving a goal leaves
+`logs` byte-identical.
 
 This exists because the app has no build step, no type checker, and no framework — every change to
 a 700-line file is a hand-edit. Run it before and after touching `index.html`.
@@ -271,7 +272,8 @@ One JSON file. Location is returned by the `data_path` command:
       "type": "count",      // "daily" | "count" | "list"
       "cad": "daily",       // "daily" | "weekly" | "monthly" | "free" — drives dormancy
       "target": 40,         // count only: per-MONTH quota
-      "subs": [ { "id": "d4e5f6", "title": "DP" } ]
+      "archived": true,     // optional, §4.5: kept for the record, off the check-in screen
+      "subs": [ { "id": "d4e5f6", "title": "DP" } ]   // a sub may carry "archived" too
     }
   ],
   "logs": {
@@ -365,6 +367,41 @@ calendar), count as an active day, appear in the stats distribution chart, and a
 completion log. The month review shows only a count. An ad-hoc-only day is activity in every place
 activity is measured — see the `dayKeys()` note in §4.1.
 
+### 4.5 Removing a goal archives it; only one control erases logs
+
+Deleting a goal means "stop tracking this", not "this never happened". The two are different facts
+and the app used to conflate them: the goal vanished from `goals` while its entries stayed in `logs`,
+owned by nobody. Everything that reads log *values* — `dayTotal`, the calendar, `activeDays`,
+`streak` — kept counting them; everything that reads through `goals` — the review rows,
+`achievements`, the chips — stopped. A past month could report 47 check-ins over rows adding up to
+20, with no label for the remainder, and a day whose only entry belonged to the deleted goal showed
+a filled calendar cell above an empty day panel.
+
+The rule that resolves it:
+
+- **A goal that has ever been logged is archived.** `archived: true`. It leaves the check-in screen,
+  stops counting against `MAXGOALS`, and is never named in the "untouched all month" note — it is no
+  longer something you are choosing not to do. Its logs stay, so the calendar, the streak and the
+  monthly totals are exactly what they were before.
+- **A goal with no logs is deleted.** There is nothing to preserve, and an archive shelf full of
+  goals that never happened is just clutter.
+- **The same rule one level down.** An archived sub-goal keeps counting toward its goal's totals
+  (`goalCount`, `goalDays`, `subTotal` walk `g.subs`) but is no longer tappable (the chips walk
+  `liveSubs`). `lastTouch` reads `liveSubs`, so a sub you archived yesterday cannot keep a goal
+  looking warm.
+- **Past months keep the archived goal, marked; months it has nothing in drop the row.** Without the
+  row the review would not add up to the counts beside the calendar. With a row in every month it
+  would read as a goal you are still failing at.
+- **`stripSub()` is the only code that deletes log entries.** It is shared by the `undone` control
+  and by the permanent delete, and nothing else may remove a log.
+
+Both removals are offered back: the footer carries `Archived “X”. Undo` / `Deleted “X”. Undo` until
+you check in again, and then an `Archived · X  Restore  Delete for good` shelf for as long as
+anything is archived. **Delete for good** is the escape hatch — archiving must not be a one-way
+street — so it is the one control that asks, and the question names the cost:
+`Delete “X” and its 15 check-ins for good?`. Restoring is refused at the cap with a notice rather
+than silently making a fourth live goal.
+
 ---
 
 ## 5. Interface
@@ -402,7 +439,11 @@ sub-goals, delete — while the other goals stay in check-in mode. The editor is
 control states what it is (`What a tap does`, `Monthly target`, `Say “untouched”`, `Sub-goals`) and
 every option states what it will do, rather than naming a kind. Fields that do not apply are absent —
 a non-count goal shows no monthly target, and no caption about one. `editing` holds the id of the goal
-being edited, or `null`. There is no global edit mode: a single bottom toggle meant opening every
+being edited, or `null`. The `×` states which of the two removals in §4.5 it will perform — its
+tooltip reads `Archive this goal` or `Delete this goal` — and a goal with history carries one caption
+saying what survives (`Removing this goal archives it. The 15 check-ins it already has stay in past
+months; it leaves this screen.`). Archived sub-goals are listed below the live ones, greyed, each with
+`Restore`; that list is the only way back for a sub-goal, so it is not optional. There is no global edit mode: a single bottom toggle meant opening every
 goal at once to change one word, and it put the fields far from the goal they belonged to.
 
 Two rules that keep this from trapping you:
@@ -501,6 +542,10 @@ exclamation marks, no encouragement or congratulation.
   projection track. Do not give both to the same goal — the pips would just restate the track.
 - **Past days are filled, future days are outlined.** The calendar's fill carries activity level;
   an unfilled outline means "hasn't happened yet", not "zero".
+- **Archived reads as dormant, not as an error.** The `archived` marker beside a title in the review
+  and the stats share (`i.gone`), the editor's archived sub-goal rows, and the archive shelf all use
+  `--dust`, the same grey as a dormancy label — it is a state, not a warning. `--danger` appears only
+  on the permanent delete, which is the only control that destroys anything (§4.5).
 
 **Do not redesign.** A request to "add feature X" means adding it in this visual language. It does
 not license changing the palette, swapping typefaces, adding icons, or introducing shadows. If a new

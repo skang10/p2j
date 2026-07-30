@@ -111,6 +111,12 @@
   .esep{height:1px;background:var(--line);margin:11px 0 9px}
   .flab{font-size:12.5px;color:var(--muted);padding:0 0 3px}
   .fcount{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;opacity:.7}
+  /* archived: present but no longer live, so it reads in the dormant grey (§4.5) */
+  i.gone{font-style:normal;font-size:11.5px;color:var(--dust);margin-left:8px}
+  .flab.gone{color:var(--dust);padding-top:10px}
+  .erow.sub.gone .sname{flex:1;font-size:13px;color:var(--dust)}
+  .lnk.dgr{color:var(--danger)}
+  .lnk.dgr:hover{color:var(--danger)}
   .done{font-weight:600;color:var(--accent)}
   .goal h3{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.005em}
   .goal h3 .cold{font-weight:400;font-size:12px;color:var(--dust);margin-left:9px}
@@ -308,6 +314,7 @@ const ETAMIN=5;   // days that must have elapsed before a rate is worth projecti
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, dataPath='', saveErr=false, refocus=false;
 let confirming=false, notice='';   // import is destructive, so it asks first
+let undo=null, purging=null;       // the last goal removed, and one awaiting a permanent delete
 
 /* ---------- helpers ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -409,7 +416,7 @@ function applyImport(text){
   state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
     if(!CAD[g.cad]) g.cad=DEFCAD[g.type]||'weekly'; });
   const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey();
-  panel='day'; editing=null; confirming=false;
+  panel='day'; editing=null; confirming=false; undo=null; purging=null;
   const days=Object.keys(state.logs).length+Object.keys(state.adhoc).length;
   notice=`Imported ${state.goals.length} goal${state.goals.length===1?'':'s'} and ${days} dated entr${days===1?'y':'ies'}.`;
   save(); render();
@@ -435,9 +442,11 @@ function firstDone(){
   Object.keys(state.logs).sort().forEach(d=>Object.keys(state.logs[d]).forEach(s=>{if(!m[s])m[s]=d;}));
   return m;
 }
+// Dormancy asks whether you are still working on this, so it reads the sub-goals you
+// still have. An archived one you touched yesterday must not keep the goal looking warm.
 function lastTouch(g){
   let best=null;
-  for(const k in state.logs) if(g.subs.some(s=>state.logs[k][s.id])) if(!best||k>best) best=k;
+  for(const k in state.logs) if(liveSubs(g).some(s=>state.logs[k][s.id])) if(!best||k>best) best=k;
   return best;
 }
 function activeDays(y,m){
@@ -461,11 +470,72 @@ function streak(){
   return n;
 }
 
+/* ---------- archive, not erase (§4.5) ---------- */
+// Removing a goal means "stop tracking this", not "this never happened". The days it
+// was checked in on are facts about those days: the calendar, the streak and every
+// past month were computed from them, and silently dropping the entries would rewrite
+// a record that was true when it was made. So a goal that has ever been logged is
+// archived — it leaves the check-in screen and stops counting against MAXGOALS, but
+// its logs stay and past months still report it. A goal with no logs has nothing to
+// preserve, so it is simply removed. Same rule one level down, for sub-goals.
+const live=()=>state.goals.filter(g=>!g.archived);
+const liveSubs=g=>g.subs.filter(s=>!s.archived);
+const subLogged=id=>{ for(const k in state.logs) if(state.logs[k][id]) return true; return false; };
+const goalLogged=g=>g.subs.some(s=>subLogged(s.id));
+const hasData=(g,y,m)=>g.subs.some(s=>subTotal(s.id,y,m)>0);
+
+function dropGoal(id){
+  const i=state.goals.findIndex(g=>g.id===id); if(i<0) return;
+  const g=state.goals[i];
+  if(goalLogged(g)){ g.archived=true; undo={kind:'archive',id,title:g.title}; }
+  else { state.goals.splice(i,1); undo={kind:'delete',goal:g,at:i,title:g.title}; }
+  if(editing===id) editing=null;
+  notice=''; purging=null; save(); render();
+}
+function dropSub(id){
+  for(const g of state.goals){
+    const i=g.subs.findIndex(s=>s.id===id); if(i<0) continue;
+    if(subLogged(id)) g.subs[i].archived=true; else g.subs.splice(i,1);
+    break;
+  }
+  save(); render();
+}
+function restoreGoal(id){
+  const g=state.goals.find(x=>x.id===id); if(!g) return;
+  if(live().length>=MAXGOALS){
+    notice=`You already have ${MAXGOALS} goals. Remove one before restoring another.`;
+    render(); return;
+  }
+  delete g.archived; undo=null; notice=''; purging=null; save(); render();
+}
+function restoreSub(id){
+  for(const g of state.goals){ const s=g.subs.find(s=>s.id===id); if(s){ delete s.archived; break; } }
+  save(); render();
+}
+// The only path that removes logs. It exists so archiving is not a one-way street:
+// a goal you are certain about can still be erased, and it says how much it will cost.
+function purgeGoal(id){
+  const i=state.goals.findIndex(g=>g.id===id); if(i<0) return;
+  const g=state.goals[i];
+  g.subs.forEach(s=>stripSub(s.id));
+  state.goals.splice(i,1);
+  purging=null; undo=null;
+  notice=`Deleted “${g.title}” and its check-ins.`;
+  save(); render();
+}
+function doUndo(){
+  if(!undo) return;
+  if(undo.kind==='archive'){ const g=state.goals.find(x=>x.id===undo.id); if(g) delete g.archived; }
+  else state.goals.splice(Math.min(undo.at,state.goals.length),0,undo.goal);
+  undo=null; notice=''; save(); render();
+}
+
 /* ---------- check-in ---------- */
 function bump(id,delta){
   const k=sel||todayKey(), day=state.logs[k]||{}, v=(day[id]||0)+delta;
   if(v>0) day[id]=v; else delete day[id];
   if(Object.keys(day).length) state.logs[k]=day; else delete state.logs[k];
+  undo=null;   // checking in is moving on: the offer to undo a removal expires here
   save(); render();
 }
 function addAdhoc(text){
@@ -473,7 +543,7 @@ function addAdhoc(text){
   const k=sel||todayKey();
   state.adhoc[k]=state.adhoc[k]||[];
   state.adhoc[k].push(t);
-  refocus=true; save(); render();
+  refocus=true; undo=null; save(); render();
 }
 function delAdhoc(k,i){
   (state.adhoc[k]||[]).splice(i,1);
@@ -481,11 +551,13 @@ function delAdhoc(k,i){
   save(); render();
 }
 
-function clearSub(id){
+// Take one sub-goal out of every day it appears in. The only way logs are destroyed,
+// shared by the "undone" control and by a permanent delete (§4.5).
+function stripSub(id){
   Object.keys(state.logs).forEach(d=>{ delete state.logs[d][id];
     if(!Object.keys(state.logs[d]).length) delete state.logs[d]; });
-  save(); render();
 }
+function clearSub(id){ stripSub(id); save(); render(); }
 
 /* ---------- render ---------- */
 function render(){
@@ -524,9 +596,10 @@ function render(){
     </div>
 
     <div class="foot">
-      ${state.goals.length<MAXGOALS
+      ${live().length<MAXGOALS
         ? '<button class="add addgoal" id="ag">+ goal</button>'
-        : `<p class="cap">You already have ${MAXGOALS} goals. Delete one to add another.</p>`}
+        : `<p class="cap">You already have ${MAXGOALS} goals. Remove one to add another.</p>`}
+      ${undoLine()}${archiveShelf()}
       <div class="tools">
         <a class="lnk" id="dl" href="${exportHref()}" download="${exportName()}">Export a copy</a>
         ${confirming
@@ -542,6 +615,29 @@ function render(){
         : (dataPath?esc(dataPath):'')}</p>
     </div>`;
   bind();
+}
+
+// The foot is where a removed goal goes: first the offer to take it straight back,
+// then the shelf of everything archived. Erasing the logs is the one thing here that
+// cannot be undone, so it is a separate control and it asks, naming the cost.
+function undoLine(){
+  if(!undo) return '';
+  return `<p class="notice">${undo.kind==='archive'?'Archived':'Deleted'} “${esc(undo.title)}”.
+    <button class="lnk" id="undo">Undo</button></p>`;
+}
+function archiveShelf(){
+  const gone=state.goals.filter(g=>g.archived);
+  if(!gone.length) return '';
+  const g=purging&&gone.find(x=>x.id===purging);
+  if(g){
+    const n=goalCount(g);
+    return `<p class="warnrow">Delete “${esc(g.title)}” and its ${n} check-in${n===1?'':'s'} for good?
+      <button class="lnk dgr" data-purge="${g.id}">Delete</button>
+      <button class="lnk" id="nopurge">Cancel</button></p>`;
+  }
+  return `<p class="cap">Archived · ${gone.map(x=>`${esc(x.title)}
+    <button class="lnk" data-rg="${x.id}">Restore</button>
+    <button class="lnk" data-pg="${x.id}">Delete for good</button>`).join(' · ')}</p>`;
 }
 
 function calendar(tk){
@@ -598,8 +694,8 @@ function tabs(){
 function dayPanel(k,tk){
   const F=firstDone();
   return `${tabs()}
-    ${state.goals.length?state.goals.map(g=>goalBlock(g,k,F)).join('')
-      :'<p class="hint" style="padding:10px 0">No goals yet. Use “Edit goals” below to add one.</p>'}
+    ${live().length?live().map(g=>goalBlock(g,k,F)).join('')
+      :'<p class="hint" style="padding:10px 0">No goals here. Use “+ goal” below to add one.</p>'}
     ${adhocBlock(k)}`;
 }
 
@@ -618,9 +714,12 @@ function goalBlock(g,k,F){
   if(editing===g.id) return goalEditor(g);
   const ed=`<button class="lnk gedit" data-edit="${g.id}">Edit</button>`;
   // a goal with no sub-goals still needs a way in, or it becomes unreachable
-  if(!g.subs.length) return `<div class="goal">
+  const subs=liveSubs(g);   // archived sub-goals keep counting but are no longer tappable
+  if(!subs.length) return `<div class="goal">
     <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${ed}</div></div>
-    <p class="hint" style="margin-top:9px">No sub-goals yet. Edit to add one.</p></div>`;
+    <p class="hint" style="margin-top:9px">${g.subs.length
+      ? 'Every sub-goal here is archived. Edit to restore one or add another.'
+      : 'No sub-goals yet. Edit to add one.'}</p></div>`;
   const {y,m}=view, day=state.logs[k]||{};
   let right='',prog='',pace='',chips='',done='';
 
@@ -639,17 +738,17 @@ function goalBlock(g,k,F){
     right=`<span class="prog mono">${c>=target?'<span class="hit">met</span> ':''}<b>${c}</b> / ${target} this month</span>`;
     prog='';
     pace=`<div class="pace">${paceLine(c,target)}</div>`;
-    chips=g.subs.map(s=>{
+    chips=subs.map(s=>{
       const c2=day[s.id]||0;
       const b=`<button class="chip ${c2?'on':''}" data-add="${s.id}">${tick()}${esc(s.title)}${c2?`<span class="n mono">+${c2}</span>`:''}</button>`;
       return c2?`<span class="grp">${b}<button class="minus" data-minus="${s.id}">−</button></span>`:b;
     }).join('');
   }
   else if(g.type==='list'){
-    const open=g.subs.filter(s=>!F[s.id]), fin=g.subs.filter(s=>F[s.id]);
+    const open=subs.filter(s=>!F[s.id]), fin=subs.filter(s=>F[s.id]);
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
-    right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b> / ${g.subs.length}</span>`;
-    prog=pips(fin.length,g.subs.length);
+    right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b> / ${subs.length}</span>`;
+    prog=pips(fin.length,subs.length);
     chips=open.length?open.map(s=>`<button class="chip" data-add="${s.id}">${tick()}${esc(s.title)}</button>`).join('')
       :'<span class="hint">Everything here is done.</span>';
     if(fin.length) done=`<div class="doneline"><span class="lb">Done</span>${
@@ -658,7 +757,7 @@ function goalBlock(g,k,F){
   else{
     const d=goalDays(g,y,m);
     right=`<span class="prog mono"><b>${d}</b> day${d===1?'':'s'} this month</span>`;
-    chips=g.subs.map(s=>`<button class="chip ${day[s.id]?'on':''}" data-tog="${s.id}">${tick()}${esc(s.title)}</button>`).join('');
+    chips=subs.map(s=>`<button class="chip ${day[s.id]?'on':''}" data-tog="${s.id}">${tick()}${esc(s.title)}</button>`).join('');
   }
 
   return `<div class="goal">
@@ -673,10 +772,11 @@ function goalBlock(g,k,F){
 const TAP={daily:'Marks the day done',count:'Adds one to a monthly total',list:'Crosses it off for good'};
 function goalEditor(g){
   const field=(lb,ctrl)=>`<label class="frow"><span>${lb}</span>${ctrl}</label>`;
+  const kept=goalCount(g), keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);
   return `<div class="goal ed">
     <div class="erow lv1">
       <input type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
-      <button class="x" data-dg="${g.id}" title="Delete this goal">×</button>
+      <button class="x" data-dg="${g.id}" title="${keep?'Archive this goal':'Delete this goal'}">×</button>
     </div>
     ${field('What a tap does',
       `<select data-gy="${g.id}">${Object.entries(TAP).map(([v,n])=>
@@ -687,16 +787,21 @@ function goalEditor(g){
       `<select data-gc="${g.id}">${Object.entries(CAD).map(([v,c])=>
         `<option value="${v}"${g.cad===v?' selected':''}>${cadName(c)}</option>`).join('')}</select>`)}
     <div class="esep"></div>
-    <p class="flab">Sub-goals${g.subs.length?` <span class="fcount">${g.subs.length}</span>`:''}</p>
-    ${g.subs.map(s=>`<div class="erow sub">
+    <p class="flab">Sub-goals${subs.length?` <span class="fcount">${subs.length}</span>`:''}</p>
+    ${subs.map(s=>`<div class="erow sub">
       <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
-      <button class="x" data-ds="${s.id}" title="Delete">×</button></div>`).join('')}
+      <button class="x" data-ds="${s.id}" title="${subLogged(s.id)?'Archive':'Delete'}">×</button></div>`).join('')}
+    ${gone.length?`<p class="flab gone">Archived <span class="fcount">${gone.length}</span></p>
+      ${gone.map(s=>`<div class="erow sub gone"><span class="sname">${esc(s.title)}</span>
+        <button class="lnk" data-rs="${s.id}">Restore</button></div>`).join('')}`:''}
     <div class="erow edfoot">
       <button class="add" data-as="${g.id}">+ sub-goal</button>
       <span class="grow"></span>
       <button class="lnk done" data-edit="">Done</button>
     </div>
     ${g.type==='count'?'<p class="cap">The target resets to 0 on the 1st of each month.</p>':''}
+    ${keep?`<p class="cap">Removing this goal archives it. The ${kept} check-in${kept===1?'':'s'}
+      it already has stay in past months; it leaves this screen.</p>`:''}
   </div>`;
 }
 
@@ -749,23 +854,27 @@ const tick=()=>'<svg class="tick" viewBox="0 0 10 10" aria-hidden="true"><path d
 function reviewPanel(){
   const {y,m}=view, F=firstDone(), n=today();
   const isCur=y===n.getFullYear()&&m===n.getMonth();
-  const rows=state.goals.map(g=>{
+  // An archived goal still holds up the months it was worked in — without its row the
+  // totals above the calendar would not add up. It drops out of the months it has
+  // nothing in, since it is no longer something you are choosing not to do.
+  const rows=state.goals.filter(g=>!g.archived||hasData(g,y,m)).map(g=>{
     let v='',idle=false;
     if(g.type==='count'){ const c=goalCount(g,y,m),t=g.target||40;
       v=`<b>${c}</b> / ${t}`; idle=c===0; }
     else if(g.type==='list'){ const f=g.subs.filter(s=>F[s.id]&&inMonth(F[s.id],y,m));
       v=f.length?`<b>+${f.length}</b> ${f.map(s=>esc(s.title)).join(', ')}`:'—'; idle=!f.length; }
     else { const d=goalDays(g,y,m); v=`<b>${d}</b> day${d===1?'':'s'}`; idle=d===0; }
-    return `<div class="rrow${idle?' idle':''}"><span>${esc(g.title)}</span><span class="rv">${v}</span></div>`;
+    return `<div class="rrow${idle?' idle':''}"><span>${esc(g.title)}${
+      g.archived?'<i class="gone">archived</i>':''}</span><span class="rv">${v}</span></div>`;
   }).join('');
   const ah=adhocMonth(y,m);
   const arow=`<div class="rrow${ah?'':' idle'}"><span>Ad-hoc</span><span class="rv">${
     ah?`<b>${ah}</b> ${ah===1?'item':'items'}`:'—'}</span></div>`;
-  const idle=state.goals.filter(g=>goalDays(g,y,m)===0).map(g=>g.title);
+  const idle=live().filter(g=>goalDays(g,y,m)===0).map(g=>g.title);
   return `${tabs()}
     <p class="rcap">${MON[m]} ${y}${isCur?' · still in progress':''}</p>
     <div class="rev">${rows}${arow}
-      ${idle.length?`<p class="rnote">Untouched all month: ${idle.map(esc).join(', ')}.<br>Next month either give it time or delete it.</p>`:''}
+      ${idle.length?`<p class="rnote">Untouched all month: ${idle.map(esc).join(', ')}.<br>Next month either give it time or archive it.</p>`:''}
     </div>`;
 }
 
@@ -812,7 +921,9 @@ function statsPanel(){
   for(const k of dayKeys()) wd[parseKey(k).getDay()]+=dayTotal(k);
   const wdata=wd.map((v,i)=>({v,lb:DOW[i],tip:`${DOWN[i]} · ${v} check-in${v===1?'':'s'}`}));
 
-  const share=state.goals.map(g=>({t:g.title,v:g.subs.reduce((a,s)=>a+subTotal(s.id),0)}))
+  // every goal, archived included: this is a share of what was actually logged
+  const share=state.goals.map(g=>({t:g.title,gone:!!g.archived,
+                                   v:g.subs.reduce((a,s)=>a+subTotal(s.id),0)}))
                          .concat([{t:'Ad-hoc',v:adhocAll()}])
                          .filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
   const tot=share.reduce((a,x)=>a+x.v,0)||1;
@@ -841,7 +952,7 @@ function statsPanel(){
 
     <h4 class="sh">By goal · share of check-ins</h4>
     <div class="share">${share.map(x=>
-      `<div class="shrow"><span class="lb">${esc(x.t)}</span>
+      `<div class="shrow"><span class="lb">${esc(x.t)}${x.gone?'<i class="gone">archived</i>':''}</span>
         <span class="track"><i style="width:${x.v/tot*100}%"></i></span>
         <span class="v mono">${x.v}</span></div>`).join('')||'<p class="hint">Nothing logged yet.</p>'}</div>
 
@@ -905,11 +1016,11 @@ function bind(){
   };
 
   const ag=document.getElementById('ag');
-  if(ag) ag.onclick=()=>{ if(state.goals.length>=MAXGOALS)return;
+  if(ag) ag.onclick=()=>{ if(live().length>=MAXGOALS)return;
     const id=newId();
     state.goals.push({id,type:'daily',cad:DEFCAD.daily,title:'New goal',
                       subs:[{id:newId(),title:'New sub-goal'}]});
-    editing=id; panel='day'; save(); render();};
+    editing=id; panel='day'; undo=null; save(); render();};
   on('[data-as]',b=>b.onclick=()=>{
     state.goals.find(g=>g.id===b.dataset.as).subs.push({id:newId(),title:'New sub-goal'});save();render();});
   on('[data-gt]',i=>i.oninput=()=>{state.goals.find(g=>g.id===i.dataset.gt).title=i.value;save();});
@@ -922,9 +1033,16 @@ function bind(){
     state.goals.find(g=>g.id===i.dataset.gn).target=Math.max(1,+i.value||1); save();});
   on('[data-st]',i=>i.oninput=()=>{
     for(const g of state.goals){const s=g.subs.find(s=>s.id===i.dataset.st);if(s){s.title=i.value;break;}}save();});
-  on('[data-dg]',b=>b.onclick=()=>{state.goals=state.goals.filter(g=>g.id!==b.dataset.dg);
-    if(editing===b.dataset.dg) editing=null; save();render();});
-  on('[data-ds]',b=>b.onclick=()=>{state.goals.forEach(g=>g.subs=g.subs.filter(s=>s.id!==b.dataset.ds));save();render();});
+  on('[data-dg]',b=>b.onclick=()=>dropGoal(b.dataset.dg));
+  on('[data-ds]',b=>b.onclick=()=>dropSub(b.dataset.ds));
+  on('[data-rs]',b=>b.onclick=()=>restoreSub(b.dataset.rs));
+  on('[data-rg]',b=>b.onclick=()=>restoreGoal(b.dataset.rg));
+  on('[data-pg]',b=>b.onclick=()=>{purging=b.dataset.pg; notice=''; render();});
+  on('[data-purge]',b=>b.onclick=()=>purgeGoal(b.dataset.purge));
+  const np=document.getElementById('nopurge');
+  if(np) np.onclick=()=>{purging=null; render();};
+  const un=document.getElementById('undo');
+  if(un) un.onclick=doUndo;
 }
 
 function shift(d){

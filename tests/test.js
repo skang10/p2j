@@ -342,7 +342,7 @@ t('review panel names goals untouched all month', async () => {
   const a = g.api;
   a.panel = 'review'; a.render();
   has(g.captured.app, 'Untouched all month');
-  has(g.captured.app, 'or delete it');
+  has(g.captured.app, 'or archive it');
 });
 t('stats panel renders all four blocks', async () => {
   const g = await bootReady();
@@ -1238,6 +1238,191 @@ t('a future month renders no clickable days', async () => {
   const g = await bootReady();
   g.api.view = { y: TY + 1, m: TM };
   eq((g.api.calendar(g.api.todayKey()).match(/<button class="d/g) || []).length, 0);
+});
+
+// ---------- archive, not erase (§4.5) ----------
+// Removing a goal must not rewrite the days it was checked in on: those days were
+// counted by the calendar, the streak and every past month while the goal existed.
+async function arch(now = '2026-07-15') {
+  const g = await bootReady({ now });
+  g.api.state = {
+    goals: [
+      { id: 'g1', type: 'count', cad: 'daily', target: 10, title: 'Problems',
+        subs: [{ id: 's1', title: 'DP' }, { id: 's2', title: 'Trees' }] },
+      { id: 'g2', type: 'list', cad: 'monthly', title: 'To learn',
+        subs: [{ id: 'l1', title: 'A' }, { id: 'l2', title: 'B' }] },
+      { id: 'g3', type: 'daily', cad: 'weekly', title: 'Job hunt',
+        subs: [{ id: 'd1', title: 'Applications' }] },
+    ],
+    logs: {
+      '2026-06-30': { s1: 5 },
+      '2026-07-02': { s1: 2, s2: 1 },
+      '2026-07-03': { d1: 1 },
+      '2026-07-10': { s1: 3, l1: 1 },
+    },
+    adhoc: {},
+  };
+  g.api.view = { y: 2026, m: 6 }; g.api.sel = '2026-07-15';
+  return g;
+}
+const unlogged = { id: 'g4', type: 'daily', cad: 'weekly', title: 'Never used', subs: [{ id: 'n1', title: 'x' }] };
+
+t('a goal that has been logged is archived, and its check-ins are untouched', async () => {
+  const g = await arch(); const a = g.api;
+  const before = JSON.stringify(a.state.logs);
+  a.dropGoal('g1');
+  eq(a.state.goals.length, 3, 'still in the file');
+  eq(a.state.goals[0].archived, true, 'flagged, not removed');
+  eq(JSON.stringify(a.state.logs), before, 'not one log entry changed');
+  eq(a.subTotal('s1'), 10); eq(a.dayTotal('2026-07-02'), 3);
+  eq(a.activeDays(2026, 6), 3, 'July still had three active days');
+});
+t('a goal that was never logged is deleted outright', async () => {
+  const g = await arch(); const a = g.api;
+  a.state.goals.push(JSON.parse(JSON.stringify(unlogged)));
+  a.dropGoal('g4');
+  eq(a.state.goals.length, 3, 'gone from the file');
+  eq(a.state.goals.some(x => x.id === 'g4'), false);
+  eq(a.undo.kind, 'delete', 'and it was a delete, not an archive');
+});
+t('an archived goal leaves the check-in screen', async () => {
+  const g = await arch(); const a = g.api;
+  has(a.dayPanel('2026-07-15', '2026-07-15'), 'data-add="s1"', 'tappable while live');
+  a.dropGoal('g1');
+  const html = a.dayPanel('2026-07-15', '2026-07-15');
+  no(html, 'data-add="s1"', 'no longer tappable');
+  no(html, 'Problems', 'and its heading is gone');
+});
+t('an archived goal stops counting against MAXGOALS', async () => {
+  const g = await arch(); const a = g.api;
+  a.render();
+  no(g.captured.app, 'id="ag"', 'three live goals is the cap');
+  a.dropGoal('g1'); a.render();
+  has(g.captured.app, 'id="ag"', 'archiving frees the slot');
+});
+t('past months keep the archived goal, marked, and current ones drop it', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1'); a.panel = 'review';
+  a.view = { y: 2026, m: 5 };                       // June: s1 logged on the 30th
+  let rp = a.reviewPanel();
+  has(rp, 'Problems', 'the month it has data still names it');
+  has(rp, '<i class="gone">archived</i>', 'and says why it is there');
+  a.view = { y: 2026, m: 3 };                       // April: nothing
+  no(a.reviewPanel(), 'Problems', 'a month it has nothing in drops the row');
+});
+t('an archived goal is never nagged about being untouched', async () => {
+  const g = await arch(); const a = g.api;
+  a.panel = 'review'; a.view = { y: 2026, m: 3 };
+  has(a.reviewPanel(), 'Job hunt', 'live and idle: it is named');
+  a.dropGoal('g3');
+  no(a.reviewPanel(), 'Job hunt', 'archived: no longer something you are skipping');
+});
+t('stats still credit an archived goal for what it logged', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1'); a.dropGoal('g2');
+  const sp = a.statsPanel();
+  has(sp, 'Problems', 'share of check-ins includes it');
+  has(sp, 'class="v mono">11<', 'with its real total');
+  ok(a.achievements().some(x => x.t === 'A'), 'and a finished list item stays an achievement');
+});
+t('undo takes an archived goal straight back', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1');
+  has(a.undoLine(), 'Archived “Problems”');
+  a.doUndo();
+  eq(a.state.goals[0].archived, undefined, 'flag cleared');
+  eq(a.live().length, 3); eq(a.undo, null, 'the offer is spent');
+});
+t('undo puts a deleted goal back where it was', async () => {
+  const g = await arch(); const a = g.api;
+  a.state.goals.splice(1, 0, JSON.parse(JSON.stringify(unlogged)));
+  a.dropGoal('g4');
+  has(a.undoLine(), 'Deleted “Never used”');
+  a.doUndo();
+  eq(a.state.goals.map(x => x.id), ['g1', 'g4', 'g2', 'g3'], 'restored at its old index');
+});
+t('the offer to undo expires once you check in again', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1');
+  ok(a.undo, 'offered');
+  a.bump('d1', 1);
+  eq(a.undo, null, 'checking in is moving on');
+  eq(a.undoLine(), '');
+});
+t('restoring is refused when the live goals are already at the cap', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1');
+  a.state.goals.push(JSON.parse(JSON.stringify(unlogged)));   // back to three live
+  a.restoreGoal('g1');
+  eq(a.state.goals.find(x => x.id === 'g1').archived, true, 'still archived');
+  has(a.notice, 'You already have 3 goals', 'and it says why');
+});
+t('a permanent delete asks first, naming what it will cost', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1');
+  has(a.archiveShelf(), 'data-pg="g1"', 'the shelf offers it');
+  a.purging = 'g1';
+  has(a.archiveShelf(), 'and its 11 check-ins for good?', 'the question states the count');
+});
+t('a permanent delete removes the goal and every log it owned', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1'); a.purgeGoal('g1');
+  eq(a.state.goals.length, 2);
+  eq(a.subTotal('s1'), 0); eq(a.subTotal('s2'), 0);
+  eq(a.dayTotal('2026-06-30'), 0, 'a day that held only its check-ins is now empty');
+  eq(a.dayTotal('2026-07-10'), 1, 'a shared day keeps the other goal\'s entry');
+  eq(a.state.logs['2026-06-30'], undefined, 'and the empty day is dropped, not left as {}');
+});
+t('a logged sub-goal archives and keeps counting; an unlogged one is deleted', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropSub('s1');
+  eq(a.state.goals[0].subs[0].archived, true, 'kept, flagged');
+  eq(a.goalCount(a.state.goals[0], 2026, 6), 6, 'July total still counts it');
+  a.state.goals[0].subs.push({ id: 's3', title: 'Fresh' });
+  a.dropSub('s3');
+  eq(a.state.goals[0].subs.some(s => s.id === 's3'), false, 'nothing to preserve, so it goes');
+});
+t('an archived sub-goal is untappable but has a way back in the editor', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropSub('s1');
+  no(a.dayPanel('2026-07-15', '2026-07-15'), 'data-add="s1"', 'no chip');
+  const ed = a.goalEditor(a.state.goals[0]);
+  has(ed, 'data-rs="s1"', 'the editor lists it with Restore');
+  no(ed, 'data-st="s1"', 'but it is not editable while archived');
+  a.restoreSub('s1');
+  eq(a.state.goals[0].subs[0].archived, undefined);
+  has(a.dayPanel('2026-07-15', '2026-07-15'), 'data-add="s1"', 'tappable again');
+});
+t('dormancy reads the sub-goals you still have', async () => {
+  const g = await bootReady({ now: '2026-07-15' });
+  const a = g.api;
+  a.state = { goals: [{ id: 'x', type: 'daily', cad: 'weekly', title: 'X',
+                        subs: [{ id: 'a1', title: 'old' }, { id: 'b1', title: 'new' }] }],
+              logs: { '2026-07-01': { a1: 1 }, '2026-07-14': { b1: 1 } }, adhoc: {} };
+  a.view = { y: 2026, m: 6 };
+  no(a.goalBlock(a.state.goals[0], '2026-07-15', a.firstDone()), 'untouched', 'warm via b1');
+  a.dropSub('b1');
+  has(a.goalBlock(a.state.goals[0], '2026-07-15', a.firstDone()), 'untouched 14 days',
+      'the archived sub no longer keeps it warm');
+});
+t('the editor says what its delete button will actually do', async () => {
+  const g = await arch(); const a = g.api;
+  has(a.goalEditor(a.state.goals[0]), 'title="Archive this goal"');
+  has(a.goalEditor(a.state.goals[0]), 'Removing this goal archives it', 'and explains it once');
+  has(a.goalEditor(a.state.goals[0]), 'The 11 check-ins', 'naming what is kept');
+  a.state.goals.push(JSON.parse(JSON.stringify(unlogged)));
+  const ed = a.goalEditor(a.state.goals[3]);
+  has(ed, 'title="Delete this goal"', 'nothing logged, so it is a plain delete');
+  no(ed, 'Removing this goal archives it', 'and no caption about keeping check-ins');
+});
+t('the archived flag survives an export/import round trip', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1');
+  const copy = JSON.stringify(a.state);
+  a.state = { goals: [], logs: {}, adhoc: {} };
+  a.applyImport(copy);
+  eq(a.state.goals[0].archived, true, 'still archived after import');
+  eq(a.live().length, 2, 'and still off the check-in screen');
 });
 
 // ---------- storage layer ----------
