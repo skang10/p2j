@@ -244,6 +244,13 @@
   .add:hover{color:var(--accent)}
   .addgoal{padding-left:0;margin-top:12px;color:var(--accent);font-weight:500}
   .cap{font-size:12px;color:var(--muted);padding-top:10px;line-height:1.6}
+  .tools{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;padding-top:14px}
+  .tools a.lnk{text-decoration:none}
+  .tools a.lnk:hover{text-decoration:underline;text-underline-offset:3px}
+  .warnrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px;
+    font-size:12.5px;color:var(--alert)}
+  .pick{font-weight:600;color:var(--accent);cursor:pointer}
+  .notice{font-size:12.5px;color:var(--muted);padding-top:10px}
   .store{font-size:11px;color:var(--ghost);padding-top:16px;word-break:break-all;
     font-family:ui-monospace,Menlo,monospace}
   .store .bad{color:var(--danger);font-family:inherit}
@@ -300,6 +307,7 @@ const DEFCAD={count:'daily',list:'monthly',daily:'weekly'};
 const ETAMIN=5;   // days that must have elapsed before a rate is worth projecting (§8.1)
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, dataPath='', saveErr=false, refocus=false;
+let confirming=false, notice='';   // import is destructive, so it asks first
 
 /* ---------- helpers ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -366,6 +374,45 @@ function seed(){
     {id:newId(),type:'daily',cad:'weekly',title:'Job hunt',subs:[
       {id:newId(),title:'Applications'},{id:newId(),title:'Resume'},{id:newId(),title:'Interview prep'}]}
   ]};
+}
+
+/* ---------- export / import (§8.2) ---------- */
+// No new Rust command and no network: export is a data: URI on a download link,
+// import is a file input read in the browser. Both stay in the frontend per §2.1.
+const stamp=()=>{const d=today();return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())};
+const exportName=()=>`checkin-${stamp()}.json`;
+const exportHref=()=>'data:application/json;charset=utf-8,'
+  +encodeURIComponent(JSON.stringify(state,null,1));
+
+// Reject anything that is not recognisably this app's file, so a wrong pick
+// cannot silently wipe the log. Returns the parsed state or throws.
+function parseImport(text){
+  let d;
+  try{ d=JSON.parse(text); }catch(e){ throw new Error('not valid JSON'); }
+  if(!d||typeof d!=='object'||Array.isArray(d)) throw new Error('not a check-in file');
+  if(!Array.isArray(d.goals)) throw new Error('no goals list');
+  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+  if(d.logs!==undefined&&!obj(d.logs)) throw new Error('logs is not a map');
+  if(d.adhoc!==undefined&&!obj(d.adhoc)) throw new Error('adhoc is not a map');
+  for(const g of d.goals){
+    if(!obj(g)||typeof g.title!=='string'||typeof g.id!=='string')
+      throw new Error('a goal is missing its id or title');
+    if(g.subs!==undefined&&!Array.isArray(g.subs)) throw new Error('subs is not a list');
+  }
+  return d;
+}
+function applyImport(text){
+  const d=parseImport(text);
+  state=d;
+  if(!state.logs) state.logs={};
+  if(!state.adhoc) state.adhoc={};
+  state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
+    if(!CAD[g.cad]) g.cad=DEFCAD[g.type]||'weekly'; });
+  const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey();
+  panel='day'; editing=null; confirming=false;
+  const days=Object.keys(state.logs).length+Object.keys(state.adhoc).length;
+  notice=`Imported ${state.goals.length} goal${state.goals.length===1?'':'s'} and ${days} dated entr${days===1?'y':'ies'}.`;
+  save(); render();
 }
 
 /* ---------- derived ---------- */
@@ -480,6 +527,16 @@ function render(){
       ${state.goals.length<MAXGOALS
         ? '<button class="add addgoal" id="ag">+ goal</button>'
         : `<p class="cap">You already have ${MAXGOALS} goals. Delete one to add another.</p>`}
+      <div class="tools">
+        <a class="lnk" id="dl" href="${exportHref()}" download="${exportName()}">Export a copy</a>
+        ${confirming
+          ? `<span class="warnrow">Replace everything with the file you pick?
+               <label class="lnk pick" for="up">Choose file</label>
+               <button class="lnk" id="cancel">Cancel</button></span>`
+          : '<button class="lnk" id="imp">Import…</button>'}
+        <input type="file" id="up" accept=".json,application/json" hidden>
+      </div>
+      ${notice?`<p class="notice">${esc(notice)}</p>`:''}
       <p class="store">${saveErr
         ? '<span class="bad">Write failed. Changes were not saved.</span>'
         : (dataPath?esc(dataPath):'')}</p>
@@ -830,6 +887,22 @@ function bind(){
     panel=(y===nn.getFullYear()&&m===nn.getMonth())?'day':'review';
     sel=panel==='day'?todayKey():null; render(); });
   on('[data-edit]',b=>b.onclick=()=>{ editing=b.dataset.edit||null; render(); });
+
+  const imp=document.getElementById('imp');
+  if(imp) imp.onclick=()=>{ confirming=true; notice=''; render(); };
+  const cancel=document.getElementById('cancel');
+  if(cancel) cancel.onclick=()=>{ confirming=false; render(); };
+  const up=document.getElementById('up');
+  if(up) up.onchange=()=>{
+    const f=up.files&&up.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{ try{ applyImport(String(r.result)); }
+                   catch(e){ notice='Import failed: '+e.message+'. Nothing was changed.';
+                             confirming=false; render(); } };
+    r.onerror=()=>{ notice='Could not read that file. Nothing was changed.';
+                    confirming=false; render(); };
+    r.readAsText(f);
+  };
 
   const ag=document.getElementById('ag');
   if(ag) ag.onclick=()=>{ if(state.goals.length>=MAXGOALS)return;

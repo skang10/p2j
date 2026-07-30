@@ -9,13 +9,14 @@ const HTML = path.join(__dirname, '..', 'src', 'index.html');
 
 const NAMES = `KEY DOW MAXGOALS CAD DEFCAD
 pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId esc cadName TAP
-Store load save seed ETAMIN
+Store load save seed ETAMIN parseImport applyImport exportName exportHref
 dayTotal adhocMonth adhocAll level dayKeys subTotal firstDone lastTouch activeDays goalDays goalCount streak
 bump addAdhoc delAdhoc clearSub
 render calendar yearStrip dayPanel adhocBlock goalBlock paceLine pips tick
 reviewPanel achievements cols statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
 
-const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'dataPath', 'saveErr', 'refocus'];
+const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'dataPath', 'saveErr', 'refocus',
+                 'confirming', 'notice'];
 
 // A Date subclass whose no-arg constructor returns a fixed instant. Every other
 // form (new Date(y, m, d), new Date(str), Date.now()) behaves normally, because

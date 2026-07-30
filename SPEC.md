@@ -12,7 +12,7 @@ sketch or a starting point; it is the product. Your job in the first pass is to 
 around it and prove that data reaches disk.
 
 Note: the spec and **the application UI are both in English.** Keep user-facing strings, placeholders,
-and labels in English; the copy rules in §5.1 still apply (plain verbs, sentence case, no exclamation
+and labels in English; the copy rules in §5.2 still apply (plain verbs, sentence case, no exclamation
 marks, no encouragement).
 
 ---
@@ -222,7 +222,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 139 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 149 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -385,7 +385,7 @@ A `Back to today` link appears at the right of the tab row only when you are awa
 different view, a different month, or a backfilled day. When a past day is selected its date is named
 beside that link, since the goals below then belong to that day rather than to today.
 
-**Day panel** — two panes above 820px wide, stacked below it (see §5.1).
+**Day panel** — two panes above 820px wide, stacked below it (see §5.2).
 
 *Left pane*: month navigation, then the calendar as the hero. Green intensity by `dayTotal`, date
 numbers visible, today ringed, past days clickable for backfill, future days drawn as outlines.
@@ -443,7 +443,29 @@ view.
 jump to that month), weekday distribution, per-goal share of check-ins, and the completion log
 (finished list items and months where a count goal hit its target, newest first).
 
-### 5.1 Design system
+### 5.1 Export and import
+
+Two controls in the footer, beside the data-file path.
+
+**Export a copy** is an `<a download>` whose `href` is a `data:` URI built from the live state, named
+`checkin-YYYYMMDD.json`. It is the same bytes as the file on disk, at the same indent — a copy, not a
+different format.
+
+**Import…** replaces everything, so it asks first: the control becomes
+`Replace everything with the file you pick? Choose file / Cancel`, inline, in `--alert`. This is a
+two-step confirmation rather than a modal, per §6.
+
+`parseImport()` validates before anything is assigned: it must parse as JSON, be a plain object, have
+an array `goals` whose every member has a string `id` and `title`, and `logs`/`adhoc` must be maps if
+present. A rejection reports the reason (`Import failed: no goals list. Nothing was changed.`) and
+leaves the state untouched — picking the wrong file must never be able to wipe the log. A valid file
+with an empty `goals` array **is** accepted: deliberately empty is a legitimate state to restore.
+
+On success the state is normalised exactly as `load()` does, the view returns to today, and a notice
+reports what arrived. Neither control needs a Rust command or the network: export is a data URI,
+import is a `FileReader`, both in the frontend per §2.1.
+
+### 5.2 Design system
 
 The visual concept is **an instrument, not a scrapbook.** The app's whole claim is that attendance is
 not progress, so the quantities are the design: every number is set in tabular monospace, one step
@@ -561,8 +583,7 @@ which one first.
    elapsed; before that the line states the rate still required — `29 days left · 1.3 a day from
    here` — which is a fact rather than a prediction. A met target still reports `met` on any date, so
    the cutoff cannot hide a real result. `ETAMIN` is a named constant beside `CAD` and `DEFCAD`.
-2. **Export / import JSON.** The file is already on disk so this is low priority, but a button beats
-   hunting for the path.
+2. ~~**Export / import JSON.**~~ **Built.** See §5.1.
 3. **Cadence thresholds (3 / 10 / 35 days) are guesses.** After a month or two of real use, adjust
    the numbers in `CAD` based on which tier nags too often or too late.
 
