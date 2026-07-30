@@ -784,10 +784,12 @@ function goalBlock(g,k,F){
   // dormancy
   const thr=(CAD[g.cad]||CAD.weekly).d;
   let cold='';
+  // A goal nobody has touched yet says nothing: its chips are already empty and its
+  // count already reads 0, so a label would only be restating them back at you. The
+  // dormancy label exists to mark a gap that opened after you had started.
   if(thr>0){
     const lt=lastTouch(g), n=today();
-    if(!lt) cold='<span class="cold">not started</span>';
-    else{ const gap=diffDays(parseKey(lt),n);
+    if(lt){ const gap=diffDays(parseKey(lt),n);
       if(gap>=thr) cold=`<span class="cold${gap>=thr*3?' deep':''}">untouched ${gap} days</span>`; }
   }
 

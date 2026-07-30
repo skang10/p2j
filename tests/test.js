@@ -502,15 +502,19 @@ t('dormancy: monthly threshold is 35 days', async () => {
   has(await coldHead('monthly', 35), 'untouched 35 days');
 });
 t('dormancy: free never nags, however long the gap', async () => {
-  no(await coldHead('free', 400), 'untouched');
-  no(await coldHead('free', 400), 'not started');
+  no(await coldHead('free', 400), 'class="cold"', 'no label of any kind');
 });
 t('dormancy: label darkens at 3x the threshold', async () => {
   no(await coldHead('daily', 8), 'cold deep', 'under 3x stays light');
   has(await coldHead('daily', 9), 'cold deep', '3x = 9 days darkens');
 });
-t('dormancy: a never-touched goal reads not-started', async () => {
-  has(await coldHead('daily', null), 'not started');
+// A goal you have not started yet is not dormant, it is new. The empty chips and the
+// 0 already say so, and the label was the app telling you off on day one.
+t('dormancy: a never-touched goal carries no label at all', async () => {
+  const html = await coldHead('daily', null);
+  no(html, 'class="cold"', 'no dormancy label');
+  no(html, 'not started', 'the old copy is gone');
+  has(html, '<h3>X', 'the heading still renders');
 });
 
 // ---------- goal-type completion states ----------

@@ -329,7 +329,12 @@ summed. This is what gives the cycle an ending. `list` is not month-scoped; it s
 | `monthly` | 35 days | effectively only fires when a whole month is skipped |
 | `free` | never | anything that shouldn't nag |
 
-At 3× the threshold the label darkens. Thresholds live in the `CAD` constant, and the editor labels
+At 3× the threshold the label darkens. **A goal that has never been touched carries no label at
+all** — it is new, not dormant. It briefly read `not started`, which was the app telling you off on
+day one, and was removed in July 2026: the empty chips and the `0` beside the title already say the
+same thing, and the label only earns its place once a gap has opened after you had started.
+
+Thresholds live in the `CAD` constant, and the editor labels
 them by rendering the number itself — `after 3 days`, `after 10 days`, `never` — via `cadName()`.
 Retuning `CAD` (§8.3) therefore retunes the copy, with no second place to keep in sync.
 
