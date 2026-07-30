@@ -466,16 +466,18 @@ t('review rows pluralise days', async () => {
   has(g.captured.app, '<b>1</b> day<');
   no(g.captured.app, '<b>1</b> days');
 });
-t('tally and stats pluralise check-ins and days', async () => {
+t('the stats readouts pluralise check-ins and days', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state.logs = {};
   a.sel = a.todayKey();
   a.bump(a.state.goals[0].subs[0].id, 1);      // exactly one check-in on one day
   a.panel = 'day'; a.render();
-  has(g.captured.app, '<b>1</b><em>check-in<', 'singular in the tally');
-  no(g.captured.app, '<b>1</b><em>check-ins');
+  no(g.captured.app, '<em>check-in', 'the total is a stats figure now, not a calendar one');
+  has(g.captured.app, 'check-in', 'though a calendar cell still names its count in a tooltip');
   a.panel = 'stats'; a.render();
+  has(g.captured.app, '<b>1</b><em>check-in<', 'singular');
+  no(g.captured.app, '<b>1</b><em>check-ins');
   has(g.captured.app, '<b>1</b><em>day logged');
   no(g.captured.app, '<b>1</b><em>days logged');
   has(g.captured.app, 'Completed · 0 items', 'zero is plural');

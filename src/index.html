@@ -112,7 +112,8 @@
     min-width:42px;text-align:right}
   /* A denominator belongs to the figure it divides, so it sits tight against it — but
      outside the fixed-width column, or `0/30` and `0` would not line up on the same edge. */
-  .tally i{font-style:normal;font-weight:400;font-size:12.5px;color:var(--muted);margin-left:1px}
+  .tally i{font-style:normal;font-family:var(--sans);font-variant-numeric:tabular-nums;
+    font-weight:400;font-size:12.5px;color:var(--muted);margin-left:1px}
   .tally em{font-style:normal;font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;
     color:var(--muted);margin-left:11px}
 
@@ -163,7 +164,8 @@
   .prog{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted);flex:none}
   .prog b{font-family:var(--sans);font-variant-numeric:tabular-nums;
     color:var(--ink);font-weight:500;font-size:17px;letter-spacing:-.02em}
-  .prog i{font-style:normal;margin-left:1px}
+  .prog i{font-style:normal;font-family:var(--sans);font-variant-numeric:tabular-nums;
+    margin-left:1px}
   .prog .hit{color:var(--accent);font-weight:500}
 
   /* the projection track states the app's whole argument: ink is what you did,
@@ -531,7 +533,6 @@ function render(){
   const canNext = view.y<n.getFullYear() || (view.y===n.getFullYear()&&view.m<n.getMonth());
   const act=activeDays(view.y,view.m), dim=daysIn(view.y,view.m);
   const elapsed = isCur ? n.getDate() : dim;
-  let hits=0; for(const k of dayKeys()) if(inMonth(k,view.y,view.m)) hits+=dayTotal(k);
   const run=streak();
 
   document.getElementById('app').innerHTML=`
@@ -551,7 +552,6 @@ function render(){
         <div class="tally mono">
           ${run?`<span><b>${run}</b><em>day${run===1?'':'s'} in a row</em></span>`:''}
           <span><b>${act}</b><i>/${elapsed}</i><em>active this month</em></span>
-          <span><b>${hits}</b><em>check-in${hits===1?'':'s'}</em></span>
         </div>
       </div>
       <div class="panel">
