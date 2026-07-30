@@ -259,7 +259,8 @@ t('day panel renders the calendar, the goals and their chips', async () => {
   a.panel = 'day';
   a.render();
   const html = g.captured.app;
-  has(html, 'class="cal"'); has(html, 'class="year"');
+  has(html, 'class="cal"');
+  no(html, 'class="year"', 'the year strip is gone; ‹ › and the stats chart navigate months');
   has(html, 'Problems'); has(html, 'To learn'); has(html, 'Job hunt');
   has(html, 'data-add='); has(html, 'data-tog=');
   no(html, 'Ad-hoc', 'the ad-hoc section is gone');
@@ -397,12 +398,6 @@ t('navigating months keeps view in range and switches panel', async () => {
   a.shift(1);
   eq(a.view, { y: 2027, m: 0 }, 'wraps to January of the next year');
 });
-t('year strip renders 12 months and marks the current one', async () => {
-  const g = await bootReady();
-  const s = g.api.yearStrip();
-  eq((s.match(/class="ym /g) || []).length, 12);
-  eq((s.match(/cur/g) || []).length, 1);
-});
 
 // ---------- goal-type completion states ----------
 t('count goal shows met once the monthly target is met', async () => {
@@ -474,15 +469,15 @@ t('review rows pluralise days', async () => {
 t('tally and stats pluralise check-ins and days', async () => {
   const g = await bootReady();
   const a = g.api;
-  a.state.logs = {}; a.state.adhoc = {};
+  a.state.logs = {};
   a.sel = a.todayKey();
   a.bump(a.state.goals[0].subs[0].id, 1);      // exactly one check-in on one day
   a.panel = 'day'; a.render();
-  has(g.captured.app, '<b>1</b> check-in<', 'singular in the tally');
-  no(g.captured.app, '<b>1</b> check-ins');
+  has(g.captured.app, '<b>1</b><em>check-in<', 'singular in the tally');
+  no(g.captured.app, '<b>1</b><em>check-ins');
   a.panel = 'stats'; a.render();
-  has(g.captured.app, '<b>1</b> day logged');
-  no(g.captured.app, '<b>1</b> days logged');
+  has(g.captured.app, '<b>1</b><em>day logged');
+  no(g.captured.app, '<b>1</b><em>days logged');
   has(g.captured.app, 'Completed · 0 items', 'zero is plural');
 });
 t('no "1 <noun>s" anywhere in a single-item render', async () => {
@@ -597,7 +592,7 @@ t('nav controls stay bound after the restructure', async () => {
 async function withRun(days, endOffset) {
   const g = await bootReady();
   const a = g.api;
-  a.state.logs = {}; a.state.adhoc = {};
+  a.state.logs = {};
   const id = a.state.goals[0].subs[0].id;
   for (let i = 0; i < days; i++) {
     const d = a.today();
@@ -612,7 +607,7 @@ t('streak counts a run ending today', async () => {
 });
 t('streak is 0 with no history at all', async () => {
   const g = await bootReady();
-  g.api.state.logs = {}; g.api.state.adhoc = {};
+  g.api.state.logs = {};
   eq(g.api.streak(), 0);
 });
 t('streak survives today being unlogged, measuring to yesterday', async () => {
@@ -632,20 +627,20 @@ t('streak is 0 when the run ended before yesterday', async () => {
 t('the run appears in the tally, pluralised', async () => {
   const g = await bootReady();
   const a = g.api;
-  a.state.logs = {}; a.state.adhoc = {};
+  a.state.logs = {};
   a.sel = a.todayKey();
   a.bump(a.state.goals[0].subs[0].id, 1);
   a.render();
-  has(g.captured.app, '<b>1</b> day in a row');
-  no(g.captured.app, '<b>1</b> days in a row');
+  has(g.captured.app, '<b>1</b><em>day in a row');
+  no(g.captured.app, '<b>1</b><em>days in a row');
   const d = a.today(); d.setDate(d.getDate() - 1);
   a.state.logs[a.key(d)] = { x: 1 };
   a.render();
-  has(g.captured.app, '<b>2</b> days in a row');
+  has(g.captured.app, '<b>2</b><em>days in a row');
 });
 t('the tally hides the run when there is none', async () => {
   const g = await bootReady();
-  g.api.state.logs = {}; g.api.state.adhoc = {};
+  g.api.state.logs = {};
   g.api.render();
   no(g.captured.app, 'in a row');
 });
@@ -691,7 +686,7 @@ t('a run never joins outward past the month edge', async () => {
 t('empty days are never joined', async () => {
   const a = await fixture();
   a.view = { y: 2026, m: 6 };
-  a.state.logs = {}; a.state.adhoc = {};
+  a.state.logs = {};
   const cal = a.calendar('2026-07-31');
   no(cal, 'cL'); no(cal, 'cR');
 });

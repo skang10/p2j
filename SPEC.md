@@ -217,7 +217,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 141 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 140 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -400,8 +400,18 @@ beside that link, since the goals below then belong to that day rather than to t
 *Left pane*: month navigation, then the calendar as the hero. Green intensity by `dayTotal`, date
 numbers visible, today ringed, past days clickable for backfill, future days drawn as outlines.
 Consecutive active days are joined into a continuous bar; runs break at the week edge because the
-next day sits on the following row. Below the calendar a 12-cell year strip for jumping between
-months, then the counts: days in a row, active days this month, total check-ins.
+next day sits on the following row. Below it the readouts: days in a row, active days this month,
+total check-ins.
+
+A 12-cell year strip sat between them for jumping to another month of the same year; it was removed
+in July 2026. Month navigation is now `‹ ›` plus the clickable 12-month chart in the stats panel,
+which does the same jump with more information in it.
+
+**Readouts** are one row each: the figure right-aligned in its own narrow column, its label beside it
+in the chrome face. The figures line up on a common right edge, which is why a denominator like the
+`/30` in `10/30 active this month` sits *outside* that column, tight against its numerator — inside
+it, `10/30` and `22` would not share an edge. Labels are therefore ragged where figures are aligned,
+and that is the right way round: the quantities are the design.
 
 *Right pane*: the goals, each with its chips and — depending on type — pips or a projection track.
 
@@ -513,9 +523,15 @@ something that is not yet true: the projected segment of the track, `met`, a
 finished item in the completion log. This keeps the palette from flattering attendance into progress
 — you cannot make a month look green by showing up.
 
-**2. The instrument speaks in mono; you speak in your own voice.** Chrome — counts, dates, labels,
-tabs, section heads, readouts — is `--mono`. The goal titles you typed and the sentences the app
-addresses you in are set in `--sans`. The record is visibly separate from the thing
+**2. The instrument speaks in mono; you speak in your own voice.** Chrome — labels, dates, tabs,
+section heads, small counts — is `--mono`. The goal titles you typed and the sentences the app
+addresses you in are set in `--sans`.
+
+One exception, and it is a defect in the face rather than a change of mind: **figures set at display
+size use `--sans` with `tabular-nums`** — the readouts and the count beside a goal's title. SF Mono
+and Menlo both draw a slashed zero, which at 26px reads as a symbol rather than a number, and a month
+you have not started is mostly zeros. `tabular-nums` keeps the column aligned without it. Small
+figures stay in `--mono`, where the slash is not legible enough to matter and the column feel wins. The record is visibly separate from the thing
 recorded. No webfont: `ui-monospace` and the system stack only, so the app still renders offline in
 five years (§2.2, §2.3).
 
