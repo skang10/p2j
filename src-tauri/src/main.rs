@@ -36,14 +36,9 @@ fn save_data(app: AppHandle, data: String) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
-fn data_path(app: AppHandle) -> Result<String, String> {
-    Ok(data_file(&app)?.to_string_lossy().into_owned())
-}
-
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![load_data, save_data, data_path])
+        .invoke_handler(tauri::generate_handler![load_data, save_data])
         .run(tauri::generate_context!())
         .expect("failed to start");
 }

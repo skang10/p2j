@@ -290,15 +290,11 @@
   .btn.pri:hover{background:var(--ink);border-color:var(--ink)}
   .btn:focus-visible{outline:0;box-shadow:0 0 0 3px var(--soft)}
   .cap{font-size:12px;color:var(--muted);padding-top:10px;line-height:1.65}
-  .tools{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;padding-top:16px}
-  .tools a.lnk{text-decoration:none}
-  .tools a.lnk:hover{text-decoration:underline;text-underline-offset:3px}
   .warnrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px;
     font-size:12.5px;color:var(--alert)}
-  .pick{font-weight:600;color:var(--accent);cursor:pointer}
   .notice{font-size:12.5px;color:var(--muted);padding-top:10px}
-  .store{font-family:var(--mono);font-size:10.5px;color:var(--ghost);padding-top:18px;word-break:break-all}
-  .store .bad{color:var(--danger);font-family:var(--sans)}
+  .store{font-size:12.5px;padding-top:16px}
+  .store .bad{color:var(--danger)}
 
   /* Desktop: the record on the left, the day's work on the right, divided by a
      rule. Everything stays above the fold instead of scrolling a phone column. */
@@ -346,8 +342,8 @@ const MON=['January','February','March','April','May','June',
 const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const ETAMIN=5;   // days that must have elapsed before a rate is worth projecting (§8.1)
 let state={goals:[],logs:{}};
-let view=null, sel=null, panel='day', editing=null, dataPath='', saveErr=false;
-let confirming=false, notice='';   // import is destructive, so it asks first
+let view=null, sel=null, panel='day', editing=null, saveErr=false;
+let notice='';
 let undo=null, purging=null;       // the last goal removed, and one awaiting a permanent delete
 
 /* ---------- helpers ---------- */
@@ -372,13 +368,11 @@ const Store = (() => {
     const invoke = T.core.invoke;
     return { kind:'tauri',
       read:  ()  => invoke('load_data'),
-      write: (s) => invoke('save_data', { data: s }),
-      where: ()  => invoke('data_path') };
+      write: (s) => invoke('save_data', { data: s }) };
   }
   return { kind:'browser',                    // browser fallback (§7.1): localStorage
     read:  async ()  => localStorage.getItem(KEY) || '',
-    write: async (s) => { localStorage.setItem(KEY, s); },
-    where: async ()  => 'Browser local storage' };
+    write: async (s) => { localStorage.setItem(KEY, s); } };
 })();
 
 /* ---------- load / save ---------- */
@@ -387,7 +381,6 @@ async function load(){
     const raw = await Store.read();
     if(raw && raw.trim() && raw.trim()!=='{}') state = JSON.parse(raw);
   }catch(e){ console.warn('Read failed, starting fresh', e); }
-  try{ dataPath = await Store.where(); }catch(e){ dataPath=''; }
   if(!state.goals||!state.goals.length) state=seed();
   if(!state.logs) state.logs={};
   state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
@@ -414,43 +407,6 @@ function seed(){
     {id:newId(),type:'daily',title:'Job hunt',subs:[
       {id:newId(),title:'Applications'},{id:newId(),title:'Resume'},{id:newId(),title:'Interview prep'}]}
   ]};
-}
-
-/* ---------- export / import (§8.2) ---------- */
-// No new Rust command and no network: export is a data: URI on a download link,
-// import is a file input read in the browser. Both stay in the frontend per §2.1.
-const stamp=()=>{const d=today();return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())};
-const exportName=()=>`checkin-${stamp()}.json`;
-const exportHref=()=>'data:application/json;charset=utf-8,'
-  +encodeURIComponent(JSON.stringify(state,null,1));
-
-// Reject anything that is not recognisably this app's file, so a wrong pick
-// cannot silently wipe the log. Returns the parsed state or throws.
-function parseImport(text){
-  let d;
-  try{ d=JSON.parse(text); }catch(e){ throw new Error('not valid JSON'); }
-  if(!d||typeof d!=='object'||Array.isArray(d)) throw new Error('not a check-in file');
-  if(!Array.isArray(d.goals)) throw new Error('no goals list');
-  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
-  if(d.logs!==undefined&&!obj(d.logs)) throw new Error('logs is not a map');
-  for(const g of d.goals){
-    if(!obj(g)||typeof g.title!=='string'||typeof g.id!=='string')
-      throw new Error('a goal is missing its id or title');
-    if(g.subs!==undefined&&!Array.isArray(g.subs)) throw new Error('subs is not a list');
-  }
-  return d;
-}
-function applyImport(text){
-  const d=parseImport(text);
-  state=d;
-  if(!state.logs) state.logs={};
-  state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
-    delete g.cad; });   // cadence is gone; drop the dead field on the way through
-  const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey();
-  panel='day'; editing=null; confirming=false; undo=null; purging=null;
-  const days=Object.keys(state.logs).length;
-  notice=`Imported ${state.goals.length} goal${state.goals.length===1?'':'s'} and ${days} dated entr${days===1?'y':'ies'}.`;
-  save(); render();
 }
 
 /* ---------- derived ---------- */
@@ -603,23 +559,10 @@ function render(){
     </div>
 
     <div class="foot">
-      ${live().length<MAXGOALS
-        ? '<button class="add addgoal" id="ag">+ goal</button>'
-        : `<p class="cap">You already have ${MAXGOALS} goals. Remove one to add another.</p>`}
+      ${live().length<MAXGOALS ? '<button class="add addgoal" id="ag">+ goal</button>' : ''}
       ${undoLine()}${archiveShelf()}
-      <div class="tools">
-        <a class="lnk" id="dl" href="${exportHref()}" download="${exportName()}">Export a copy</a>
-        ${confirming
-          ? `<span class="warnrow">Replace everything with the file you pick?
-               <label class="lnk pick" for="up">Choose file</label>
-               <button class="lnk" id="cancel">Cancel</button></span>`
-          : '<button class="lnk" id="imp">Import…</button>'}
-        <input type="file" id="up" accept=".json,application/json" hidden>
-      </div>
       ${notice?`<p class="notice">${esc(notice)}</p>`:''}
-      <p class="store">${saveErr
-        ? '<span class="bad">Write failed. Changes were not saved.</span>'
-        : (dataPath?esc(dataPath):'')}</p>
+      ${saveErr?'<p class="store"><span class="bad">Write failed. Changes were not saved.</span></p>':''}
     </div>`;
   bind();
 }
@@ -963,22 +906,6 @@ function bind(){
     panel=(y===nn.getFullYear()&&m===nn.getMonth())?'day':'review';
     sel=panel==='day'?todayKey():null; render(); });
   on('[data-edit]',b=>b.onclick=()=>{ editing=b.dataset.edit||null; render(); });
-
-  const imp=document.getElementById('imp');
-  if(imp) imp.onclick=()=>{ confirming=true; notice=''; render(); };
-  const cancel=document.getElementById('cancel');
-  if(cancel) cancel.onclick=()=>{ confirming=false; render(); };
-  const up=document.getElementById('up');
-  if(up) up.onchange=()=>{
-    const f=up.files&&up.files[0]; if(!f) return;
-    const r=new FileReader();
-    r.onload=()=>{ try{ applyImport(String(r.result)); }
-                   catch(e){ notice='Import failed: '+e.message+'. Nothing was changed.';
-                             confirming=false; render(); } };
-    r.onerror=()=>{ notice='Could not read that file. Nothing was changed.';
-                    confirming=false; render(); };
-    r.readAsText(f);
-  };
 
   const ag=document.getElementById('ag');
   if(ag) ag.onclick=()=>{ if(live().length>=MAXGOALS)return;

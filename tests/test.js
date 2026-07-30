@@ -335,8 +335,8 @@ t('the add-goal button respects MAXGOALS', async () => {
   const g = await bootReady();
   const a = g.api;
   a.render();
-  has(g.captured.app, 'You already have 3 goals', 'cap message at 3 goals');
   no(g.captured.app, 'id="ag"', 'add-goal hidden at the cap');
+  no(g.captured.app, 'You already have', 'and says nothing about it');
   a.state.goals.pop(); a.render();
   has(g.captured.app, 'id="ag"', 'and back below the cap');
 });
@@ -450,9 +450,8 @@ t('a newly added goal is written with everything load() needs', async () => {
   const fresh = a.state.goals[a.state.goals.length - 1];
   eq(a.state.goals.length, before + 1);
   eq([fresh.type, fresh.subs.length], ['daily', 1]);
-  const copy = JSON.parse(JSON.stringify(a.state));
-  a.applyImport(JSON.stringify(copy));
-  eq(a.state.goals[a.state.goals.length - 1], fresh, 'a round trip changes nothing');
+  const copy = JSON.parse(JSON.stringify(a.state));   // what load() would read back
+  eq(copy.goals[copy.goals.length - 1], fresh, 'a save/load round trip changes nothing');
 });
 
 // ---------- pluralisation (English translation introduced these) ----------
@@ -895,113 +894,32 @@ t('the footer never shows a write error on the happy path', async () => {
   await new Promise(r => setTimeout(r, 400));
   a.render();
   no(g.captured.app, 'Write failed', 'this is what the broken fallback used to show');
-  has(g.captured.app, 'Browser local storage');
 });
 
-// ---------- export / import (§8.2) ----------
-t('export offers the state verbatim, indented, under a dated filename', async () => {
-  const g = await bootReady({ now: '2026-03-07' });
-  const a = g.api;
-  a.state.logs = { '2026-03-01': { x: 2 } };
-  eq(a.exportName(), 'checkin-20260307.json');
-  const href = a.exportHref();
-  has(href, 'data:application/json');
-  const body = decodeURIComponent(href.slice(href.indexOf(',') + 1));
-  eq(JSON.parse(body), a.state, 're-parses to exactly the live state');
-  has(body, '\n ', 'indent 1, so the download is as readable as the file on disk');
-});
-t('export carries no cached totals, only the source of truth', async () => {
-  const a = await fixture();
-  const href = a.exportHref();
-  const body = JSON.parse(decodeURIComponent(href.slice(href.indexOf(',') + 1)));
-  eq(Object.keys(body).sort(), ['goals', 'logs']);
-});
-t('import round-trips an exported file', async () => {
-  const src = await fixture();
-  const href = src.exportHref();
-  const body = decodeURIComponent(href.slice(href.indexOf(',') + 1));
-  const g = await bootReady();
-  g.api.applyImport(body);
-  eq(g.api.state.goals.map(x => x.title), ['Problems', 'To learn', 'Job hunt']);
-  eq(g.api.subTotal('s1'), 10, 'the log came with it');
-});
-t('import normalises an old file the same way load() does', async () => {
-  const g = await bootReady();
-  g.api.applyImport(JSON.stringify({ goals: [{ id: 'a', title: 'legacy' }] }));
-  const goal = g.api.state.goals[0];
-  eq(goal.type, 'daily'); eq(goal.subs, []);
-  eq(g.api.state.logs, {});
-});
-t('import lands you back on today, with no editor open', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  a.panel = 'stats'; a.editing = a.state.goals[0].id; a.view = { y: 2020, m: 0 };
-  a.applyImport(JSON.stringify({ goals: [{ id: 'a', title: 'x', type: 'daily', cad: 'free', subs: [] }] }));
-  eq(a.panel, 'day'); eq(a.editing, null); eq(a.sel, a.todayKey());
-  eq(a.view, { y: TY, m: TM });
-});
-t('import reports what arrived', async () => {
-  const g = await bootReady();
-  const a = g.api;
-  a.applyImport(JSON.stringify({ goals: [{ id: 'a', title: 'x', type: 'daily', cad: 'free', subs: [] }],
-                                 logs: { '2026-01-01': { z: 1 } }, adhoc: {} }));
-  has(a.notice, 'Imported 1 goal and 1 dated entry', 'singular, and it says what happened');
-});
-
-// A wrong file must not be able to wipe the log.
-t('import rejects malformed input and leaves the data untouched', async () => {
-  const bad = [
-    ['not JSON at all', 'not valid JSON'],
-    ['[]', 'not a check-in file'],
-    ['"a string"', 'not a check-in file'],
-    ['null', 'not a check-in file'],
-    ['{}', 'no goals list'],
-    ['{"goals":"nope"}', 'no goals list'],
-    ['{"goals":[],"logs":[]}', 'logs is not a map'],
-    ['{"goals":[{"id":"a"}]}', 'a goal is missing its id or title'],
-    ['{"goals":[{"title":"a"}]}', 'a goal is missing its id or title'],
-    ['{"goals":[{"id":"a","title":"b","subs":{}}]}', 'subs is not a list'],
-  ];
-  for (const [text, why] of bad) {
-    const g = await bootReady();
-    const a = g.api;
-    a.state.logs = { '2026-01-01': { keep: 1 } };
-    const before = JSON.stringify(a.state);
-    let threw = null;
-    try { a.applyImport(text); } catch (e) { threw = e.message; }
-    ok(threw, `${JSON.stringify(text).slice(0, 34)} should have been rejected`);
-    eq(threw, why, 'and say why');
-    eq(JSON.stringify(a.state), before, 'state must be untouched after a rejection');
-  }
-});
-t('a valid file with an empty goal list is accepted, not treated as corrupt', async () => {
-  const g = await bootReady();
-  g.api.applyImport('{"goals":[],"logs":{},"adhoc":{}}');
-  eq(g.api.state.goals, [], 'deliberately empty is a legitimate state to restore');
-});
-
-// ---------- the destructive action asks first ----------
-t('the footer offers export always and import behind a confirmation', async () => {
+// ---------- the footer carries only what acts on the goals ----------
+t('the footer offers no export, no import and no file path', async () => {
   const g = await bootReady();
   const a = g.api;
   a.render();
-  has(g.captured.app, 'id="dl"'); has(g.captured.app, 'download="checkin-');
-  has(g.captured.app, 'id="imp"', 'import starts as a plain control');
-  no(g.captured.app, 'Replace everything', 'and does not warn until asked');
-  a.confirming = true; a.render();
-  has(g.captured.app, 'Replace everything with the file you pick?');
-  has(g.captured.app, 'id="cancel"', 'and can be backed out of');
-  no(g.captured.app, 'id="imp"');
+  const html = g.captured.app;
+  no(html, 'Export a copy'); no(html, 'Import');
+  no(html, 'id="dl"'); no(html, 'id="imp"'); no(html, 'id="up"');
+  no(html, 'class="tools"');
+  no(html, 'checkin.json', 'the data-file path is not surfaced');
+  no(html, 'Browser local storage');
 });
-t('the file input is present but never shown', async () => {
+// The one thing the footer must still say. Persistence failing silently would be the
+// worst failure this app has, so it survived the strip.
+t('a failed write still reports itself in the footer', async () => {
   const g = await bootReady();
-  g.api.render();
-  has(g.captured.app, 'id="up"');
-  has(g.captured.app, 'hidden', 'the label drives it, so it stays out of the layout');
-  has(g.captured.app, 'accept=".json,application/json"');
+  const a = g.api;
+  a.render();
+  no(g.captured.app, 'Write failed', 'quiet on the happy path');
+  a.saveErr = true; a.render();
+  has(g.captured.app, 'Write failed. Changes were not saved.');
+  has(g.captured.app, 'class="bad"');
 });
 
-// ---------- the §4.1 invariant ----------
 t('persisted JSON stores only goals and logs — no cached totals', async () => {
   const a = await fixture();
   const round = JSON.parse(JSON.stringify(a.state));
@@ -1286,13 +1204,12 @@ t('Save is the primary button and closes the editor', async () => {
   const g = await arch(); const a = g.api;
   has(a.goalEditor(a.state.goals[0]), '<button class="btn pri" data-edit="">Save</button>');
 });
-t('the archived flag survives an export/import round trip', async () => {
+t('the archived flag survives a save/load round trip', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1');
-  const copy = JSON.stringify(a.state);
-  a.state = { goals: [], logs: {}, adhoc: {} };
-  a.applyImport(copy);
-  eq(a.state.goals[0].archived, true, 'still archived after import');
+  const reloaded = JSON.parse(JSON.stringify(a.state));
+  eq(reloaded.goals[0].archived, true, 'still archived on disk');
+  a.state = reloaded;
   eq(a.live().length, 2, 'and still off the check-in screen');
 });
 
@@ -1306,9 +1223,8 @@ t('Store picks the tauri backend when __TAURI__ is present', async () => {
   eq(g.api.Store.kind, 'tauri');
   ok(calls.some(c => c[0] === 'load_data'), 'load_data called on boot');
   g.api.Store.write('{"x":1}');
-  g.api.Store.where();
   eq(calls.find(c => c[0] === 'save_data'), ['save_data', { data: '{"x":1}' }], 'save_data payload');
-  ok(calls.some(c => c[0] === 'data_path'), 'data_path called');
+  eq(calls.filter(c => c[0] === 'data_path').length, 0, 'nothing asks for the path any more');
 });
 t('Store is the only place invoke is referenced', () => {
   const src = require('fs').readFileSync(require('./harness').HTML, 'utf8');

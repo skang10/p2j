@@ -37,8 +37,8 @@ with no celebration, no reminder to protect it, and no penalty screen when it en
 
 These are settled decisions, not preferences. If a task seems to require breaking one, stop and ask.
 
-1. **All business logic lives in the frontend.** Rust does exactly three things: read a file, write a
-   file, report its path. Date math, progress, ETA and charts are all
+1. **All business logic lives in the frontend.** Rust does exactly two things: read a file and write
+   a file. Date math, progress, ETA and charts are all
    JavaScript. This keeps the edit-reload loop instant instead of waiting on `cargo build`. Do not
    move logic into Rust.
 2. **The frontend stays one file.** `src/index.html` contains all markup, styles, and script. No
@@ -121,14 +121,9 @@ fn save_data(app: AppHandle, data: String) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
-fn data_path(app: AppHandle) -> Result<String, String> {
-    Ok(data_file(&app)?.to_string_lossy().into_owned())
-}
-
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![load_data, save_data, data_path])
+        .invoke_handler(tauri::generate_handler![load_data, save_data])
         .run(tauri::generate_context!())
         .expect("failed to start");
 }
@@ -222,7 +217,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 149 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 141 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -255,7 +250,7 @@ a 700-line file is a hand-edit. Run it before and after touching `index.html`.
 
 ## 4. Data model
 
-One JSON file. Location is returned by the `data_path` command:
+One JSON file. The app does not display its location — back it up from a shell:
 
 | OS | Path |
 |---|---|
@@ -484,27 +479,26 @@ view.
 jump to that month), weekday distribution, per-goal share of check-ins, and the completion log
 (finished list items and months where a count goal hit its target, newest first).
 
-### 5.1 Export and import
+### 5.1 The footer
 
-Two controls in the footer, beside the data-file path.
+Everything that acts on the goals themselves, and nothing else: `+ goal` (absent at `MAXGOALS`,
+with no notice explaining why — the button's absence is the message), the `Archived “X”. Undo` /
+`Deleted “X”. Undo` offer, the archive shelf with `Restore` and `Delete for good`, and the import
+notice slot reused for `You already have 3 goals. Remove one before restoring another.`
 
-**Export a copy** is an `<a download>` whose `href` is a `data:` URI built from the live state, named
-`checkin-YYYYMMDD.json`. It is the same bytes as the file on disk, at the same indent — a copy, not a
-different format.
+**The one thing it must still say is `Write failed. Changes were not saved.`** Persistence failing
+quietly is the worst failure this app has, so that line survived the strip below and is asserted.
 
-**Import…** replaces everything, so it asks first: the control becomes
-`Replace everything with the file you pick? Choose file / Cancel`, inline, in `--alert`. This is a
-two-step confirmation rather than a modal, per §6.
+**Removed in July 2026: export, import, and the data-file path.** All three were in this footer.
+Export was an `<a download>` on a `data:` URI of the live state; import was a `FileReader` behind a
+two-step confirmation with a validator (`parseImport`) that rejected anything unrecognisable so a
+wrong pick could not wipe the log. The path was a `.store` line reading the location straight from
+Rust's `data_path` command, which is why that command is gone from §3.1 too.
 
-`parseImport()` validates before anything is assigned: it must parse as JSON, be a plain object, have
-an array `goals` whose every member has a string `id` and `title`, and `logs` must be a map if
-present. A rejection reports the reason (`Import failed: no goals list. Nothing was changed.`) and
-leaves the state untouched — picking the wrong file must never be able to wipe the log. A valid file
-with an empty `goals` array **is** accepted: deliberately empty is a legitimate state to restore.
-
-On success the state is normalised exactly as `load()` does, the view returns to today, and a notice
-reports what arrived. Neither control needs a Rust command or the network: export is a data URI,
-import is a `FileReader`, both in the frontend per §2.1.
+Recorded plainly because it cost something: **the app now has no in-app backup or restore.** On the
+day this was removed, an accidentally deleted goal had been recovered from an export made minutes
+earlier. The data is still one plain JSON file at the §4 path, so `cp` from a shell is the whole
+recovery story now, and nobody is reminded to run it.
 
 ### 5.2 Design system
 
@@ -630,10 +624,12 @@ cargo tauri dev
 Verification checklist:
 
 1. The window opens and the calendar renders on the grid-paper background.
-2. The footer shows a real filesystem path — **not** `Browser local storage`. If it shows the latter,
-   `withGlobalTauri` is off and the app has silently fallen back to browser storage: it looks like
-   it's saving but nothing reaches disk. This is the single most likely failure and it is silent.
-3. Tap a chip, quit the app, relaunch — the check-in is still there.
+2. **Tap a chip, then check that the file at the §4 path exists and contains it.** If
+   `withGlobalTauri` is off the app falls back to browser storage: every write succeeds, the footer
+   stays quiet, and nothing reaches disk. This is the single most likely failure and it is now
+   entirely invisible in the UI — the footer used to print the real path, which made the fallback
+   obvious at a glance, and that line was removed (§5.1). The file on disk is the only tell left.
+3. Quit the app and relaunch — the check-in is still there.
 4. `cat` the JSON file; it should be indented and legible.
 5. `cargo tauri build` completes and produces a bundle.
 6. `node tests/test.js` reports all assertions passing (§3.7).
@@ -670,7 +666,8 @@ which one first.
    projected segment is drawn. A met target still fills the track on any date, so the cutoff cannot
    hide a real result. `ETAMIN` is a named constant beside the other tunables.
 
-2. ~~**Export / import JSON.**~~ **Built.** See §5.1.
+2. ~~**Export / import JSON.**~~ **Built, then removed** at the owner's request — see §5.1 for what
+   it did and what its removal costs.
 3. ~~**Cadence thresholds (3 / 10 / 35 days) are guesses.**~~ **Moot.** Cadence was removed
    before the thresholds were ever validated against real logs — see §4.4 for what it did and the
    reasoning behind it, which is what a replacement would have to answer.
