@@ -143,7 +143,7 @@
   .goal.ed .cap{padding-top:6px}
   .edfoot{padding-top:14px}
   .frow{display:block;padding:7px 0;cursor:pointer}
-  .frow>span{display:block;font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;
+  .flbl{display:block;font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;
     color:var(--muted);padding-bottom:6px}
   .ehead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px}
   .ehead h3{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.04em;color:var(--muted)}
@@ -247,23 +247,34 @@
     padding:4px 0;flex:1;min-width:0;color:var(--ink);border-radius:0}
   input[type=text]:hover{border-bottom-color:var(--line)}
   input[type=text]:focus{outline:0;border-bottom-color:var(--accent)}
+  /* The OS draws a select as a bordered box with a stepper glyph in it — its own radius,
+     its own metrics, its own highlight — so a native one never matches anything around it.
+     Take it over and draw the chevron ourselves, from two borders on the wrapper: no icon
+     font, and no colour baked into an image where a token could not reach it. */
   select,input[type=number]{font:inherit;font-size:13px;color:var(--muted);
     background:var(--surface);border:1px solid var(--line);border-radius:var(--rs);padding:5px 6px;flex:none;
-    transition:border-color .12s,color .12s}
+    transition:border-color .12s,color .12s,box-shadow .12s}
+  select{appearance:none;-webkit-appearance:none;cursor:pointer}
+  .fctl{position:relative;display:block}
+  .fctl:has(select)::after{content:"";position:absolute;right:15px;top:calc(50% - 6px);
+    width:7px;height:7px;pointer-events:none;transform:rotate(45deg);
+    border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted)}
+  .fctl:has(select):hover::after{border-color:var(--ink)}
   input[type=number]{width:56px;text-align:center;font-variant-numeric:tabular-nums}
   input.etitle{font-size:17.5px;font-weight:600;color:var(--ink);background:var(--surface);
     border:1px solid var(--line);border-bottom-color:var(--line);border-radius:var(--r);
     padding:10px 12px;width:100%;display:block;transition:border-color .12s}
   input.etitle:hover{border-color:var(--muted)}
   input.etitle:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--soft)}
-  .frow select{width:100%;font-size:14px;color:var(--ink);padding:9px 10px}
-  .frow input[type=number]{width:104px;font-size:14px;color:var(--ink);padding:9px 10px;text-align:left;
+  .frow select{width:100%;font-size:14px;color:var(--ink);padding:11px 36px 11px 13px}
+  .frow input[type=number]{width:104px;font-size:14px;color:var(--ink);padding:11px 13px;text-align:left;
     font-family:var(--mono)}
   .goal.ed .erow.sub input[type=text]{font-size:14px;background:var(--surface);
     border:1px solid var(--line);border-radius:var(--rs);padding:8px 10px}
   .goal.ed .erow.sub input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--soft)}
   .goal.ed .add{padding-left:0}
-  select:focus,input:focus{outline:0;border-color:var(--accent);color:var(--ink)}
+  select:focus,input:focus{outline:0;border-color:var(--accent);color:var(--ink);
+    box-shadow:0 0 0 3px var(--soft)}
   select:hover,input[type=number]:hover{border-color:var(--muted)}
   .x{font:inherit;font-size:17.5px;line-height:1;color:var(--ghost);background:0;border:0;cursor:pointer;
     padding:3px 5px;flex:none;border-radius:var(--rs);transition:color .12s,background .12s}
@@ -685,7 +696,7 @@ function goalBlock(g,k,F){
 // that rather than naming the underlying kind. Every field carries its own label.
 const TAP={daily:'Marks the day done',count:'Adds one to a monthly total',list:'Crosses it off for good'};
 function goalEditor(g){
-  const field=(lb,ctrl)=>`<label class="frow"><span>${lb}</span>${ctrl}</label>`;
+  const field=(lb,ctrl)=>`<label class="frow"><span class="flbl">${lb}</span><span class="fctl">${ctrl}</span></label>`;
   const kept=goalCount(g), keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);
   return `<div class="goal ed">
     <div class="ehead"><h3>Edit goal</h3>

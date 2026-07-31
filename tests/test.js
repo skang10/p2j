@@ -750,8 +750,8 @@ t('every editor control carries a label', async () => {
   const a = g.api;
   a.editing = a.state.goals[0].id; a.render();          // the count goal
   const html = g.captured.app;
-  has(html, '<span>What a tap does</span>');
-  has(html, '<span>Monthly target</span>');
+  has(html, '<span class="flbl">What a tap does</span>');
+  has(html, '<span class="flbl">Monthly target</span>');
   has(html, 'Sub-goals');
   eq((html.match(/class="frow"/g) || []).length, 2, 'two labelled fields on a count goal');
 });

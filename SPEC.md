@@ -445,7 +445,14 @@ on the machine, which is how a goal was lost by someone meaning to close the edi
 - Sub-goal rows keep their `×`, because that is a row-level removal.
 
 The fields stack — label above a full-width control — so the label, the value and the tap target
-share one left edge instead of sitting in three columns. `Save` is the pane's primary action and is
+share one left edge instead of sitting in three columns. **The `select` is `appearance: none`**: the
+OS draws one as a bordered box with a stepper glyph, on its own radius and metrics, so a native
+select never matches anything around it. The chevron is two borders on the control's wrapper rather
+than an image — no icon font (§2.2), and no colour baked where a token could not reach it (§5.2).
+
+The label and the control each carry a class (`.flbl`, `.fctl`). They did not: the label was styled
+as "the `span` in a `.frow`", which held only until a second span was added to wrap the control, at
+which point the control inherited the label's monospace and 11.5px. `Save` is the pane's primary action and is
 the only filled button in the app. Note what it does not do: every field writes on `oninput`, so the
 edit is already on disk before the button is pressed and `×` loses nothing. It was labelled `Done`
 for that reason and relabelled at the owner's request; if anyone ever reads `Save` as "changes are
