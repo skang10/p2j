@@ -552,9 +552,16 @@ generate the rest, and both are worth defending because each encodes something t
 **1. Recorded facts are ink; colour is reserved for claims about the future.** Every logged fact —
 a calendar cell, a pip, a bar, a share track, a chip you have tapped — is drawn in one neutral ramp,
 `--c0` through `--c4`, darker with more activity. `--accent` appears only where the app asserts
-something that is not yet true: the projected segment of the track, `met`, a
-finished item in the completion log. This keeps the palette from flattering attendance into progress
-— you cannot make a month look green by showing up.
+something that is not yet true. That is exactly three things: the projected segment of the track
+(where this rate lands you), `met` beside a goal that has reached its target, and the same `met` in
+the completion log. The focus ring uses it too, as the one piece of chrome that has to be found
+instantly.
+
+**Controls are ink, not accent.** `+ goal`, `Save`, the ring on today's calendar cell — these were
+accent and are not any more. A button is not a claim about the future, and today is a fact about the
+clock. Spending the one colour on ordinary controls is what makes an accent stop meaning anything.
+This keeps the palette from flattering attendance into progress: you cannot make a month look green
+by showing up.
 
 **2. The instrument speaks in mono; you speak in your own voice.** Chrome — labels, dates, tabs,
 section heads, small counts — is `--mono`. The goal titles you typed and the sentences the app
@@ -596,6 +603,12 @@ as `light` rather than `light dark` — that is load-bearing, not tidying: on a 
 mode the native select, caret and scrollbar otherwise keep rendering in dark chrome against the light
 page. If a dark theme is ever wanted again, it is a second token block and that one word, nothing
 else: no rule below hardcodes a colour.
+
+The type scale was raised one step throughout in July 2026 — body 15px, a goal's title 17px, chips
+13px, the mono chrome 11.5px, the display figures 19–23px. The small mono labels gained the most,
+having been the least legible, and the display figures the least, so the hierarchy kept its
+proportions rather than being scaled uniformly. Anything with a fixed box sized around the old type —
+the readout row height, the figure columns' `min-width`, the calendar cell height — moved with it.
 
 Rules: 9px radii on cells, chips and inputs; 6px on small controls. **No shadows** anywhere except a
 3px focus ring, which the boxed inputs and the primary button use in `--soft`. No gradients, no icon
