@@ -554,7 +554,9 @@ function render(){
 // still drew its top rule and padding — a line across the page under no content.
 function foot(){
   const bits = [
-    live().length<MAXGOALS ? '<button class="add addgoal" id="ag">+ goal</button>' : '',
+    // always present: an entry point that vanishes at the cap leaves no way in and no
+    // reason why. It stays, and says what is in the way when it cannot proceed.
+    '<button class="add addgoal" id="ag">+ goal</button>',
     undoLine(), archiveShelf(),
     notice?`<p class="notice">${esc(notice)}</p>`:'',
     saveErr?'<p class="store"><span class="bad">Write failed. Changes were not saved.</span></p>':'',
@@ -833,7 +835,11 @@ function bind(){
   on('[data-edit]',b=>b.onclick=()=>{ editing=b.dataset.edit||null; render(); });
 
   const ag=document.getElementById('ag');
-  if(ag) ag.onclick=()=>{ if(live().length>=MAXGOALS)return;
+  if(ag) ag.onclick=()=>{
+    if(live().length>=MAXGOALS){
+      notice=`You already have ${MAXGOALS} goals. Remove one to add another.`;
+      render(); return;
+    }
     const id=newId();
     state.goals.push({id,type:'daily',title:'New goal',
                       subs:[{id:newId(),title:'New sub-goal'}]});

@@ -451,8 +451,8 @@ edit is already on disk before the button is pressed and `×` loses nothing. It 
 for that reason and relabelled at the owner's request; if anyone ever reads `Save` as "changes are
 pending until you click me", that is the cost being paid.
 
-`+ goal` lives in the footer, below the goals, and opens the new goal's editor immediately. Above
-`MAXGOALS` it is replaced by the cap notice.
+`+ goal` lives in the footer, below the goals, and opens the new goal's editor immediately. At
+`MAXGOALS` it stays put and refuses with a notice (§5.1).
 
 **Pace** (count goals only) is the app's thesis made visible, as a track:
 
@@ -511,10 +511,15 @@ the month review having gone before it.
 
 ### 5.1 The footer
 
-Everything that acts on the goals themselves, and nothing else: `+ goal` (absent at `MAXGOALS`,
-with no notice explaining why — the button's absence is the message), the `Archived “X”. Undo` /
-`Deleted “X”. Undo` offer, the archive shelf with `Restore` and `Delete for good`, and the import
-notice slot reused for `You already have 3 goals. Remove one before restoring another.`
+Everything that acts on the goals themselves, and nothing else: `+ goal`, the `Archived “X”. Undo` /
+`Deleted “X”. Undo` offer, the archive shelf with `Restore` and `Delete for good`, and a notice slot.
+
+**`+ goal` is always rendered, including at `MAXGOALS`.** It briefly wasn't — the button hid itself
+at the cap on the reasoning that its absence was the message — and with the cap notice removed at the
+same time, three goals meant no way to add one and nothing saying why. It now stays and explains
+itself on the attempt: `You already have 3 goals. Remove one to add another.` in the notice slot,
+which is the same shape as the refusal `Restore` gives at the cap. Announce a constraint where it
+bites, not by removing the control that runs into it.
 
 **The one thing it must still say is `Write failed. Changes were not saved.`** Persistence failing
 quietly is the worst failure this app has, so that line survived the strip below and is asserted.

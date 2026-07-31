@@ -326,14 +326,22 @@ t('the editor closes back to the check-in view', async () => {
   a.editing = null; a.render();
   no(g.captured.app, 'class="goal ed"');
 });
-t('the add-goal button respects MAXGOALS', async () => {
+// The button used to disappear at the cap, which left no way to add a goal and no
+// reason why. It stays, and the cap is explained at the moment it gets in the way.
+t('the add-goal entry point is always there, and says what is in the way', async () => {
   const g = await bootReady();
   const a = g.api;
   a.render();
-  no(g.captured.app, 'id="ag"', 'add-goal hidden at the cap');
-  no(g.captured.app, 'You already have', 'and says nothing about it');
-  a.state.goals.pop(); a.render();
-  has(g.captured.app, 'id="ag"', 'and back below the cap');
+  eq(a.live().length, 3, 'at the cap');
+  has(g.captured.app, 'id="ag"', 'still offered');
+  no(g.captured.app, 'You already have', 'but silent until you try');
+  a.bind();
+  g.els.get('ag').onclick();
+  eq(a.state.goals.length, 3, 'no goal was added');
+  has(a.notice, 'You already have 3 goals. Remove one to add another.');
+  a.state.goals.pop(); a.render(); a.bind();
+  g.els.get('ag').onclick();
+  eq(a.state.goals.length, 3, 'and below the cap it adds one');
 });
 t('future days are inert and past days are clickable', async () => {
   const g = await bootReady();
@@ -900,15 +908,17 @@ t('the footer offers no export, no import and no file path', async () => {
 // Regression: with three goals and nothing archived, every part of the footer is
 // conditional and all of them were empty — but the container still rendered, drawing
 // its top rule and padding as a line across the page under no content at all.
-t('a footer with nothing in it is not rendered', async () => {
+// The footer is still assembled from its parts and skipped when they are all empty —
+// it cannot go empty now that + goal is permanent, but the guard is what stops the
+// next conditional part from bringing back a rule drawn under no content.
+t('the footer is built from its parts, and the add-goal button is always one of them', async () => {
   const g = await bootReady();
   const a = g.api;
   a.render();
-  eq(a.live().length, 3, 'at the cap, so there is no + goal button');
+  has(g.captured.app, 'class="foot"');
+  has(g.captured.app, 'id="ag"', 'which is why it is never empty');
   eq(a.undo, null); eq(a.notice, ''); eq(a.saveErr, false);
-  no(g.captured.app, 'class="foot"', 'no container, so no rule and no padding');
-  a.dropGoal(a.state.goals[0].id);                 // now there is something to undo
-  has(g.captured.app, 'class="foot"', 'and it comes back when it has content');
+  no(g.captured.app, 'class="notice"', 'and holds nothing else while there is nothing to say');
 });
 // The one thing the footer must still say. Persistence failing silently would be the
 // worst failure this app has, so it survived the strip.
@@ -1063,10 +1073,14 @@ t('an archived goal leaves the check-in screen', async () => {
 });
 t('an archived goal stops counting against MAXGOALS', async () => {
   const g = await arch(); const a = g.api;
-  a.render();
-  no(g.captured.app, 'id="ag"', 'three live goals is the cap');
-  a.dropGoal('g1'); a.render();
-  has(g.captured.app, 'id="ag"', 'archiving frees the slot');
+  a.render(); a.bind();
+  g.els.get('ag').onclick();
+  eq(a.live().length, 3, 'three live goals is the cap, so nothing was added');
+  a.dropGoal('g1');
+  a.render(); a.bind();
+  g.els.get('ag').onclick();
+  eq(a.live().length, 3, 'archiving freed the slot and the new goal took it');
+  eq(a.state.goals.length, 4, 'the archived one is still in the file');
 });
 t('stats still credit an archived goal, and say it is archived', async () => {
   const g = await arch(); const a = g.api;
