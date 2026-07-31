@@ -218,20 +218,18 @@
   .sh{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.04em;color:var(--muted);
     margin:30px 0 13px;padding-bottom:10px;border-bottom:1px solid var(--hair)}
   .sh:first-of-type{margin-top:14px}
-  .cols{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:4px;align-items:end}
-  .col{display:flex;flex-direction:column;gap:7px;background:0;border:0;padding:0;cursor:pointer}
-  .col:disabled{cursor:default}
-  .box{display:flex;align-items:flex-end;background:var(--c0);border-radius:var(--rs);overflow:hidden}
-  .fill{width:100%;background:var(--c3);border-radius:var(--rs) var(--rs) 0 0;transition:height .2s ease,background .12s}
-  .col:not(:disabled):hover .fill{background:var(--c4)}
-  .col i{font-style:normal;font-family:var(--mono);font-size:9.5px;color:var(--muted);text-align:center}
-  .share{display:flex;flex-direction:column;gap:10px}
-  .shrow{display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--ink)}
-  .shrow .lb{width:104px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .shrow .track{flex:1;height:10px;background:var(--c0);border-radius:5px;overflow:hidden}
-  .shrow .track i{display:block;height:100%;background:var(--c3);border-radius:5px}
-  .shrow .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:11.5px;
-    color:var(--muted);width:36px;text-align:right;flex:none}
+  /* one row per goal: name, then the amount right-aligned in its own column so the
+     figures line up, then what the figure counts */
+  .amt{display:flex;flex-direction:column}
+  .amtrow{display:flex;align-items:baseline;gap:12px;padding:12px 0;
+    border-bottom:1px solid var(--hair);font-size:14px;color:var(--ink)}
+  .amtrow:last-child{border-bottom:0}
+  .amtrow .lb{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .amtrow .v{font-family:var(--sans);font-variant-numeric:tabular-nums;font-weight:500;
+    font-size:19px;line-height:1;letter-spacing:-.02em;color:var(--ink);
+    min-width:46px;text-align:right;flex:none}
+  .amtrow .u{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted);
+    min-width:88px;flex:none}
   .ach{display:flex;flex-direction:column}
   .arow{display:flex;align-items:baseline;gap:12px;padding:10px 0;
     border-bottom:1px solid var(--hair);font-size:13.5px;color:var(--ink)}
@@ -330,7 +328,6 @@
 
 <script>
 const KEY='checkin-v3', DOW=['S','M','T','W','T','F','S'], MAXGOALS=3;
-const DOWN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const MON=['January','February','March','April','May','June',
            'July','August','September','October','November','December'];
 const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -774,48 +771,36 @@ function achievements(){
   return out.sort((a,b)=>a.d<b.d?1:-1);
 }
 
-function cols(data,h){
-  const max=Math.max(1,...data.map(d=>d.v));
-  return `<div class="cols" style="--n:${data.length}">${data.map((d,i)=>
-    `<button class="col" ${d.m!==undefined?`data-jm="${d.y}.${d.m}"`:'disabled'} title="${d.tip}">
-       <span class="box" style="height:${h}px"><span class="fill" style="height:${d.v?Math.max(2,d.v/max*100):0}%"></span></span>
-       <i>${d.lb}</i></button>`).join('')}</div>`;
+// "How much have I done." An amount per goal, then the things actually finished.
+// What was here before answered other questions — when in the week do I work, am I
+// trending up — and neither of those is an amount. The per-goal figure is scoped to
+// what the goal is: a count goal totals its check-ins, a list goal counts what is
+// crossed off, and a daily goal counts days, because three of its sub-goals ticked on
+// one day is still one day.
+function goalAmount(g){
+  const F=firstDone();
+  if(g.type==='list') return {v:g.subs.filter(s=>F[s.id]).length, u:`of ${g.subs.length} done`};
+  if(g.type==='daily'){
+    const d=dayKeys().filter(k=>g.subs.some(s=>state.logs[k][s.id])).length;
+    return {v:d, u:`day${d===1?'':'s'}`};
+  }
+  const c=g.subs.reduce((a,s)=>a+subTotal(s.id),0);
+  return {v:c, u:`check-in${c===1?'':'s'}`};
 }
 
 function statsPanel(){
-  const n=today();
-  const ms=[];
-  for(let i=11;i>=0;i--){
-    const d=new Date(n.getFullYear(),n.getMonth()-i,1);
-    const v=activeDays(d.getFullYear(),d.getMonth());
-    ms.push({y:d.getFullYear(),m:d.getMonth(),v,lb:d.getMonth()+1,
-             tip:`${MONS[d.getMonth()]} ${d.getFullYear()} · ${v} active day${v===1?'':'s'}`});
-  }
-  const wd=Array(7).fill(0);
-  for(const k of dayKeys()) wd[parseKey(k).getDay()]+=dayTotal(k);
-  const wdata=wd.map((v,i)=>({v,lb:DOW[i],tip:`${DOWN[i]} · ${v} check-in${v===1?'':'s'}`}));
-
-  // every goal, archived included: this is a share of what was actually logged
-  const share=state.goals.map(g=>({t:g.title,gone:!!g.archived,
-                                   v:g.subs.reduce((a,s)=>a+subTotal(s.id),0)}))
-                         .filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
-  const tot=share.reduce((a,x)=>a+x.v,0)||1;
-
   const ach=achievements();
+  const rows=state.goals.map(g=>{
+    const {v,u}=goalAmount(g);
+    return `<div class="amtrow"><span class="lb">${esc(g.title)}${
+      g.archived?'<i class="gone">archived</i>':''}</span>
+      <span class="v">${v}</span><span class="u">${u}</span></div>`;
+  }).join('');
 
   return `${tabs()}
 
-    <h4 class="sh">Last 12 months · active days</h4>
-    ${cols(ms,72)}
-
-    <h4 class="sh">By weekday · total check-ins</h4>
-    ${cols(wdata,52)}
-
-    <h4 class="sh">By goal · share of check-ins</h4>
-    <div class="share">${share.map(x=>
-      `<div class="shrow"><span class="lb">${esc(x.t)}${x.gone?'<i class="gone">archived</i>':''}</span>
-        <span class="track"><i style="width:${x.v/tot*100}%"></i></span>
-        <span class="v mono">${x.v}</span></div>`).join('')||'<p class="hint">Nothing logged yet.</p>'}</div>
+    <h4 class="sh">By goal</h4>
+    <div class="amt">${rows||'<p class="hint">No goals yet.</p>'}</div>
 
     <h4 class="sh">Completed · ${ach.length} item${ach.length===1?'':'s'}</h4>
     <div class="ach">${ach.length?ach.map(a=>
@@ -845,9 +830,6 @@ function bind(){
     // no day is selected while browsing another month, so the day view returns to today
     if(p==='day'&&!sel){ const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey(); }
     panel=p; render();});
-  on('[data-jm]',b=>b.onclick=()=>{ const[y,m]=b.dataset.jm.split('.').map(Number);
-    view={y,m}; const nn=today();
-    panel='day'; sel=(y===nn.getFullYear()&&m===nn.getMonth())?todayKey():null; render(); });
   on('[data-edit]',b=>b.onclick=()=>{ editing=b.dataset.edit||null; render(); });
 
   const ag=document.getElementById('ag');

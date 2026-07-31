@@ -43,8 +43,8 @@ These are settled decisions, not preferences. If a task seems to require breakin
    move logic into Rust.
 2. **The frontend stays one file.** `src/index.html` contains all markup, styles, and script. No
    splitting into modules, no npm, no bundler, no CSS preprocessor, no CDN `<script>` or `<link>`,
-   no charting library, no icon font. Charts are hand-drawn with flexbox and percentage heights;
-   keep it that way.
+   no charting library, no icon font. What graphics there are — the projection track, the pips,
+   the calendar — are hand-drawn with flexbox and percentage widths; keep it that way.
 3. **No network access of any kind.** No telemetry, no crash reporting, no update checks, no fonts
    fetched at runtime. The app must work with the machine offline.
 4. **Progress is always derived, never stored.** See §4.1. This is the rule most likely to be broken
@@ -488,14 +488,26 @@ the calendar and leave the panel where it is. What it uniquely answered — "how
 goal" — has no home now. The stats panel answers the all-time and twelve-month versions of the same
 question, not the per-month one.
 
-**Stats panel** — four charts and nothing else: active days per month over the last 12 months (bars
-are clickable and jump to that month), weekday distribution, per-goal share of check-ins, and the
-completion log (finished list items and months where a count goal hit its target, newest first).
+**Stats panel** — one question: *how much have I done.* Two blocks, no charts.
 
-It opened with a summary line — days logged, total check-ins, an attendance percentage, and
-`Since Jul 31, 1 day.` — removed in July 2026. The percentage was the one worth arguing about: it
-divided days logged by days since the first entry, so a perfect record read 100% and any gap pulled
-it down for good. That is a score for attendance, which §1 says this app should not be keeping.
+**By goal**, one row each: the name, the amount right-aligned in its own column so the figures line
+up, and what the figure counts. The amount is scoped to what the goal is — a `count` goal totals its
+check-ins, a `list` goal counts what is crossed off (`2 of 4 done`), and a `daily` goal counts days,
+because three of its sub-goals ticked on one day is still one day. An archived goal keeps its row and
+is marked, so a name you no longer track cannot silently change a total.
+
+**Completed**, the finished things themselves: list items crossed off and months where a count goal
+hit its target, newest first, dated.
+
+Four things were removed from here in July 2026 for answering a different question than the one the
+panel is for. A twelve-month active-days chart and a weekday distribution answer *when* and *how
+regularly*, not *how much*. A per-goal share chart answers *what proportion* — the same numbers as
+the By goal block, drawn as a comparison between goals rather than as amounts. A summary line of days
+logged, total check-ins and an attendance percentage went first, for the reason under §1.
+
+The month chart's bars were clickable and jumped to that month. Nothing replaced that: `‹ ›` is the
+only month navigation now, one step at a time. It was already the last one left, the year strip and
+the month review having gone before it.
 
 ### 5.1 The footer
 
@@ -698,7 +710,8 @@ which one first.
 
 Two things worth knowing rather than fixing:
 
-- **The stats panel looks bad with little data.** For the first couple of weeks the bar charts are a
-  few lonely stubs and the weekday distribution is noise. That is expected. Do not "improve" it.
+- **The stats panel used to look bad with little data** — for the first couple of weeks the bar
+  charts were a few lonely stubs and the weekday distribution was noise. The charts are gone (§5), so
+  this no longer applies; a panel of plain figures reads the same on day 2 as on day 200.
 - **If one goal dominates the distribution chart**, that is a signal the three goals are set wrong,
   not a bug. No warning is implemented for this and none should be.

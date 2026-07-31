@@ -266,19 +266,28 @@ t('day panel renders the calendar, the goals and their chips', async () => {
   no(html, 'Ad-hoc', 'the ad-hoc section is gone');
   no(html, 'id="adhocIn"');
 });
-t('stats panel renders its four blocks', async () => {
+// Stats answers one question now: how much have I done. Everything it used to draw
+// answered a different one — when in the week do I work, am I trending, what share is
+// each goal of the whole — and none of those is an amount.
+t('stats is one amount per goal and the list of finished things', async () => {
   const g = await bootReady();
   const a = g.api;
   a.panel = 'stats'; a.render();
   const html = g.captured.app;
-  has(html, 'Last 12 months'); has(html, 'By weekday');
   has(html, 'By goal'); has(html, 'Completed');
-  eq((html.match(/class="cols"/g) || []).length, 2, 'two bar charts');
+  eq((html.match(/class="amtrow"/g) || []).length, 3, 'one row per goal');
+  no(html, 'Last 12 months'); no(html, 'By weekday'); no(html, 'share of check-ins');
+  no(html, 'class="cols"'); no(html, 'data-jm=', 'the month chart is gone, and with it the jump');
 });
-t('stats month bars are clickable and carry a jump target', async () => {
-  const g = await bootReady();
-  g.api.panel = 'stats'; g.api.render();
-  eq((g.captured.app.match(/data-jm="/g) || []).length, 12, '12 month bars');
+t('the amount a goal shows is scoped to what that goal counts', async () => {
+  const a = await fixture();
+  const [count, list, daily] = a.state.goals;
+  eq(a.goalAmount(count), { v: 15, u: 'check-ins' }, 's1 10 + s2 5, all time');
+  eq(a.goalAmount(list), { v: 1, u: 'of 3 done' }, 'crossed off, not tapped');
+  // d1 was logged on one day; three sub-goals ticked on one day is still one day
+  eq(a.goalAmount(daily), { v: 1, u: 'day' });
+  a.state.logs['2026-07-04'] = { d1: 1 };
+  eq(a.goalAmount(daily), { v: 2, u: 'days' });
 });
 t('every goal offers its own Edit control', async () => {
   const g = await bootReady();
@@ -367,9 +376,9 @@ t('a goal with no subs stays reachable instead of vanishing', async () => {
 t('render survives a completely empty state', async () => {
   const g = await bootReady();
   const a = g.api;
-  a.state = { goals: [], logs: {}, adhoc: {} };
+  a.state = { goals: [], logs: {} };
   for (const p of ['day', 'stats']) { a.panel = p; a.render(); ok(g.captured.app.length > 100, p); }
-  has(g.captured.app, 'Nothing logged yet');
+  has(g.captured.app, 'No goals yet');
 });
 t('navigating months moves the calendar and leaves the panel alone', async () => {
   const g = await bootReady();
@@ -454,7 +463,6 @@ t('stats opens straight into its charts, with no summary figures', async () => {
   const html = a.statsPanel();          // the panel alone: the calendar column has its own run readout
   no(html, 'day logged'); no(html, 'attendance'); no(html, 'Since ');
   no(html, 'class="tally', 'no readout block in here any more');
-  has(html, 'Last 12 months', 'the first thing is a chart');
   has(html, 'Completed · 0 items', 'and zero is still plural');
 });
 t('no "1 <noun>s" anywhere in a single-item render', async () => {
@@ -1064,8 +1072,8 @@ t('stats still credit an archived goal, and say it is archived', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1'); a.dropGoal('g2');
   const sp = a.statsPanel();
-  has(sp, 'Problems', 'share of check-ins includes it');
-  has(sp, 'class="v mono">11<', 'with its real total');
+  has(sp, 'Problems', 'it keeps its row');
+  has(sp, '<span class="v">11</span>', 'with its real total');
   has(sp, '<i class="gone">archived</i>', 'and says why a name you no longer track is here');
   ok(a.achievements().some(x => x.t === 'A'), 'and a finished list item stays an achievement');
 });
