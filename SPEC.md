@@ -217,7 +217,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 140 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 146 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -275,6 +275,10 @@ One JSON file. The app does not display its location — back it up from a shell
   }
 }
 ```
+
+**The order of `goals` is the order on screen**, and it is the user's to set (§5). There is no
+`order` field and there must not be one: the array is already an ordered thing, and a second source
+of truth for order would be one more thing that can disagree with itself.
 
 Written with `JSON.stringify(state, null, 1)` so the file stays human-readable and diffable.
 
@@ -447,6 +451,21 @@ it, `10/30` and `22` would not share an edge. Labels are therefore ragged where 
 and that is the right way round: the quantities are the design.
 
 *Right pane*: the goals, each with its chips and — depending on type — pips or a projection track.
+
+**Goals can be reordered.** A drag handle sits in the left margin of each goal, appearing on hover
+or focus, drawn as two bars from `::before`/`::after` — no icon font (§2.2), no shadow (§5.2). The
+block is not `draggable` until the handle is pressed: on the block itself, dragging a chip would
+start a goal drag, and inside the editor it would stop the text being selectable. While a drag is in
+the air the source dims and the goal under the cursor shows a rule on the edge the drop would land
+on, above or below its midpoint.
+
+**Arrow keys do the same thing** with the handle focused, and focus follows the goal so a run of
+presses keeps working. Drag-only reordering cannot be operated without a mouse.
+
+The trap this has to avoid: **the screen shows `live()`, but the order lives in `state.goals`**, which
+also holds archived goals that are not on screen. Every move is therefore expressed as "put this one
+before that one" and resolved by id against the full array. Counting screen positions would step a
+goal over an archived one and land it somewhere else.
 
 **Editing is per goal, in place.** Each goal carries its own `Edit` control on the right of its
 heading; clicking it swaps that one goal for its editor — title, type, monthly target, sub-goals,

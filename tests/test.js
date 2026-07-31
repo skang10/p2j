@@ -649,6 +649,62 @@ t('the readout block disappears entirely when there is no run', async () => {
   has(g.captured.app, 'class="tally mono"', 'and it returns once there is a run');
 });
 
+// ---------- reordering goals ----------
+// state.goals is the render order, so a move is a splice and persistence is free. The
+// screen shows live(), so the risky part is that an archived goal sits in the array
+// without being on screen — every move is resolved against the array, never a screen index.
+t('a goal moves to before another one', async () => {
+  const a = await fixture();
+  a.moveGoal('g3', 'g1');
+  eq(a.state.goals.map(x => x.id), ['g3', 'g1', 'g2']);
+  a.moveGoal('g3', null);
+  eq(a.state.goals.map(x => x.id), ['g1', 'g2', 'g3'], 'null means last');
+});
+t('moving a goal onto itself, or a goal that is not there, changes nothing', async () => {
+  const a = await fixture();
+  const before = a.state.goals.map(x => x.id);
+  a.moveGoal('g2', 'g2');
+  a.moveGoal('nope', 'g1');
+  eq(a.state.goals.map(x => x.id), before);
+});
+t('the arrow keys move a goal one visible place', async () => {
+  const a = await fixture();
+  a.nudgeGoal('g3', -1);
+  eq(a.state.goals.map(x => x.id), ['g1', 'g3', 'g2'], 'up');
+  a.nudgeGoal('g3', 1);
+  eq(a.state.goals.map(x => x.id), ['g1', 'g2', 'g3'], 'and back down');
+});
+t('a goal at either end does not wrap round', async () => {
+  const a = await fixture();
+  a.nudgeGoal('g1', -1);
+  a.nudgeGoal('g3', 1);
+  eq(a.state.goals.map(x => x.id), ['g1', 'g2', 'g3'], 'both moves refused');
+});
+// The trap: an archived goal is in the array but not on screen, so "one place down"
+// counted in screen positions would jump it.
+t('reordering steps over an archived goal instead of through it', async () => {
+  const a = await fixture();
+  a.state.logs = { '2026-07-02': { s2: 1 } };     // only g1 has history
+  a.dropGoal('g1');                               // archived: still in the array, off screen
+  eq(a.state.goals.map(x => x.id), ['g1', 'g2', 'g3']);
+  eq(a.live().map(x => x.id), ['g2', 'g3'], 'two on screen');
+  a.nudgeGoal('g3', -1);
+  eq(a.live().map(x => x.id), ['g3', 'g2'], 'the visible order swapped');
+  ok(a.state.goals.includes(a.state.goals.find(x => x.id === 'g1')), 'and g1 is still there');
+});
+t('every goal offers a drag handle, and it names the goal it moves', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.render();
+  const html = g.captured.app;
+  eq((html.match(/class="ghandle"/g) || []).length, 3, 'one per goal');
+  has(html, 'aria-label="Move Problems"');
+  has(html, 'data-goal="' + a.state.goals[0].id + '"');
+  a.editing = a.state.goals[0].id; a.render();
+  eq((g.captured.app.match(/class="ghandle"/g) || []).length, 2,
+     'the goal being edited has no handle: its text has to stay selectable');
+});
+
 // ---------- the year heatmap ----------
 // The same encoding as the calendar at a wider zoom: one cell per day, the same ramp,
 // the same rule that past days are filled and future ones outlined.
