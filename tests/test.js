@@ -940,7 +940,7 @@ t('the type options describe what tapping does, not the internal kind', async ()
   const html = g.captured.app;
   has(html, 'Marks the day done');
   has(html, 'Adds one to a monthly total');
-  has(html, 'Crosses it off for good');
+  has(html, 'Crosses it off the list');
   for (const jargon of ['>Daily<', '>Count<', '>List<'])
     no(html, jargon, 'no implementation vocabulary in the picker');
 });
@@ -1310,7 +1310,7 @@ t('a permanent delete asks first, naming what it will cost', async () => {
   has(a.archivePanel(), 'data-pg="g1"', 'the archive tab offers it');
   a.purging = 'g1';
   const html = a.archivePanel();
-  has(html, 'and its 11 check-ins for good?', 'the question states the count');
+  has(html, 'and its 11 check-ins permanently?', 'the question states the count');
   no(html, 'data-rg="g1"', 'and the ordinary controls step aside while it asks');
 });
 t('a permanent delete removes the goal and every log it owned', async () => {

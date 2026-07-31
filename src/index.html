@@ -675,7 +675,7 @@ function foot(){
 }
 // Everything that has left the check-in screen but not the file. It gets a tab rather
 // than a line in the footer: one goal made that line read as a sentence rather than as
-// controls (`To learn Restore Delete for good`), and a second would have made it worse.
+// controls (`To learn Restore Delete permanently`), and a second would have made it worse.
 // Erasing a goal's logs is the one act here that cannot be undone, so it asks, and the
 // question names the cost.
 const lastWorked=g=>{ let best=null;
@@ -688,7 +688,7 @@ function archivePanel(){
     if(purging===g.id){
       const n=goalCount(g);
       return `<div class="arch"><h3>${esc(g.title)}</h3>
-        <p class="warnrow">Delete this goal and its ${n} check-in${n===1?'':'s'} for good?
+        <p class="warnrow">Delete this goal and its ${n} check-in${n===1?'':'s'} permanently?
           <button class="lnk dgr" data-purge="${g.id}">Delete</button>
           <button class="lnk" id="nopurge">Cancel</button></p></div>`;
     }
@@ -697,7 +697,7 @@ function archivePanel(){
       <p class="acap"><b>${v}</b> ${u}${last?` · last worked ${short(last)}`:''}</p>
       <div class="arow2">
         <button class="lnk" data-rg="${g.id}">Restore</button>
-        <button class="lnk dgr" data-pg="${g.id}">Delete for good</button></div></div>`;
+        <button class="lnk dgr" data-pg="${g.id}">Delete permanently</button></div></div>`;
   }).join('');
   return `${tabs()}
     ${notice?`<p class="notice">${esc(notice)}</p>`:''}
@@ -864,7 +864,7 @@ function goalBlock(g,k,F){
 // the fields actually on screen.
 // The type of a goal decides what tapping a chip does, so the options say exactly
 // that rather than naming the underlying kind. Every field carries its own label.
-const TAP={daily:'Marks the day done',count:'Adds one to a monthly total',list:'Crosses it off for good'};
+const TAP={daily:'Marks the day done',count:'Adds one to a monthly total',list:'Crosses it off the list'};
 function goalEditor(g){
   const field=(lb,ctrl)=>`<label class="frow"><span class="flbl">${lb}</span><span class="fctl">${ctrl}</span></label>`;
   const kept=goalCount(g), keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);

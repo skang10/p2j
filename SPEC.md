@@ -373,18 +373,21 @@ The rule that resolves it:
 
 **An archived goal is offered back; a deleted one is not.** The `Archive` tab lists everything that
 has left the check-in screen but not the file: one block per goal with its title, what it came to
-(`23 of 40 done`), when it was last worked, and `Restore` / `Delete for good`. Empty, it says so and
+(`23 of 40 done`), when it was last worked, and `Restore` / `Delete permanently`. Empty, it says so and
 says what puts a goal there.
 
-It was a single line in the footer — `Archived · To learn  Restore  Delete for good` — where the
+It was a single line in the footer — `Archived · To learn  Restore  Delete permanently` — where the
 title and the two controls were the same size and colour with nothing between them, so one archived
 goal read as a sentence rather than as controls, and two would have read worse. A tab costs standing
 chrome for something used once a month; the line cost legibility every time it appeared. There was also
 an `Archived “X”. Undo` / `Deleted “X”. Undo` line, shown until the next check-in; it was removed in
 July 2026. What went with it is the only way back for the delete case — a goal that was never logged
 is hard-deleted and cannot be recovered. That is the trade the two rules above already imply, now
-without a grace period: **the reversibility is in the archive, not in the removal.** **Delete for good** is the escape hatch — archiving must not be a one-way street — so it is the one
-control that asks, and the question names the cost: `Delete this goal and its 23 check-ins for good?`
+without a grace period: **the reversibility is in the archive, not in the removal.** **Delete permanently** is the escape hatch — archiving must not be a one-way street — so it is the
+one control that asks, and the question names the cost:
+`Delete this goal and its 23 check-ins permanently?` It was labelled `Delete for good`, which is an
+idiom, and §5.2 asks for plain verbs — the owner read it and asked what it meant, which is the only
+test that matters for a word carrying an irreversible act.
 While it asks, that goal's ordinary controls step aside; the other archived goals keep theirs.
 Restoring is refused at the cap with a notice, shown on the same tab, rather than silently making a
 sixth live goal.
@@ -598,7 +601,7 @@ the month review having gone before it.
 
 What is left of a goal after it leaves the check-in screen, and nothing else: the
 `Archived “X”. Undo` / `Deleted “X”. Undo` offer, the archive shelf with `Restore` and
-`Delete for good`, and a notice slot (`You already have 5 goals. Remove one before restoring
+`Delete permanently`, and a notice slot (`You already have 5 goals. Remove one before restoring
 another.`). `+ goal` used to be here and moved to the end of the goal list (§5).
 
 Every part of it is conditional, so **the footer itself is conditional** — assembled from its parts
