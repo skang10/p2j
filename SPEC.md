@@ -166,7 +166,7 @@ fn main() {
 ```json
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Check-in",
+  "productName": "Daybook",
   "version": "0.1.0",
   "identifier": "com.checkin.app",
   "build": {
@@ -177,7 +177,7 @@ fn main() {
     "windows": [
       {
         "label": "main",
-        "title": "Check-in",
+        "title": "Daybook",
         "width": 660,
         "height": 900,
         "minWidth": 420,
@@ -193,6 +193,12 @@ fn main() {
 }
 ```
 
+**`identifier` must never change.** It is what `app_data_dir()` is built from, so editing it points
+the app at a fresh empty directory and orphans the file the user already has. It reads
+`com.checkin.app` because that is what the app was called first; the product was renamed to Daybook
+in July 2026 and the identifier was deliberately left alone. `productName` and the window `title` are
+the name; the identifier is an address.
+
 ### 3.5 `src-tauri/capabilities/default.json`
 
 ```json
@@ -201,7 +207,7 @@ fn main() {
   "identifier": "default",
   "description": "Default permissions for the main window. Custom commands need no extra declaration.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "core:app:allow-version"]
 }
 ```
 
@@ -217,7 +223,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 150 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 154 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -445,6 +451,16 @@ The two panes are aligned to the **start**, not stretched. The calendar is a sho
 goals are a long list, so a stretched left column ran its dividing rule down past nothing — framing
 the empty space instead of leaving it empty. The column is short now because the year strip and both
 of its readouts were removed from it; the rule ends where the calendar does.
+
+**The header names the app and states its version** — `Daybook 0.1.0` — at every width. It used to
+be hidden on desktop on the grounds that the window's own title bar said the name; the version is
+worth the line, and a title bar is not somewhere you read a version.
+
+The version is asked of the running bundle (`window.__TAURI__.app.getVersion()`, which is why
+`capabilities/default.json` grants `core:app:allow-version`). It is deliberately not a constant in
+`index.html`: a third copy beside `tauri.conf.json` and `Cargo.toml` would go stale silently, and a
+version that has drifted from the build is worse than none. If the call fails, or there is no bundle
+because the frontend is open in a browser (§7.1), the line shows the name alone rather than a guess.
 
 *Left pane*: month navigation, then the calendar as the hero. Green intensity by `dayTotal`, date
 numbers visible, today ringed, past days clickable for backfill, future days drawn as outlines.

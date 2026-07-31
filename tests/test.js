@@ -707,6 +707,45 @@ t('the Done line is newest first, so the fold keeps what you just crossed off', 
   eq(shown, newest, 'the five most recently finished');
 });
 
+// ---------- name and version ----------
+t('the header names the app, and stays put at every width', async () => {
+  const g = await bootReady();
+  g.api.render();
+  has(g.captured.app, '<h1>Daybook</h1>');
+  has(g.captured.app, 'class="top"', 'it used to be hidden on desktop, where the title bar said it');
+});
+t('the version is shown only when the bundle supplies one', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.render();
+  eq(a.version, '', 'a browser has no bundle to ask');
+  no(g.captured.app, 'class="ver', 'so nothing is claimed');
+  a.version = '0.1.0'; a.render();
+  has(g.captured.app, '<span class="ver mono">0.1.0</span>');
+});
+t('the version is read from the running bundle, never written down here', async () => {
+  const calls = [];
+  const g = await bootReady({ tauri: {
+    core: { invoke: (c) => { calls.push(c); return Promise.resolve(''); } },
+    app: { getVersion: () => Promise.resolve('9.9.9') },
+  } });
+  await g.api.readVersion();
+  eq(g.api.version, '9.9.9', 'whatever the bundle says');
+  const src = require('fs').readFileSync(require('./harness').HTML, 'utf8');
+  no(src.match(/<script>[\s\S]*?<\/script>/)[1], "'0.1.0'",
+     'no copy of the version in the frontend to drift from tauri.conf.json');
+});
+t('a bundle that will not answer leaves the version blank rather than wrong', async () => {
+  const g = await bootReady({ tauri: {
+    core: { invoke: () => Promise.resolve('') },
+    app: { getVersion: () => Promise.reject(new Error('not permitted')) },
+  } });
+  await g.api.readVersion();
+  eq(g.api.version, '');
+  g.api.render();
+  no(g.captured.app, 'class="ver');
+});
+
 // ---------- reordering goals ----------
 // state.goals is the render order, so a move is a splice and persistence is free. The
 // screen shows live(), so the risky part is that an archived goal sits in the array

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Check-in",
+  "productName": "Daybook",
   "version": "0.1.0",
   "identifier": "com.checkin.app",
   "build": {
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Check-in",
+        "title": "Daybook",
         "width": 980,
         "height": 740,
         "minWidth": 560,
@@ -20,7 +20,9 @@
         "center": true
       }
     ],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,

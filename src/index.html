@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Check-in</title>
+<title>Daybook</title>
 <style>
   /* ───────────────────────────────────────────────────────────────────────
      "Figure" — this is a plot of one person's attendance, not a dashboard.
@@ -53,8 +53,9 @@
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
 
   /* top bar */
-  .top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px}
+  .top{display:flex;align-items:baseline;gap:10px;padding-bottom:20px}
   .top h1{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.02em;color:var(--ink)}
+  .ver{font-size:11.5px;letter-spacing:.02em;color:var(--dust)}
   .nav{display:flex;align-items:center;justify-content:space-between;gap:2px;margin-bottom:14px}
   .nav .m{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13.5px;
     letter-spacing:.01em;min-width:124px;text-align:center;color:var(--ink);font-weight:500}
@@ -355,7 +356,6 @@
      rule. Everything stays above the fold instead of scrolling a phone column. */
   @media (min-width:820px){
     .sheet{max-width:1020px;padding:30px 38px 38px}
-    .top{display:none}          /* the window's title bar already says "Check-in" */
     /* start, not stretch: the calendar is a short block and the goals are a long list,
        so a stretched left column ran its dividing rule down past nothing, which framed
        the empty space instead of just leaving it empty */
@@ -405,6 +405,7 @@ let view=null, sel=null, panel='day', editing=null, saveErr=false;
 let notice='';
 let purging=null;                  // the archived goal awaiting a permanent delete
 let dragId=null;                   // the goal being dragged, while it is in the air
+let version='';                    // read from the bundle at startup, blank in a browser
 const doneOpen=new Set();          // list goals whose finished items are unfolded
 
 /* ---------- helpers ---------- */
@@ -437,6 +438,14 @@ const Store = (() => {
 })();
 
 /* ---------- load / save ---------- */
+// The version is asked of the running bundle rather than written down here. A third copy
+// beside tauri.conf.json and Cargo.toml would go stale silently, and a version display
+// that has drifted from the build is worse than no version display at all.
+async function readVersion(){
+  try{ const T=window.__TAURI__; if(T&&T.app) version=await T.app.getVersion(); }
+  catch(e){ version=''; }
+}
+
 async function load(){
   try{
     const raw = await Store.read();
@@ -447,6 +456,7 @@ async function load(){
   state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
     delete g.cad; });   // cadence is gone; drop the dead field on the way through
   const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey();
+  await readVersion();
   render();
 }
 let timer=null;
@@ -637,7 +647,7 @@ function render(){
 
   document.getElementById('app').innerHTML=`
     <div class="top">
-      <h1>Check-in</h1>
+      <h1>Daybook</h1>${version?`<span class="ver mono">${esc(version)}</span>`:''}
     </div>
 
     ${heatmap()}
