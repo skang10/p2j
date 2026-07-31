@@ -890,7 +890,7 @@ function goalEditor(g){
         `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>`)}
     ${g.type==='count'?field('Monthly target',
       `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`)
-      +'<p class="cap">The target resets to 0 on the 1st of each month.</p>':''}
+      +'<p class="cap">A monthly quota. The count starts again at 0 on the 1st; the target does not change.</p>':''}
     <div class="esep"></div>
     <p class="flab">Sub-goals${subs.length?` <span class="fcount">${subs.length}</span>`:''}</p>
     ${subs.map(s=>`<div class="erow sub">

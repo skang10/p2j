@@ -998,7 +998,7 @@ t('a non-count goal drops the monthly-target field and its caption', async () =>
   const html = g.captured.app;
   eq((html.match(/class="frow"/g) || []).length, 1, 'only one field applies');
   no(html, 'Monthly target');
-  no(html, 'resets to 0 on the 1st', 'the caption is about the target, so it goes too');
+  no(html, 'A monthly quota', 'the caption is about the target, so it goes too');
 });
 
 // ---------- the early-month ETA (§8.1) ----------
