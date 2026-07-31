@@ -701,6 +701,11 @@ case, no exclamation marks, no encouragement or congratulation.
 - **One token means "no data".** `--c0` is the empty calendar cell, the unfilled part of every track
   and bar, the empty pip and every chart well, so absence looks the same everywhere.
 - **A tapped chip fills with ink**, in the same language as a filled day. Anything you did is ink.
+- **A finished list item is drawn in `--body` with the strikethrough in `--line`**, not the other way
+  round. Muted text under a strong rule reads as disabled; the words are the thing you finished, and
+  the rule through them is what says it is crossed off. It is deliberately not `--accent`: colour in
+  this app means the app is asserting something, and a thing you finished is simply true — fifty of
+  them in accent would be the loudest thing on the screen for the least reason.
   The fill is the whole signal: a checkmark inside the chip restated it, and because it sat in the
   flex row whether or not it was drawn, every unticked chip reserved 15px it never used and its label
   sat visibly off centre. **Nothing invisible may hold space in a chip** — if an element is not drawn,

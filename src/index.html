@@ -240,9 +240,15 @@
   .doneline .lb{font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;color:var(--dust)}
   .doneline .fold{font-size:12px;color:var(--muted);white-space:nowrap}
   .doneline .fold:hover{color:var(--ink)}
-  .undone{font:inherit;font-size:13px;background:0;border:0;padding:0;cursor:pointer;color:var(--muted);
-    text-decoration:line-through;text-decoration-color:var(--ghost);transition:color .12s}
-  .undone:hover{color:var(--ink)}
+  /* A finished item was the palest thing in the block — muted text under a strikethrough
+     reads as disabled rather than done. The words carry --body and the rule through them
+     recedes instead, so the item stays legible and the line is what says "crossed off".
+     Not accent: colour in here means the app is asserting something (§5.2), and a thing
+     you finished is simply true — fifty of them in accent would drown the screen. */
+  .undone{font:inherit;font-size:13px;background:0;border:0;padding:0;cursor:pointer;color:var(--body);
+    text-decoration:line-through;text-decoration-color:var(--line);
+    transition:color .12s,text-decoration-color .12s}
+  .undone:hover{color:var(--ink);text-decoration-color:var(--muted)}
   .undone em{font-style:normal;font-family:var(--mono);font-variant-numeric:tabular-nums;
     opacity:.6;margin-left:5px}
   .hint{font-size:14px;color:var(--muted)}
