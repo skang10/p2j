@@ -64,8 +64,9 @@
   .nav button:disabled{opacity:.25;cursor:default}
 
   /* a year at one cell per day, same ramp as the calendar below it */
-  .heat{padding:0 0 22px}
-  .hmons,.hgrid{display:grid;grid-template-columns:repeat(53,1fr);gap:3px}
+  .heat{--hcell:13px;--hgap:3px;padding:2px 0 26px;
+    max-width:calc(53*var(--hcell) + 52*var(--hgap))}
+  .hmons,.hgrid{display:grid;grid-template-columns:repeat(53,minmax(0,1fr));gap:var(--hgap)}
   .hmons i{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.02em;
     color:var(--muted);white-space:nowrap;overflow:visible;padding-bottom:5px}
   .hgrid{grid-auto-flow:column;grid-template-rows:repeat(7,1fr)}
@@ -610,7 +611,7 @@ function heatStart(){
 }
 function heatmap(){
   const start=heatStart(), n=today(), tk=todayKey();
-  let cells='', mons='', shown=-1, lastAt=-9;
+  let cells='', mons='', shown=-1, shownY=-1, lastAt=-9, lastWide=false;
   for(let w=0;w<HWEEKS;w++){
     // A month is labelled at the first week that begins inside it. Labelling by the
     // week's last day put the name a column early: the week of Jul 26 ends on Aug 1 and
@@ -620,11 +621,15 @@ function heatmap(){
     // A 53-week window opens partway through a month, so its first label can land a
     // column before the next one and the two collide. Drop a label rather than crowd
     // it — the month is still findable from the ones either side.
-    const fits = w-lastAt>=3;
-    const show = m!==shown && fits;
+    // the year is named where it changes, and on the first label, so the window is
+    // never ambiguous about which July it opened in
+    const y=wk.getFullYear(), withYear = y!==shownY;
+    // a label needs clear columns after the previous one or the two run together; one
+    // carrying a year is nearly twice as wide, so it claims more
+    const show = m!==shown && w-lastAt>=(lastWide?6:3);
     if(m!==shown) shown=m;
-    if(show) lastAt=w;
-    mons+=`<i>${show?MONS[m]:''}</i>`;
+    if(show){ lastAt=w; lastWide=withYear; shownY=y; }
+    mons+=`<i>${show?MONS[m]+(withYear?' '+y:''):''}</i>`;
   }
   for(let i=0;i<HWEEKS*7;i++){
     const d=new Date(start); d.setDate(start.getDate()+i);

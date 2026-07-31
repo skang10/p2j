@@ -690,7 +690,11 @@ t('the heatmap labels a month at the first week that begins inside it', async ()
   const g = await bootReady({ now: '2026-07-31' });
   const a = g.api;
   const html = a.heatmap();
-  const labels = (html.match(/<i>([A-Z][a-z]{2})<\/i>/g) || []).map(x => x.slice(3, 6));
+  const labels = [...html.matchAll(/<i>([A-Z][a-z]{2})(?: (\d{4}))?<\/i>/g)].map(m => m[1]);
+  const years = [...html.matchAll(/<i>[A-Z][a-z]{2} (\d{4})<\/i>/g)].map(m => m[1]);
+  // a 53-week window spans two calendar years, so "Jul ... Jan ... Jul" would not say
+  // which July you are looking at
+  eq(years, ['2025', '2026'], 'the year is named on the first label and where it changes');
   const idx = labels.map(x => a.MONS.indexOf(x));
   ok(idx.every(x => x >= 0), 'every label is a real month: ' + labels.join(' '));
   // unwrap the year boundary, then the sequence must strictly increase
@@ -700,10 +704,12 @@ t('the heatmap labels a month at the first week that begins inside it', async ()
      'in chronological order, none repeated: ' + labels.join(' '));
   eq(labels[labels.length - 1], 'Jul', 'ending on the month in progress, not the next one');
   eq(labels[0], 'Jul', 'a 53-week window opens in the same month it closes in');
-  // Aug is dropped: the window opens on Jul 27, so Aug's first Sunday is one column
-  // later and its label would collide with July's.
-  eq(labels.length, 12, 'a label too close to the previous one is dropped, not crowded');
-  no(labels.join(' '), 'Jul Aug', 'which is exactly the pair that would have collided');
+  // Two are dropped, both for the same reason. Aug: the window opens on Jul 27, so its
+  // first Sunday is one column after July's label. Feb: it follows "Jan 2026", which is
+  // nearly twice as wide as a bare month and claims the room to prove it.
+  eq(labels.length, 11, 'a label too close to the previous one is dropped, not crowded');
+  no(labels.join(' '), 'Jul Aug');
+  no(labels.join(' '), 'Jan Feb', 'the pair that collided once the year was added');
 });
 
 // ---------- joining consecutive days in the calendar ----------

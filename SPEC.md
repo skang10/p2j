@@ -408,11 +408,21 @@ strip, the month review and the stats month chart could each jump between months
 removed; `‹ ›` alone made a month six back a six-click trip. The other half is that nothing showed
 more than the current month any more.
 
-Months are labelled along the top at the first week that *begins* inside them. Two earlier rules were
-wrong: labelling by the week's last day named a month a column early (the week of Jul 26 ends on
-Aug 1 and read `Aug` while six of its seven days were July), and labelling every month crowded the
-window's opening pair, since a 53-week window starts partway through a month. A label closer than
-three columns to the previous one is dropped — the month stays findable from the ones either side.
+**Cells are a fixed 13px and the grid does not stretch** (`--hcell`, `--hgap` on `.heat`). Full-bleed,
+a 53x7 grid of mostly-empty cells reads as a slab rather than a chart, and the emptier the log the
+worse it looks — which is exactly backwards, since an empty log is what a new user has.
+
+Months are labelled along the top at the first week that *begins* inside them, and **the year is
+named on the first label and wherever it changes** — a 53-week window spans two of them, so
+`Jul … Jan … Jul` said nothing about which July you were looking at.
+
+Three rules about those labels were arrived at by getting them wrong. Labelling by the week's last
+day named a month a column early: the week of Jul 26 ends on Aug 1 and read `Aug` while six of its
+seven days were July. Labelling every month crowded the window's opening pair, since a 53-week window
+starts partway through a month. And a label carrying a year is nearly twice as wide, so a fixed
+clearance let `Jan 2026` run into `Feb`. A label needs three clear columns after the previous one, or
+six if that one carried a year; otherwise it is dropped, and the month stays findable from the ones
+either side.
 
 *Left pane*: month navigation, then the calendar as the hero. Green intensity by `dayTotal`, date
 numbers visible, today ringed, past days clickable for backfill, future days drawn as outlines.
