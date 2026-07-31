@@ -17,16 +17,11 @@ and making planning feel a little more structured, visible, and fun.
 - Package name: `checkin`
 - App name: `Daybook`
 
-There is no npm install, bundler, or frontend build step.
-
 ## Requirements
 
 - Rust 1.77 or newer
 - Tauri CLI 2
 - macOS with Xcode command line tools for the tested build path
-
-The code is not intentionally macOS-only, but this project has only been built and run
-on macOS so far.
 
 ```bash
 xcode-select --install
