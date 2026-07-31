@@ -889,8 +889,7 @@ function goalEditor(g){
       `<select data-gy="${g.id}">${Object.entries(TAP).map(([v,n])=>
         `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>`)}
     ${g.type==='count'?field('Monthly target',
-      `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`)
-      +'<p class="cap">A monthly quota. The count starts again at 0 on the 1st; the target does not change.</p>':''}
+      `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`):''}
     <div class="esep"></div>
     <p class="flab">Sub-goals${subs.length?` <span class="fcount">${subs.length}</span>`:''}</p>
     ${subs.map(s=>`<div class="erow sub">
@@ -903,10 +902,8 @@ function goalEditor(g){
     <div class="esep"></div>
     <div class="dzone">
       <button class="drop" data-dg="${g.id}">${keep?'Archive this goal':'Delete this goal'}</button>
-      <p class="cap">${keep
-        ? `The ${kept} check-in${kept===1?'':'s'} it already has stay in past months;
-           it leaves this screen. You can restore it from the footer.`
-        : 'It has no check-ins, so there is nothing to keep.'}</p>
+      ${keep?`<p class="cap">The ${kept} check-in${kept===1?'':'s'} it already has stay in the record.
+        You can restore it from the Archive tab.</p>`:''}
     </div>
     <div class="erow edfoot">
       <span class="grow"></span>

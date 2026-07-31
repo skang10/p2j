@@ -508,10 +508,11 @@ every option states what it will do, rather than naming a kind: `Marks the day d
 `Crosses it off` — one verb each, with no trailing qualifier. `Adds one` said `to a monthly total`
 until the `Monthly target` field, which appears the moment that option is chosen, made it redundant;
 `Crosses it off` said `the list`, which only repeated the noun already heading the sub-goals. Fields that do not apply are absent —
-a non-count goal shows no monthly target, and no caption about one. The caption under the target
-reads `A monthly quota. The count starts again at 0 on the 1st; the target does not change.` — it
-said `The target resets to 0 on the 1st of each month.`, which named the wrong noun: the target is
-the one thing that stays put, and the owner read it and asked what it meant. `editing` holds the id of the goal
+a non-count goal shows no monthly target, and no caption about one. **The target carries no caption
+at all** — it said `The target resets to 0 on the 1st of each month.`, which named the wrong noun
+(the target is the one thing that stays put), and the corrected version was removed with it. The rule
+it was explaining lives in §4.2 and is the same for every count goal; the editor is where you set a
+number, not where the model is taught. `editing` holds the id of the goal
 being edited, or `null`. Archived sub-goals are listed below the live ones, greyed, each with
 `Restore`; that list is the only way back for a sub-goal, so it is not optional. There is no global edit mode: a single bottom toggle meant opening every
 goal at once to change one word, and it put the fields far from the goal they belonged to.
@@ -533,8 +534,8 @@ on the machine, which is how a goal was lost by someone meaning to close the edi
 - Removing the goal is a button that says which of the two removals in §4.5 it will perform —
   `Archive this goal` or `Delete this goal` — in its own zone below a rule, with one caption stating
   what survives (`The 15 check-ins it already has stay in past months; it leaves this screen. You can
-  restore it from the footer.`) or that there is nothing to keep — which, for a goal with no history,
-  also means nothing to get back. It carries `--danger` on hover only:
+  restore it from the Archive tab.`). A goal with no history carries no caption: `Delete this goal`
+  on the button is the whole of it. It carries `--danger` on hover only:
   archiving is a state, not an error, and the control that truly destroys logs lives in the footer.
 - Sub-goal rows keep their `×`, because that is a row-level removal.
 

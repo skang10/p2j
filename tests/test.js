@@ -1409,12 +1409,12 @@ t('the editor names the removal it will perform, and what survives', async () =>
   const g = await arch(); const a = g.api;
   const ed = a.goalEditor(a.state.goals[0]);
   has(ed, '<button class="drop" data-dg="g1">Archive this goal</button>', 'labelled, not an icon');
-  has(ed, 'The 11 check-ins it already has stay in past months', 'naming what is kept');
+  has(ed, 'The 11 check-ins it already has stay in the record', 'naming what is kept');
+  has(ed, 'restore it from the Archive tab', 'and where to find it — it said the footer');
   a.state.goals.push(JSON.parse(JSON.stringify(unlogged)));
   const ed2 = a.goalEditor(a.state.goals[3]);
   has(ed2, '>Delete this goal</button>', 'nothing logged, so it is a plain delete');
-  has(ed2, 'nothing to keep', 'and it says so');
-  no(ed2, 'stay in past months', 'no promise about check-ins it does not have');
+  no(ed2, 'class="cap"', 'and no caption: the button already says the whole of it');
 });
 t('sub-goal rows keep their × , because a row-level × removes that row', async () => {
   const g = await arch(); const a = g.api;
