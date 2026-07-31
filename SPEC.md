@@ -324,7 +324,7 @@ each was argued for at length and a future reader will otherwise re-invent them.
 **Ad-hoc** was a fourth section below the goals: free text, logged against the selected date, exempt
 from `MAXGOALS`. The argument for it was that without a scratch bucket every stray task tempts you
 into creating a new goal and the list rots within weeks — the pressure valve that made the 3-goal cap
-survivable. If the cap starts to feel tight, that argument is the first place to look.
+survivable. The cap did start to feel tight, and was raised to 5 for exactly this reason (§6).
 
 **Cadence** (`cad`, one of `daily` / `weekly` / `monthly` / `free`) set how long a goal could sit
 untouched before its heading read `untouched N days`, darkening at 3× the threshold. Its own
@@ -451,8 +451,17 @@ edit is already on disk before the button is pressed and `×` loses nothing. It 
 for that reason and relabelled at the owner's request; if anyone ever reads `Save` as "changes are
 pending until you click me", that is the cost being paid.
 
-`+ goal` lives in the footer, below the goals, and opens the new goal's editor immediately. At
-`MAXGOALS` it stays put and refuses with a notice (§5.1).
+**`+ goal` closes the goal list**, in the day panel, above a hairline — at the end of the list it
+appends to, where the goal it creates will appear. It opens the new goal's editor immediately. It was
+in the footer, which spans both columns on a wide window and therefore put the control under the
+calendar, a pane away from the goals it adds to.
+
+It never hides. At `MAXGOALS` it stays and a caption beneath it reads
+`You already have 5. Remove one to add another.`, so the constraint is legible before the click
+rather than discovered by it; clicking simply declines. An earlier version hid the button at the cap
+on the reasoning that its absence was the message, which — with the cap notice removed at the same
+time, and a footer that skips itself when empty — meant no entry point, no explanation, and nothing
+on screen saying a cap existed.
 
 **Pace** (count goals only) is the app's thesis made visible, as a track:
 
@@ -511,15 +520,14 @@ the month review having gone before it.
 
 ### 5.1 The footer
 
-Everything that acts on the goals themselves, and nothing else: `+ goal`, the `Archived “X”. Undo` /
-`Deleted “X”. Undo` offer, the archive shelf with `Restore` and `Delete for good`, and a notice slot.
+What is left of a goal after it leaves the check-in screen, and nothing else: the
+`Archived “X”. Undo` / `Deleted “X”. Undo` offer, the archive shelf with `Restore` and
+`Delete for good`, and a notice slot (`You already have 5 goals. Remove one before restoring
+another.`). `+ goal` used to be here and moved to the end of the goal list (§5).
 
-**`+ goal` is always rendered, including at `MAXGOALS`.** It briefly wasn't — the button hid itself
-at the cap on the reasoning that its absence was the message — and with the cap notice removed at the
-same time, three goals meant no way to add one and nothing saying why. It now stays and explains
-itself on the attempt: `You already have 3 goals. Remove one to add another.` in the notice slot,
-which is the same shape as the refusal `Restore` gives at the cap. Announce a constraint where it
-bites, not by removing the control that runs into it.
+Every part of it is conditional, so **the footer itself is conditional** — assembled from its parts
+and skipped when they are all empty. An empty one still drew its top rule and padding: a line across
+the page under no content.
 
 **The one thing it must still say is `Write failed. Changes were not saved.`** Persistence failing
 quietly is the worst failure this app has, so that line survived the strip below and is asserted.
@@ -641,7 +649,11 @@ Do not build any of these without being asked explicitly:
   "don't lose your streak" prompts, no confetti, no longest-streak record to chase, no notification.
   If a missed day ever needs to feel expensive, that is the signal to remove this, not to reinforce it
 - Notifications, reminders, modals, celebration animations
-- More than 3 goals — `MAXGOALS` is a deliberate anti-feature; adding a fourth requires deleting one
+- An unbounded goal list — `MAXGOALS` is a deliberate anti-feature. It was 3, and was raised to 5 in
+  July 2026 when ad-hoc was removed: §4.4 had called ad-hoc the pressure valve that made 3 survivable,
+  so taking it away without touching the cap left the cap doing more work than it was designed for.
+  5 is still a cap. If it needs raising again, the honest reading is that the scratch bucket is what
+  is missing, not that the number is wrong
 - A database. A single JSON file is sufficient and must stay readable by `cat` and loadable by pandas
 
 ---
@@ -718,5 +730,5 @@ Two things worth knowing rather than fixing:
 - **The stats panel used to look bad with little data** — for the first couple of weeks the bar
   charts were a few lonely stubs and the weekday distribution was noise. The charts are gone (§5), so
   this no longer applies; a panel of plain figures reads the same on day 2 as on day 200.
-- **If one goal dominates the distribution chart**, that is a signal the three goals are set wrong,
-  not a bug. No warning is implemented for this and none should be.
+- **If one goal dominates the By goal amounts**, that is a signal the goals are set wrong, not a bug.
+  No warning is implemented for this and none should be.

@@ -326,22 +326,25 @@ t('the editor closes back to the check-in view', async () => {
   a.editing = null; a.render();
   no(g.captured.app, 'class="goal ed"');
 });
-// The button used to disappear at the cap, which left no way to add a goal and no
-// reason why. It stays, and the cap is explained at the moment it gets in the way.
-t('the add-goal entry point is always there, and says what is in the way', async () => {
+// + goal sits at the end of the list it appends to, not in a footer that spans both
+// columns and lands under the calendar. It never hides: a control that disappears at
+// the cap leaves no way in and nothing saying a cap exists.
+t('the add-goal entry point closes the goal list and states the cap beside itself', async () => {
   const g = await bootReady();
   const a = g.api;
   a.render();
-  eq(a.live().length, 3, 'at the cap');
-  has(g.captured.app, 'id="ag"', 'still offered');
-  no(g.captured.app, 'You already have', 'but silent until you try');
-  a.bind();
+  const panel = a.dayPanel(a.todayKey(), a.todayKey());
+  has(panel, 'class="addrow"', 'it lives in the day panel, with the goals');
+  has(panel, 'id="ag"');
+  ok(panel.indexOf('id="ag"') > panel.lastIndexOf('class="goal"'), 'after the last goal');
+  no(panel, 'You already have', 'three of five: nothing in the way');
+  while (a.live().length < a.MAXGOALS) a.state.goals.push({ id: a.newId(), type: 'daily', title: 'x', subs: [] });
+  const atCap = a.dayPanel(a.todayKey(), a.todayKey());
+  has(atCap, 'id="ag"', 'still offered at the cap');
+  has(atCap, `You already have ${a.MAXGOALS}. Remove one to add another.`, 'and says so');
+  a.render(); a.bind();
   g.els.get('ag').onclick();
-  eq(a.state.goals.length, 3, 'no goal was added');
-  has(a.notice, 'You already have 3 goals. Remove one to add another.');
-  a.state.goals.pop(); a.render(); a.bind();
-  g.els.get('ag').onclick();
-  eq(a.state.goals.length, 3, 'and below the cap it adds one');
+  eq(a.live().length, a.MAXGOALS, 'clicking it declines rather than adding a sixth');
 });
 t('future days are inert and past days are clickable', async () => {
   const g = await bootReady();
@@ -911,14 +914,16 @@ t('the footer offers no export, no import and no file path', async () => {
 // The footer is still assembled from its parts and skipped when they are all empty —
 // it cannot go empty now that + goal is permanent, but the guard is what stops the
 // next conditional part from bringing back a rule drawn under no content.
-t('the footer is built from its parts, and the add-goal button is always one of them', async () => {
+// Every part of the footer is conditional again now that + goal has moved out, so an
+// empty one must not render — it would draw its rule across the page under no content.
+t('a footer with nothing in it is not rendered', async () => {
   const g = await bootReady();
   const a = g.api;
   a.render();
-  has(g.captured.app, 'class="foot"');
-  has(g.captured.app, 'id="ag"', 'which is why it is never empty');
   eq(a.undo, null); eq(a.notice, ''); eq(a.saveErr, false);
-  no(g.captured.app, 'class="notice"', 'and holds nothing else while there is nothing to say');
+  no(g.captured.app, 'class="foot"', 'no container, so no rule and no padding');
+  a.dropGoal(a.state.goals[0].id);                 // now there is something to undo
+  has(g.captured.app, 'class="foot"', 'and it comes back when it has content');
 });
 // The one thing the footer must still say. Persistence failing silently would be the
 // worst failure this app has, so it survived the strip.
@@ -1073,14 +1078,16 @@ t('an archived goal leaves the check-in screen', async () => {
 });
 t('an archived goal stops counting against MAXGOALS', async () => {
   const g = await arch(); const a = g.api;
+  while (a.live().length < a.MAXGOALS) a.state.goals.push({ id: a.newId(), type: 'daily', title: 'x', subs: [] });
   a.render(); a.bind();
   g.els.get('ag').onclick();
-  eq(a.live().length, 3, 'three live goals is the cap, so nothing was added');
-  a.dropGoal('g1');
+  eq(a.live().length, a.MAXGOALS, 'at the cap, so nothing was added');
+  const before = a.state.goals.length;
+  a.dropGoal('g1');                                 // g1 has logs, so it archives
   a.render(); a.bind();
   g.els.get('ag').onclick();
-  eq(a.live().length, 3, 'archiving freed the slot and the new goal took it');
-  eq(a.state.goals.length, 4, 'the archived one is still in the file');
+  eq(a.live().length, a.MAXGOALS, 'archiving freed the slot and the new goal took it');
+  eq(a.state.goals.length, before + 1, 'the archived one is still in the file');
 });
 t('stats still credit an archived goal, and say it is archived', async () => {
   const g = await arch(); const a = g.api;
@@ -1125,10 +1132,10 @@ t('the offer to undo expires once you check in again', async () => {
 t('restoring is refused when the live goals are already at the cap', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1');
-  a.state.goals.push(JSON.parse(JSON.stringify(unlogged)));   // back to three live
+  while (a.live().length < a.MAXGOALS) a.state.goals.push({ id: a.newId(), type: 'daily', title: 'x', subs: [] });
   a.restoreGoal('g1');
   eq(a.state.goals.find(x => x.id === 'g1').archived, true, 'still archived');
-  has(a.notice, 'You already have 3 goals', 'and it says why');
+  has(a.notice, `You already have ${a.MAXGOALS} goals`, 'and it says why');
 });
 t('a permanent delete asks first, naming what it will cost', async () => {
   const g = await arch(); const a = g.api;

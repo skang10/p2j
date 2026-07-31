@@ -271,7 +271,10 @@
   .add{font:inherit;font-size:12.5px;color:var(--muted);background:0;border:0;cursor:pointer;
     padding:5px 0;text-align:left;transition:color .12s}
   .add:hover{color:var(--accent)}
-  .addgoal{margin-top:14px;color:var(--accent);font-weight:500}
+  .addgoal{color:var(--accent);font-weight:500}
+  /* the entry point sits at the end of the list it appends to */
+  .addrow{padding-top:16px;border-top:1px solid var(--hair)}
+  .addrow .cap{padding-top:4px}
   .drop{font:inherit;font-size:12.5px;color:var(--body);background:var(--surface);cursor:pointer;
     border:1px solid var(--line);border-radius:var(--rs);padding:8px 13px;
     transition:color .12s,border-color .12s}
@@ -327,7 +330,7 @@
 <div class="sheet" id="app"><p class="hint">Loading…</p></div>
 
 <script>
-const KEY='checkin-v3', DOW=['S','M','T','W','T','F','S'], MAXGOALS=3;
+const KEY='checkin-v3', DOW=['S','M','T','W','T','F','S'], MAXGOALS=5;
 const MON=['January','February','March','April','May','June',
            'July','August','September','October','November','December'];
 const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -554,9 +557,6 @@ function render(){
 // still drew its top rule and padding — a line across the page under no content.
 function foot(){
   const bits = [
-    // always present: an entry point that vanishes at the cap leaves no way in and no
-    // reason why. It stays, and says what is in the way when it cannot proceed.
-    '<button class="add addgoal" id="ag">+ goal</button>',
     undoLine(), archiveShelf(),
     notice?`<p class="notice">${esc(notice)}</p>`:'',
     saveErr?'<p class="store"><span class="bad">Write failed. Changes were not saved.</span></p>':'',
@@ -624,10 +624,14 @@ function tabs(){
 }
 
 function dayPanel(k,tk){
-  const F=firstDone();
+  const F=firstDone(), full=live().length>=MAXGOALS;
   return `${tabs()}
     ${live().length?live().map(g=>goalBlock(g,k,F)).join('')
-      :'<p class="hint" style="padding:10px 0">No goals here. Use “+ goal” below to add one.</p>'}`;
+      :'<p class="hint" style="padding:10px 0">No goals here yet.</p>'}
+    <div class="addrow">
+      <button class="add addgoal" id="ag">+ goal</button>
+      ${full?`<p class="cap">You already have ${MAXGOALS}. Remove one to add another.</p>`:''}
+    </div>`;
 }
 
 function goalBlock(g,k,F){
@@ -836,10 +840,7 @@ function bind(){
 
   const ag=document.getElementById('ag');
   if(ag) ag.onclick=()=>{
-    if(live().length>=MAXGOALS){
-      notice=`You already have ${MAXGOALS} goals. Remove one to add another.`;
-      render(); return;
-    }
+    if(live().length>=MAXGOALS) return;   // the cap is already stated beside the button
     const id=newId();
     state.goals.push({id,type:'daily',title:'New goal',
                       subs:[{id:newId(),title:'New sub-goal'}]});
