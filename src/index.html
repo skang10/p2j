@@ -349,7 +349,7 @@ const ETAMIN=5;   // days that must have elapsed before a rate is worth projecti
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, saveErr=false;
 let notice='';
-let undo=null, purging=null;       // the last goal removed, and one awaiting a permanent delete
+let purging=null;                  // the archived goal awaiting a permanent delete
 
 /* ---------- helpers ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -467,8 +467,8 @@ const goalLogged=g=>g.subs.some(s=>subLogged(s.id));
 function dropGoal(id){
   const i=state.goals.findIndex(g=>g.id===id); if(i<0) return;
   const g=state.goals[i];
-  if(goalLogged(g)){ g.archived=true; undo={kind:'archive',id,title:g.title}; }
-  else { state.goals.splice(i,1); undo={kind:'delete',goal:g,at:i,title:g.title}; }
+  if(goalLogged(g)) g.archived=true;
+  else state.goals.splice(i,1);
   if(editing===id) editing=null;
   notice=''; purging=null; save(); render();
 }
@@ -486,7 +486,7 @@ function restoreGoal(id){
     notice=`You already have ${MAXGOALS} goals. Remove one before restoring another.`;
     render(); return;
   }
-  delete g.archived; undo=null; notice=''; purging=null; save(); render();
+  delete g.archived; notice=''; purging=null; save(); render();
 }
 function restoreSub(id){
   for(const g of state.goals){ const s=g.subs.find(s=>s.id===id); if(s){ delete s.archived; break; } }
@@ -499,15 +499,9 @@ function purgeGoal(id){
   const g=state.goals[i];
   g.subs.forEach(s=>stripSub(s.id));
   state.goals.splice(i,1);
-  purging=null; undo=null;
+  purging=null;
   notice=`Deleted “${g.title}” and its check-ins.`;
   save(); render();
-}
-function doUndo(){
-  if(!undo) return;
-  if(undo.kind==='archive'){ const g=state.goals.find(x=>x.id===undo.id); if(g) delete g.archived; }
-  else state.goals.splice(Math.min(undo.at,state.goals.length),0,undo.goal);
-  undo=null; notice=''; save(); render();
 }
 
 /* ---------- check-in ---------- */
@@ -515,7 +509,6 @@ function bump(id,delta){
   const k=sel||todayKey(), day=state.logs[k]||{}, v=(day[id]||0)+delta;
   if(v>0) day[id]=v; else delete day[id];
   if(Object.keys(day).length) state.logs[k]=day; else delete state.logs[k];
-  undo=null;   // checking in is moving on: the offer to undo a removal expires here
   save(); render();
 }
 // Take one sub-goal out of every day it appears in. The only way logs are destroyed,
@@ -560,24 +553,18 @@ function render(){
   bind();
 }
 
-// The foot is where a removed goal goes: first the offer to take it straight back,
-// then the shelf of everything archived. Erasing the logs is the one thing here that
-// cannot be undone, so it is a separate control and it asks, naming the cost.
-// Everything in the footer is conditional, so the footer itself has to be: at three
-// goals with nothing archived and nothing to undo it holds nothing, and an empty one
-// still drew its top rule and padding — a line across the page under no content.
+// The foot is the shelf of everything archived. Erasing a goal's logs is the one thing
+// here that cannot be reversed, so it is a separate control and it asks, naming the cost.
+// Every part is conditional, so the footer itself has to be: with nothing archived it
+// holds nothing, and an empty one still drew its top rule and padding — a line across
+// the page under no content.
 function foot(){
   const bits = [
-    undoLine(), archiveShelf(),
+    archiveShelf(),
     notice?`<p class="notice">${esc(notice)}</p>`:'',
     saveErr?'<p class="store"><span class="bad">Write failed. Changes were not saved.</span></p>':'',
   ].join('');
   return bits ? `<div class="foot">${bits}</div>` : '';
-}
-function undoLine(){
-  if(!undo) return '';
-  return `<p class="notice">${undo.kind==='archive'?'Archived':'Deleted'} “${esc(undo.title)}”.
-    <button class="lnk" id="undo">Undo</button></p>`;
 }
 function archiveShelf(){
   const gone=state.goals.filter(g=>g.archived);
@@ -855,7 +842,7 @@ function bind(){
     const id=newId();
     state.goals.push({id,type:'daily',title:'New goal',
                       subs:[{id:newId(),title:'New sub-goal'}]});
-    editing=id; panel='day'; undo=null; save(); render();};
+    editing=id; panel='day'; save(); render();};
   on('[data-as]',b=>b.onclick=()=>{
     state.goals.find(g=>g.id===b.dataset.as).subs.push({id:newId(),title:'New sub-goal'});save();render();});
   on('[data-gt]',i=>i.oninput=()=>{state.goals.find(g=>g.id===i.dataset.gt).title=i.value;save();});
@@ -873,8 +860,6 @@ function bind(){
   on('[data-purge]',b=>b.onclick=()=>purgeGoal(b.dataset.purge));
   const np=document.getElementById('nopurge');
   if(np) np.onclick=()=>{purging=null; render();};
-  const un=document.getElementById('undo');
-  if(un) un.onclick=doUndo;
 }
 
 function shift(d){

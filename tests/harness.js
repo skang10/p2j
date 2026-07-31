@@ -12,13 +12,13 @@ pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId e
 Store load save seed ETAMIN
 dayTotal level dayKeys subTotal firstDone activeDays goalDays goalCount streak
 live liveSubs subLogged goalLogged
-dropGoal dropSub restoreGoal restoreSub purgeGoal doUndo undoLine archiveShelf
+dropGoal dropSub restoreGoal restoreSub purgeGoal archiveShelf
 bump clearSub stripSub
 render calendar dayPanel goalBlock paceLine pips
 achievements goalAmount statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
 
 const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'dataPath', 'saveErr',
-                 'notice', 'undo', 'purging'];
+                 'notice', 'purging'];
 
 // A Date subclass whose no-arg constructor returns a fixed instant. Every other
 // form (new Date(y, m, d), new Date(str), Date.now()) behaves normally, because

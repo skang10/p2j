@@ -367,9 +367,12 @@ The rule that resolves it:
 - **`stripSub()` is the only code that deletes log entries.** It is shared by the `undone` control
   and by the permanent delete, and nothing else may remove a log.
 
-Both removals are offered back: the footer carries `Archived “X”. Undo` / `Deleted “X”. Undo` until
-you check in again, and then an `Archived · X  Restore  Delete for good` shelf for as long as
-anything is archived. **Delete for good** is the escape hatch — archiving must not be a one-way
+**An archived goal is offered back; a deleted one is not.** The footer carries an
+`Archived · X  Restore  Delete for good` shelf for as long as anything is archived. There was also
+an `Archived “X”. Undo` / `Deleted “X”. Undo` line, shown until the next check-in; it was removed in
+July 2026. What went with it is the only way back for the delete case — a goal that was never logged
+is hard-deleted and cannot be recovered. That is the trade the two rules above already imply, now
+without a grace period: **the reversibility is in the archive, not in the removal.** **Delete for good** is the escape hatch — archiving must not be a one-way
 street — so it is the one control that asks, and the question names the cost:
 `Delete “X” and its 15 check-ins for good?`. Restoring is refused at the cap with a notice rather
 than silently making a fourth live goal.
@@ -440,7 +443,8 @@ on the machine, which is how a goal was lost by someone meaning to close the edi
 - Removing the goal is a button that says which of the two removals in §4.5 it will perform —
   `Archive this goal` or `Delete this goal` — in its own zone below a rule, with one caption stating
   what survives (`The 15 check-ins it already has stay in past months; it leaves this screen. You can
-  restore it from the footer.`) or that there is nothing to keep. It carries `--danger` on hover only:
+  restore it from the footer.`) or that there is nothing to keep — which, for a goal with no history,
+  also means nothing to get back. It carries `--danger` on hover only:
   archiving is a state, not an error, and the control that truly destroys logs lives in the footer.
 - Sub-goal rows keep their `×`, because that is a row-level removal.
 

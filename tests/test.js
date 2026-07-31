@@ -920,9 +920,11 @@ t('a footer with nothing in it is not rendered', async () => {
   const g = await bootReady();
   const a = g.api;
   a.render();
-  eq(a.undo, null); eq(a.notice, ''); eq(a.saveErr, false);
+  eq(a.notice, ''); eq(a.saveErr, false);
   no(g.captured.app, 'class="foot"', 'no container, so no rule and no padding');
-  a.dropGoal(a.state.goals[0].id);                 // now there is something to undo
+  a.sel = a.todayKey();
+  a.bump(a.state.goals[0].subs[0].id, 1);
+  a.dropGoal(a.state.goals[0].id);                 // logged, so it archives onto the shelf
   has(g.captured.app, 'class="foot"', 'and it comes back when it has content');
 });
 // The one thing the footer must still say. Persistence failing silently would be the
@@ -1066,7 +1068,7 @@ t('a goal that was never logged is deleted outright', async () => {
   a.dropGoal('g4');
   eq(a.state.goals.length, 3, 'gone from the file');
   eq(a.state.goals.some(x => x.id === 'g4'), false);
-  eq(a.undo.kind, 'delete', 'and it was a delete, not an archive');
+  eq(a.archiveShelf(), '', 'nothing archived, so nothing on the shelf — it is simply gone');
 });
 t('an archived goal leaves the check-in screen', async () => {
   const g = await arch(); const a = g.api;
@@ -1105,31 +1107,16 @@ t('an archived goal is gone from the check-in screen but not from the record', a
   eq(a.subTotal('d1'), 1, 'but the day it was worked still counts');
   eq(a.dayTotal('2026-07-03'), 1);
 });
-t('undo takes an archived goal straight back', async () => {
+// Removing a goal offers nothing back on the spot any more. An archived goal is still
+// fully recoverable from the shelf; a never-logged one is not recoverable at all.
+t('a removed goal leaves no undo offer behind', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1');
-  has(a.undoLine(), 'Archived “Problems”');
-  a.doUndo();
-  eq(a.state.goals[0].archived, undefined, 'flag cleared');
-  eq(a.live().length, 3); eq(a.undo, null, 'the offer is spent');
-});
-t('undo puts a deleted goal back where it was', async () => {
-  const g = await arch(); const a = g.api;
-  a.state.goals.splice(1, 0, JSON.parse(JSON.stringify(unlogged)));
-  a.dropGoal('g4');
-  has(a.undoLine(), 'Deleted “Never used”');
-  a.doUndo();
-  eq(a.state.goals.map(x => x.id), ['g1', 'g4', 'g2', 'g3'], 'restored at its old index');
-});
-t('the offer to undo expires once you check in again', async () => {
-  const g = await arch(); const a = g.api;
-  a.dropGoal('g1');
-  ok(a.undo, 'offered');
-  a.bump('d1', 1);
-  eq(a.undo, null, 'checking in is moving on');
-  eq(a.undoLine(), '');
-});
-t('restoring is refused when the live goals are already at the cap', async () => {
+  a.render();
+  no(g.captured.app, 'Undo');
+  no(g.captured.app, 'Archived “Problems”');
+  has(a.archiveShelf(), 'data-rg="g1"', 'the shelf is the way back');
+});t('restoring is refused when the live goals are already at the cap', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1');
   while (a.live().length < a.MAXGOALS) a.state.goals.push({ id: a.newId(), type: 'daily', title: 'x', subs: [] });
