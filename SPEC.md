@@ -217,7 +217,7 @@ src-tauri/gen/
 ### 3.7 `tests/`
 
 ```bash
-node tests/test.js      # 146 assertions, no dependencies, no npm, ~1s
+node tests/test.js      # 150 assertions, no dependencies, no npm, ~1s
 ```
 
 `harness.js` reads `src/index.html`, pulls the `<script>` block out of it, and evaluates it in a
@@ -686,6 +686,13 @@ case, no exclamation marks, no encouragement or congratulation.
 
 **Structure encodes meaning, so keep these distinctions:**
 
+- **A finished list item is folded away once there are more than `DONEMAX` (5) of them.** The `Done`
+  line shows the five most recently crossed off, newest first, and `+18 more` opens the rest with
+  `Show fewer` to close it again. A list of 40 finishes far more than it keeps open, and unfolded the
+  finished pile — the least actionable thing on the screen — ran to six lines and pushed the next
+  goal off the bottom. Nothing is lost by folding: every finished item is listed and dated in Stats'
+  completion log, which uses the same newest-first order. The count beside the title still reads the
+  full `23/40`.
 - **Discrete goals get pips, rate goals get the track.** A `list` goal is a countable set of things,
   so it shows one pip per item. A `count` goal is a rate against a monthly quota, so it shows the
   projection track. Do not give both to the same goal — the pips would just restate the track.

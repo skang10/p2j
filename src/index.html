@@ -238,6 +238,8 @@
   .doneline{margin-top:14px;font-size:13.5px;color:var(--muted);display:flex;flex-wrap:wrap;
     gap:5px 12px;align-items:baseline}
   .doneline .lb{font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;color:var(--dust)}
+  .doneline .fold{font-size:12px;color:var(--muted);white-space:nowrap}
+  .doneline .fold:hover{color:var(--ink)}
   .undone{font:inherit;font-size:13px;background:0;border:0;padding:0;cursor:pointer;color:var(--muted);
     text-decoration:line-through;text-decoration-color:var(--ghost);transition:color .12s}
   .undone:hover{color:var(--ink)}
@@ -382,11 +384,13 @@ const MON=['January','February','March','April','May','June',
            'July','August','September','October','November','December'];
 const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const ETAMIN=5;   // days that must have elapsed before a rate is worth projecting (§8.1)
+const DONEMAX=5;  // finished list items shown before the rest fold away (§5)
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, saveErr=false;
 let notice='';
 let purging=null;                  // the archived goal awaiting a permanent delete
 let dragId=null;                   // the goal being dragged, while it is in the air
+const doneOpen=new Set();          // list goals whose finished items are unfolded
 
 /* ---------- helpers ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -798,14 +802,25 @@ function goalBlock(g,k,F){
     }).join('');
   }
   else if(g.type==='list'){
-    const open=subs.filter(s=>!F[s.id]), fin=subs.filter(s=>F[s.id]);
+    const open=subs.filter(s=>!F[s.id]);
+    // newest first: what this line is for is what you just crossed off, and it matches
+    // the order the completion log in Stats already uses
+    const fin=subs.filter(s=>F[s.id]).sort((a,b)=>F[a.id]<F[b.id]?1:-1);
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
     prog=pips(fin.length,subs.length);
     chips=open.length?open.map(s=>`<button class="chip" data-add="${s.id}">${esc(s.title)}</button>`).join('')
       :'<span class="hint">Everything here is done.</span>';
-    if(fin.length) done=`<div class="doneline"><span class="lb">Done</span>${
-      fin.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}<em>${short(F[s.id])}</em></button>`).join('')}</div>`;
+    // A long list finishes far more than it has open, and the finished pile is the
+    // least actionable thing on the screen — unfolded it pushed the next goal off the
+    // bottom. Every one of them is still listed, dated, in Stats' completion log.
+    if(fin.length){
+      const all=doneOpen.has(g.id), show=all?fin:fin.slice(0,DONEMAX), rest=fin.length-show.length;
+      done=`<div class="doneline"><span class="lb">Done</span>${
+        show.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}<em>${short(F[s.id])}</em></button>`).join('')}${
+        rest>0?`<button class="lnk fold" data-more="${g.id}">+${rest} more</button>`:''}${
+        all&&fin.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
+    }
   }
   else{
     const d=goalDays(g,y,m);
@@ -964,6 +979,8 @@ function bind(){
   on('[data-add]',b=>b.onclick=()=>bump(b.dataset.add,1));
   on('[data-minus]',b=>b.onclick=()=>bump(b.dataset.minus,-1));
   on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
+  on('[data-more]',b=>b.onclick=()=>{ const id=b.dataset.more;
+    doneOpen.has(id)?doneOpen.delete(id):doneOpen.add(id); render(); });
   on('.d[data-k]',c=>c.onclick=()=>{ sel=c.dataset.k; panel='day'; render(); });
   on('.hd[data-hk]',c=>c.onclick=()=>{ const d=parseKey(c.dataset.hk);
     view={y:d.getFullYear(),m:d.getMonth()}; sel=c.dataset.hk; panel='day'; render(); });

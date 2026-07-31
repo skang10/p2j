@@ -649,6 +649,54 @@ t('the readout block disappears entirely when there is no run', async () => {
   has(g.captured.app, 'class="tally mono"', 'and it returns once there is a run');
 });
 
+// ---------- the Done line folds ----------
+// A long list finishes far more than it keeps open, and the finished pile is the least
+// actionable thing on screen. Unfolded, 23 of them pushed the next goal off the bottom.
+async function longList(doneCount) {
+  const g = await bootReady({ now: '2026-07-31' });
+  const a = g.api;
+  const subs = Array.from({ length: 40 }, (_, i) => ({ id: 'l' + i, title: 'Topic ' + i }));
+  const logs = {};
+  // crossed off one a week, so the dates are distinct and ordered
+  subs.slice(0, doneCount).forEach((s, i) => { logs['2026-0' + (1 + (i % 6)) + '-' + String(1 + i % 28).padStart(2, '0')] = { [s.id]: 1 }; });
+  a.state = { goals: [{ id: 'gl', type: 'list', title: 'To learn', subs }], logs };
+  a.view = { y: 2026, m: 6 };
+  a.doneOpen.clear();
+  return a;
+}
+t('a short Done line is shown whole, with nothing to unfold', async () => {
+  const a = await longList(4);
+  const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
+  eq((html.match(/class="undone"/g) || []).length, 4, 'all four');
+  no(html, 'more'); no(html, 'Show fewer');
+});
+t('a long Done line folds to DONEMAX, saying how many are hidden', async () => {
+  const a = await longList(23);
+  const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
+  eq((html.match(/class="undone"/g) || []).length, a.DONEMAX, 'five shown');
+  has(html, '+18 more', 'and the rest are counted, not silently dropped');
+  has(html, '<b>23</b><i>/40</i>', 'the count beside the title still says 23 of 40');
+});
+t('unfolding shows every finished item, and offers the way back', async () => {
+  const a = await longList(23);
+  a.doneOpen.add('gl');
+  const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
+  eq((html.match(/class="undone"/g) || []).length, 23, 'all of them');
+  has(html, 'Show fewer');
+  no(html, 'more<', 'and nothing left to expand');
+});
+t('the Done line is newest first, so the fold keeps what you just crossed off', async () => {
+  const a = await longList(23);
+  const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
+  const dates = [...html.matchAll(/<em>(\d+\/\d+)<\/em>/g)].map(m => m[1]);
+  eq(dates.length, a.DONEMAX);
+  const F = a.firstDone();
+  const shown = [...html.matchAll(/data-clear="(l\d+)"/g)].map(m => m[1]);
+  const newest = a.state.goals[0].subs.filter(s => F[s.id]).sort((x, y) => F[x.id] < F[y.id] ? 1 : -1)
+    .slice(0, a.DONEMAX).map(s => s.id);
+  eq(shown, newest, 'the five most recently finished');
+});
+
 // ---------- reordering goals ----------
 // state.goals is the render order, so a move is a splice and persistence is free. The
 // screen shows live(), so the risky part is that an archived goal sits in the array
