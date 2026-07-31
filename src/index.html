@@ -260,6 +260,15 @@
   .sh:first-of-type{margin-top:14px}
   /* one row per goal: name, then the amount right-aligned in its own column so the
      figures line up, then what the figure counts */
+  /* one archived goal per block: what it came to, when it was last worked, and the two
+     things you can do with it */
+  .arch{padding:20px 0;border-bottom:1px solid var(--hair)}
+  .arch:last-of-type{border-bottom:0}
+  .arch h3{font-size:17px;font-weight:600;color:var(--ink);letter-spacing:-.011em}
+  .acap{font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;color:var(--muted);padding-top:5px}
+  .acap b{font-family:var(--sans);font-variant-numeric:tabular-nums;font-weight:500;
+    font-size:15px;color:var(--ink)}
+  .arow2{display:flex;gap:20px;padding-top:12px}
   .amt{display:flex;flex-direction:column}
   .amtrow{display:flex;align-items:baseline;gap:12px;padding:12px 0;
     border-bottom:1px solid var(--hair);font-size:15px;color:var(--ink)}
@@ -647,7 +656,7 @@ function render(){
         </div>`:''}
       </div>
       <div class="panel">
-        ${panel==='stats' ? statsPanel() : dayPanel(sel||tk,tk)}
+        ${panel==='stats' ? statsPanel() : panel==='archive' ? archivePanel() : dayPanel(sel||tk,tk)}
       </div>
     </div>
 
@@ -655,32 +664,45 @@ function render(){
   bind();
 }
 
-// The foot is the shelf of everything archived. Erasing a goal's logs is the one thing
-// here that cannot be reversed, so it is a separate control and it asks, naming the cost.
-// Every part is conditional, so the footer itself has to be: with nothing archived it
-// holds nothing, and an empty one still drew its top rule and padding — a line across
-// the page under no content.
+// The footer is down to one thing, and it is the one thing that must never be missed.
+// It is still conditional, so the container is too: an empty one drew its top rule and
+// padding as a line across the page under no content.
 function foot(){
   const bits = [
-    archiveShelf(),
-    notice?`<p class="notice">${esc(notice)}</p>`:'',
     saveErr?'<p class="store"><span class="bad">Write failed. Changes were not saved.</span></p>':'',
   ].join('');
   return bits ? `<div class="foot">${bits}</div>` : '';
 }
-function archiveShelf(){
+// Everything that has left the check-in screen but not the file. It gets a tab rather
+// than a line in the footer: one goal made that line read as a sentence rather than as
+// controls (`To learn Restore Delete for good`), and a second would have made it worse.
+// Erasing a goal's logs is the one act here that cannot be undone, so it asks, and the
+// question names the cost.
+const lastWorked=g=>{ let best=null;
+  for(const k in state.logs) if(g.subs.some(s=>state.logs[k][s.id])) if(!best||k>best) best=k;
+  return best; };
+
+function archivePanel(){
   const gone=state.goals.filter(g=>g.archived);
-  if(!gone.length) return '';
-  const g=purging&&gone.find(x=>x.id===purging);
-  if(g){
-    const n=goalCount(g);
-    return `<p class="warnrow">Delete “${esc(g.title)}” and its ${n} check-in${n===1?'':'s'} for good?
-      <button class="lnk dgr" data-purge="${g.id}">Delete</button>
-      <button class="lnk" id="nopurge">Cancel</button></p>`;
-  }
-  return `<p class="cap">Archived · ${gone.map(x=>`${esc(x.title)}
-    <button class="lnk" data-rg="${x.id}">Restore</button>
-    <button class="lnk" data-pg="${x.id}">Delete for good</button>`).join(' · ')}</p>`;
+  const rows=gone.map(g=>{
+    if(purging===g.id){
+      const n=goalCount(g);
+      return `<div class="arch"><h3>${esc(g.title)}</h3>
+        <p class="warnrow">Delete this goal and its ${n} check-in${n===1?'':'s'} for good?
+          <button class="lnk dgr" data-purge="${g.id}">Delete</button>
+          <button class="lnk" id="nopurge">Cancel</button></p></div>`;
+    }
+    const {v,u}=goalAmount(g), last=lastWorked(g);
+    return `<div class="arch"><h3>${esc(g.title)}</h3>
+      <p class="acap"><b>${v}</b> ${u}${last?` · last worked ${short(last)}`:''}</p>
+      <div class="arow2">
+        <button class="lnk" data-rg="${g.id}">Restore</button>
+        <button class="lnk dgr" data-pg="${g.id}">Delete for good</button></div></div>`;
+  }).join('');
+  return `${tabs()}
+    ${notice?`<p class="notice">${esc(notice)}</p>`:''}
+    ${rows||`<p class="hint" style="padding:10px 0">Nothing archived. Removing a goal that has
+      check-ins puts it here, with its record intact.</p>`}`;
 }
 
 // A year of days at one cell each, in the same ramp as the calendar — the same
@@ -760,7 +782,7 @@ function tabs(){
   const showDate = panel==='day' && sel && sel!==tk;
   // the middle tab names the month it will actually show, so it never reads
   // "This month" while displaying June
-  const views=[['day','Today'],['stats','Stats']];
+  const views=[['day','Today'],['stats','Stats'],['archive','Archive']];
   return `<div class="phead">
       <nav class="tabs">${views.map(([p,name])=>
         `<button class="tab${panel===p?' on':''}" data-tab="${p}"${
@@ -774,7 +796,7 @@ function dayPanel(k,tk){
   const F=firstDone(), full=live().length>=MAXGOALS;
   return `${tabs()}
     ${live().length?live().map(g=>goalBlock(g,k,F)).join('')
-      :'<p class="hint" style="padding:10px 0">No goals here yet.</p>'}
+      :'<p class="hint" style="padding:10px 0">No goals yet.</p>'}
     <div class="addrow">
       <button class="add addgoal" id="ag">+ goal</button>
       ${full?`<p class="cap">You already have ${MAXGOALS}. Remove one to add another.</p>`:''}

@@ -365,10 +365,14 @@ t('goal titles are escaped in every panel', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state.goals[0].title = '<script>x</script>';
-  // the stats share chart only lists goals with check-ins, so give it one
+  // the stats amounts only list goals with check-ins, so give it one — and a second
+  // goal is archived so the archive panel has a title of its own to escape
   a.sel = a.todayKey();
   a.bump(a.state.goals[0].subs[0].id, 1);
-  for (const p of ['day', 'stats']) {
+  a.bump(a.state.goals[1].subs[0].id, 1);
+  a.state.goals[1].title = '<script>x</script>';
+  a.dropGoal(a.state.goals[1].id);
+  for (const p of ['day', 'stats', 'archive']) {
     a.panel = p; a.render();
     no(g.captured.app, '<script>x</script>', p + ' panel leaked raw markup');
     has(g.captured.app, '&lt;script&gt;', p + ' panel escaped');
@@ -388,7 +392,9 @@ t('render survives a completely empty state', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state = { goals: [], logs: {} };
-  for (const p of ['day', 'stats']) { a.panel = p; a.render(); ok(g.captured.app.length > 100, p); }
+  for (const p of ['day', 'stats', 'archive']) { a.panel = p; a.render(); ok(g.captured.app.length > 100, p); }
+  has(g.captured.app, 'Nothing archived', 'the archive tab was the last one rendered');
+  a.panel = 'day'; a.render();
   has(g.captured.app, 'No goals yet');
 });
 t('navigating months moves the calendar and leaves the panel alone', async () => {
@@ -486,7 +492,7 @@ t('no "1 <noun>s" anywhere in a single-item render', async () => {
   a.state.logs = {};
   a.sel = a.todayKey();
   a.bump(a.state.goals[2].subs[0].id, 1);
-  for (const p of ['day', 'stats']) {
+  for (const p of ['day', 'stats', 'archive']) {
     a.panel = p; a.render();
     const bad = (g.captured.app.match(/\b1 (day|item|check-in)s\b/g) || []);
     eq(bad, [], p + ' panel has a singular/plural mismatch');
@@ -571,7 +577,7 @@ t('month nav sits inside the calendar column it controls', async () => {
 });
 t('all three panels render inside the panel pane', async () => {
   const g = await bootReady();
-  for (const p of ['day', 'stats']) {
+  for (const p of ['day', 'stats', 'archive']) {
     g.api.panel = p; g.api.render();
     eq((g.captured.app.match(/class="panel"/g) || []).length, 1, p + ' pane count');
     eq((g.captured.app.match(/class="calcol"/g) || []).length, 1, p + ' keeps the calendar pane');
@@ -867,19 +873,20 @@ t('empty days are never joined', async () => {
 });
 
 // ---------- the view switcher ----------
-t('every view renders the same two tabs', async () => {
+t('every view renders the same three tabs', async () => {
   const g = await bootReady();
-  for (const p of ['day', 'stats']) {
+  for (const p of ['day', 'stats', 'archive']) {
     g.api.panel = p; g.api.render();
-    eq((g.captured.app.match(/class="tab[ "]/g) || []).length, 2, p + ' tab count');
+    eq((g.captured.app.match(/class="tab[ "]/g) || []).length, 3, p + ' tab count');
     has(g.captured.app, 'data-tab="day"');
     has(g.captured.app, 'data-tab="stats"');
+    has(g.captured.app, 'data-tab="archive"');
     no(g.captured.app, 'data-tab="review"', 'the month review is gone');
   }
 });
 t('exactly one tab is marked current, and it matches the panel', async () => {
   const g = await bootReady();
-  for (const p of ['day', 'stats']) {
+  for (const p of ['day', 'stats', 'archive']) {
     g.api.panel = p; g.api.render();
     eq((g.captured.app.match(/class="tab on"/g) || []).length, 1, p + ' has one active tab');
     has(g.captured.app, `class="tab on" data-tab="${p}" aria-current="page"`, p + ' marks itself');
@@ -1087,16 +1094,18 @@ t('the footer offers no export, no import and no file path', async () => {
 // next conditional part from bringing back a rule drawn under no content.
 // Every part of the footer is conditional again now that + goal has moved out, so an
 // empty one must not render — it would draw its rule across the page under no content.
-t('a footer with nothing in it is not rendered', async () => {
+// The footer is down to the write error, which is the one thing it must never fail to
+// say — and it is still conditional, so the container has to be too.
+t('the footer is nothing but a failed write, and is absent otherwise', async () => {
   const g = await bootReady();
   const a = g.api;
   a.render();
-  eq(a.notice, ''); eq(a.saveErr, false);
+  eq(a.saveErr, false);
   no(g.captured.app, 'class="foot"', 'no container, so no rule and no padding');
-  a.sel = a.todayKey();
-  a.bump(a.state.goals[0].subs[0].id, 1);
-  a.dropGoal(a.state.goals[0].id);                 // logged, so it archives onto the shelf
-  has(g.captured.app, 'class="foot"', 'and it comes back when it has content');
+  no(g.captured.app, 'Archived ·', 'the archive shelf moved to its own tab');
+  a.saveErr = true; a.render();
+  has(g.captured.app, 'class="foot"');
+  has(g.captured.app, 'Write failed. Changes were not saved.');
 });
 // The one thing the footer must still say. Persistence failing silently would be the
 // worst failure this app has, so it survived the strip.
@@ -1239,7 +1248,8 @@ t('a goal that was never logged is deleted outright', async () => {
   a.dropGoal('g4');
   eq(a.state.goals.length, 3, 'gone from the file');
   eq(a.state.goals.some(x => x.id === 'g4'), false);
-  eq(a.archiveShelf(), '', 'nothing archived, so nothing on the shelf — it is simply gone');
+  a.panel = 'archive';
+  has(a.archivePanel(), 'Nothing archived', 'not on the archive tab either — it is simply gone');
 });
 t('an archived goal leaves the check-in screen', async () => {
   const g = await arch(); const a = g.api;
@@ -1285,8 +1295,7 @@ t('a removed goal leaves no undo offer behind', async () => {
   a.dropGoal('g1');
   a.render();
   no(g.captured.app, 'Undo');
-  no(g.captured.app, 'Archived “Problems”');
-  has(a.archiveShelf(), 'data-rg="g1"', 'the shelf is the way back');
+  has(a.archivePanel(), 'data-rg="g1"', 'the archive tab is the way back');
 });t('restoring is refused when the live goals are already at the cap', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1');
@@ -1298,9 +1307,11 @@ t('a removed goal leaves no undo offer behind', async () => {
 t('a permanent delete asks first, naming what it will cost', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1');
-  has(a.archiveShelf(), 'data-pg="g1"', 'the shelf offers it');
+  has(a.archivePanel(), 'data-pg="g1"', 'the archive tab offers it');
   a.purging = 'g1';
-  has(a.archiveShelf(), 'and its 11 check-ins for good?', 'the question states the count');
+  const html = a.archivePanel();
+  has(html, 'and its 11 check-ins for good?', 'the question states the count');
+  no(html, 'data-rg="g1"', 'and the ordinary controls step aside while it asks');
 });
 t('a permanent delete removes the goal and every log it owned', async () => {
   const g = await arch(); const a = g.api;

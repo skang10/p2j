@@ -371,21 +371,30 @@ The rule that resolves it:
 - **`stripSub()` is the only code that deletes log entries.** It is shared by the `undone` control
   and by the permanent delete, and nothing else may remove a log.
 
-**An archived goal is offered back; a deleted one is not.** The footer carries an
-`Archived · X  Restore  Delete for good` shelf for as long as anything is archived. There was also
+**An archived goal is offered back; a deleted one is not.** The `Archive` tab lists everything that
+has left the check-in screen but not the file: one block per goal with its title, what it came to
+(`23 of 40 done`), when it was last worked, and `Restore` / `Delete for good`. Empty, it says so and
+says what puts a goal there.
+
+It was a single line in the footer — `Archived · To learn  Restore  Delete for good` — where the
+title and the two controls were the same size and colour with nothing between them, so one archived
+goal read as a sentence rather than as controls, and two would have read worse. A tab costs standing
+chrome for something used once a month; the line cost legibility every time it appeared. There was also
 an `Archived “X”. Undo` / `Deleted “X”. Undo` line, shown until the next check-in; it was removed in
 July 2026. What went with it is the only way back for the delete case — a goal that was never logged
 is hard-deleted and cannot be recovered. That is the trade the two rules above already imply, now
-without a grace period: **the reversibility is in the archive, not in the removal.** **Delete for good** is the escape hatch — archiving must not be a one-way
-street — so it is the one control that asks, and the question names the cost:
-`Delete “X” and its 15 check-ins for good?`. Restoring is refused at the cap with a notice rather
-than silently making a fourth live goal.
+without a grace period: **the reversibility is in the archive, not in the removal.** **Delete for good** is the escape hatch — archiving must not be a one-way street — so it is the one
+control that asks, and the question names the cost: `Delete this goal and its 23 check-ins for good?`
+While it asks, that goal's ordinary controls step aside; the other archived goals keep theirs.
+Restoring is refused at the cap with a notice, shown on the same tab, rather than silently making a
+sixth live goal.
 
 ---
 
 ## 5. Interface
 
-Two views of the right pane, switched by the `panel` variable: `day` (check in) and `stats`.
+Three views of the right pane, switched by the `panel` variable: `day` (check in), `stats`, and
+`archive`.
 
 **They are peers, so they share one switcher.** A tab row sits at the top of the pane: current view in
 `--ink` with a 2px underline on a hairline rail, the other two in `--muted`. All three tabs are always

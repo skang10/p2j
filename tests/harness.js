@@ -12,7 +12,7 @@ pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId e
 Store load save seed ETAMIN DONEMAX doneOpen
 dayTotal level dayKeys subTotal firstDone activeDays goalDays goalCount streak
 live liveSubs subLogged goalLogged
-dropGoal dropSub restoreGoal restoreSub purgeGoal archiveShelf
+dropGoal dropSub restoreGoal restoreSub purgeGoal archivePanel lastWorked
 moveGoal nudgeGoal beginDrag bump clearSub stripSub
 render heatmap heatStart HWEEKS calendar dayPanel goalBlock paceLine pips
 achievements goalAmount statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
