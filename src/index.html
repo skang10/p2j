@@ -28,7 +28,11 @@
        rendering in dark chrome on a dark-mode machine against a light page. */
     color-scheme:light;
     /* surfaces */
-    --paper:#F2F4F7; --surface:#FFFFFF; --sunk:#EFF2F6;
+    /* --paper equals --surface on purpose: the window is the page, not a sheet lying on
+       a desk. The measure is still capped — a goal's title and its figure 850px apart is
+       not a row anyone reads — but the cap is no longer drawn, because the space either
+       side of it is the same white. Give --paper its own value to get the desk back. */
+    --paper:#FFFFFF; --surface:#FFFFFF; --sunk:#EFF2F6;
     --faint:#F7F9FB; --hair:#EDF0F4; --line:#DFE4EA;
     /* type */
     --ink:#0B1220; --body:#3C4654; --muted:#6B7785; --dust:#98A2B0; --ghost:#C3CAD4;
@@ -47,7 +51,7 @@
   body{background:var(--paper);color:var(--body);font-family:var(--sans);
     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
   .sheet{max-width:640px;margin:0 auto;min-height:100%;background:var(--surface);
-    border-left:1px solid var(--line);border-right:1px solid var(--line);padding:26px 30px 48px}
+    padding:26px 30px 48px}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
   button{font-family:inherit}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
@@ -355,7 +359,7 @@
   /* Desktop: the record on the left, the day's work on the right, divided by a
      rule. Everything stays above the fold instead of scrolling a phone column. */
   @media (min-width:820px){
-    .sheet{max-width:1020px;padding:30px 38px 38px}
+    .sheet{max-width:1240px;padding:30px 44px 38px}
     /* start, not stretch: the calendar is a short block and the goals are a long list,
        so a stretched left column ran its dividing rule down past nothing, which framed
        the empty space instead of just leaving it empty */
