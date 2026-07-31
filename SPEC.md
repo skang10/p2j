@@ -408,9 +408,10 @@ strip, the month review and the stats month chart could each jump between months
 removed; `‹ ›` alone made a month six back a six-click trip. The other half is that nothing showed
 more than the current month any more.
 
-**Cells are a fixed 13px and the grid does not stretch** (`--hcell`, `--hgap` on `.heat`). Full-bleed,
-a 53x7 grid of mostly-empty cells reads as a slab rather than a chart, and the emptier the log the
-worse it looks — which is exactly backwards, since an empty log is what a new user has.
+**The grid spans the content width exactly.** It briefly carried its own `max-width` to stop cells
+growing, which was solving a problem `.sheet`'s 1020px cap already solves — a cell cannot exceed
+~15px either way — while leaving the heatmap ~100px short of the right edge that everything below it
+reached. A ragged edge above a flush layout was worse than a slightly larger cell.
 
 Months are labelled along the top at the first week that *begins* inside them, and **the year is
 named on the first label and wherever it changes** — a 53-week window spans two of them, so
@@ -423,6 +424,11 @@ starts partway through a month. And a label carrying a year is nearly twice as w
 clearance let `Jan 2026` run into `Feb`. A label needs three clear columns after the previous one, or
 six if that one carried a year; otherwise it is dropped, and the month stays findable from the ones
 either side.
+
+The two panes are aligned to the **start**, not stretched. The calendar is a short block and the
+goals are a long list, so a stretched left column ran its dividing rule down past nothing — framing
+the empty space instead of leaving it empty. The column is short now because the year strip and both
+of its readouts were removed from it; the rule ends where the calendar does.
 
 *Left pane*: month navigation, then the calendar as the hero. Green intensity by `dayTotal`, date
 numbers visible, today ringed, past days clickable for backfill, future days drawn as outlines.

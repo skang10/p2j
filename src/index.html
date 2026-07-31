@@ -64,8 +64,10 @@
   .nav button:disabled{opacity:.25;cursor:default}
 
   /* a year at one cell per day, same ramp as the calendar below it */
-  .heat{--hcell:13px;--hgap:3px;padding:2px 0 26px;
-    max-width:calc(53*var(--hcell) + 52*var(--hgap))}
+  /* No width cap: the sheet is already capped at 1020px, so a cell can never exceed
+     ~15px anyway, and capping again only stopped the grid short of the content's right
+     edge while everything below it ran the full width. */
+  .heat{--hgap:3px;padding:2px 0 26px}
   .hmons,.hgrid{display:grid;grid-template-columns:repeat(53,minmax(0,1fr));gap:var(--hgap)}
   .hmons i{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.02em;
     color:var(--muted);white-space:nowrap;overflow:visible;padding-bottom:5px}
@@ -322,7 +324,10 @@
   @media (min-width:820px){
     .sheet{max-width:1020px;padding:30px 38px 38px}
     .top{display:none}          /* the window's title bar already says "Check-in" */
-    .body{display:grid;grid-template-columns:344px minmax(0,1fr);align-items:stretch}
+    /* start, not stretch: the calendar is a short block and the goals are a long list,
+       so a stretched left column ran its dividing rule down past nothing, which framed
+       the empty space instead of just leaving it empty */
+    .body{display:grid;grid-template-columns:344px minmax(0,1fr);align-items:start}
     .calcol{padding-right:34px;border-right:1px solid var(--line)}
     .panel{padding-left:34px}
     .tally{border-bottom:0;padding:18px 0 0}
