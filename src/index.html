@@ -809,8 +809,7 @@ function goalBlock(g,k,F){
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
     prog=pips(fin.length,subs.length);
-    chips=open.length?open.map(s=>`<button class="chip" data-add="${s.id}">${esc(s.title)}</button>`).join('')
-      :'<span class="hint">Everything here is done.</span>';
+    chips=open.map(s=>`<button class="chip" data-add="${s.id}">${esc(s.title)}</button>`).join('');
     // A long list finishes far more than it has open, and the finished pile is the
     // least actionable thing on the screen — unfolded it pushed the next goal off the
     // bottom. Every one of them is still listed, dated, in Stats' completion log.
@@ -830,7 +829,7 @@ function goalBlock(g,k,F){
 
   return `<div class="goal" data-goal="${g.id}">${grip}
     <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${right}${ed}</div></div>
-    ${prog}${pace}<div class="chips">${chips}</div>${done}</div>`;
+    ${prog}${pace}${chips?`<div class="chips">${chips}</div>`:''}${done}</div>`;
 }
 
 // One goal's editor, rendered where that goal sits. The caption explains only

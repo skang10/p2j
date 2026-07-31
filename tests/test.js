@@ -413,15 +413,19 @@ t('count goal shows met once the monthly target is met', async () => {
   const html = a.goalBlock(g, '2026-07-11', a.firstDone());
   has(html, 'class="hit">met');
 });
-t('list goal reports when every item is finished', async () => {
+// A finished list says so by having nothing left to tap and everything on the Done
+// line. A sentence saying the same thing was one more line to read for no new fact.
+t('a list goal with nothing open shows no chips row at all', async () => {
   const a = await fixture();
   a.view = { y: 2026, m: 6 };
   const g = a.state.goals[1];
   a.state.logs['2026-07-11'] = { l1: 1, l2: 1, l3: 1 };
   const html = a.goalBlock(g, '2026-07-11', a.firstDone());
-  has(html, 'Everything here is done.');
-  has(html, 'class="doneline"');
-  no(html, 'data-add=', 'no open chips left');
+  no(html, 'Everything here is done.');
+  no(html, 'class="chips"', 'an empty row would still take its top margin');
+  no(html, 'data-add=', 'nothing left to tap');
+  has(html, 'class="doneline"', 'and the finished items say what happened');
+  has(html, '<b>3</b><i>/3</i>', 'as does the count');
 });
 t('count chips carry a minus button only once tapped', async () => {
   const a = await fixture();
