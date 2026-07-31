@@ -215,9 +215,9 @@
 
   /* stats */
   .grow{flex:1}
-  .since{font-family:var(--mono);font-size:11px;color:var(--muted);padding:6px 0 2px}
   .sh{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.04em;color:var(--muted);
     margin:30px 0 13px;padding-bottom:10px;border-bottom:1px solid var(--hair)}
+  .sh:first-of-type{margin-top:14px}
   .cols{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:4px;align-items:end}
   .col{display:flex;flex-direction:column;gap:7px;background:0;border:0;padding:0;cursor:pointer}
   .col:disabled{cursor:default}
@@ -802,20 +802,8 @@ function statsPanel(){
   const tot=share.reduce((a,x)=>a+x.v,0)||1;
 
   const ach=achievements();
-  const ks=dayKeys();
-  const days=ks.length;
-  const hits=ks.reduce((a,k)=>a+dayTotal(k),0);
-  const first=ks[0];
-  const span=first?diffDays(parseKey(first),n)+1:0;
 
   return `${tabs()}
-
-    <div class="tally mono" style="border:0;padding:10px 0 4px">
-      <span><b>${days}</b><em>day${days===1?'':'s'} logged</em></span>
-      <span><b>${hits}</b><em>check-in${hits===1?'':'s'}</em></span>
-      ${span?`<span><b>${Math.round(days/span*100)}</b><i>%</i><em>attendance</em></span>`:''}
-    </div>
-    <p class="since">Since ${first?label(first):'—'}, ${span} day${span===1?'':'s'}.</p>
 
     <h4 class="sh">Last 12 months · active days</h4>
     ${cols(ms,72)}

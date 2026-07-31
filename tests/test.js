@@ -266,7 +266,7 @@ t('day panel renders the calendar, the goals and their chips', async () => {
   no(html, 'Ad-hoc', 'the ad-hoc section is gone');
   no(html, 'id="adhocIn"');
 });
-t('stats panel renders all four blocks', async () => {
+t('stats panel renders its four blocks', async () => {
   const g = await bootReady();
   const a = g.api;
   a.panel = 'stats'; a.render();
@@ -443,21 +443,19 @@ t('daily goal says "1 day" and "2 days"', async () => {
   a.state.logs['2026-07-04'] = { d1: 1 };
   has(a.goalBlock(g, '2026-07-03', a.firstDone()), '<b>2</b> days this month');
 });
-t('the stats readouts pluralise check-ins and days', async () => {
+// The summary line that used to head this panel — days logged, check-ins, attendance,
+// and the "Since Jul 31" span — is gone. Stats is four charts and nothing else.
+t('stats opens straight into its charts, with no summary figures', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state.logs = {};
   a.sel = a.todayKey();
-  a.bump(a.state.goals[0].subs[0].id, 1);      // exactly one check-in on one day
-  a.panel = 'day'; a.render();
-  no(g.captured.app, '<em>check-in', 'the total is a stats figure now, not a calendar one');
-  has(g.captured.app, 'check-in', 'though a calendar cell still names its count in a tooltip');
-  a.panel = 'stats'; a.render();
-  has(g.captured.app, '<b>1</b><em>check-in<', 'singular');
-  no(g.captured.app, '<b>1</b><em>check-ins');
-  has(g.captured.app, '<b>1</b><em>day logged');
-  no(g.captured.app, '<b>1</b><em>days logged');
-  has(g.captured.app, 'Completed · 0 items', 'zero is plural');
+  a.bump(a.state.goals[0].subs[0].id, 1);
+  const html = a.statsPanel();          // the panel alone: the calendar column has its own run readout
+  no(html, 'day logged'); no(html, 'attendance'); no(html, 'Since ');
+  no(html, 'class="tally', 'no readout block in here any more');
+  has(html, 'Last 12 months', 'the first thing is a chart');
+  has(html, 'Completed · 0 items', 'and zero is still plural');
 });
 t('no "1 <noun>s" anywhere in a single-item render', async () => {
   const g = await bootReady();

@@ -488,9 +488,14 @@ the calendar and leave the panel where it is. What it uniquely answered — "how
 goal" — has no home now. The stats panel answers the all-time and twelve-month versions of the same
 question, not the per-month one.
 
-**Stats panel** — four blocks: active days per month over the last 12 months (bars are clickable and
-jump to that month), weekday distribution, per-goal share of check-ins, and the completion log
-(finished list items and months where a count goal hit its target, newest first).
+**Stats panel** — four charts and nothing else: active days per month over the last 12 months (bars
+are clickable and jump to that month), weekday distribution, per-goal share of check-ins, and the
+completion log (finished list items and months where a count goal hit its target, newest first).
+
+It opened with a summary line — days logged, total check-ins, an attendance percentage, and
+`Since Jul 31, 1 day.` — removed in July 2026. The percentage was the one worth arguing about: it
+divided days logged by days since the first entry, so a perfect record read 100% and any gap pulled
+it down for good. That is a score for attendance, which §1 says this app should not be keeping.
 
 ### 5.1 The footer
 
