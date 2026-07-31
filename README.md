@@ -61,12 +61,12 @@ node tests/test.js
 Daybook stores data in one local JSON file and makes no network requests.
 
 ```text
-~/Library/Application Support/com.checkin.app/checkin.json
+~/Library/Application Support/com.skang10.daybook/checkin.json
 ```
 
-The folder still uses `com.checkin.app` because that is the Tauri bundle identifier.
-Changing it would make the app look in a new data directory and leave existing logs
-behind.
+The folder name is the Tauri bundle identifier, from `src-tauri/tauri.conf.json`. Change
+it and the app looks in a new, empty directory — move the file across at the same time,
+or the old one is orphaned.
 
 The file is plain indented JSON. There is currently no export button, so back it up with
 normal file tools such as `cp`.
