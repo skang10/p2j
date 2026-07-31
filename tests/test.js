@@ -276,7 +276,8 @@ t('stats is one amount per goal and the list of finished things', async () => {
   const html = g.captured.app;
   has(html, 'By goal'); has(html, 'Completed');
   eq((html.match(/class="amtrow"/g) || []).length, 3, 'one row per goal');
-  no(html, 'Last 12 months'); no(html, 'By weekday'); no(html, 'share of check-ins');
+  has(html, 'Last 12 months', 'the shared consistency history remains available');
+  no(html, 'By weekday'); no(html, 'share of check-ins');
   no(html, 'class="cols"'); no(html, 'data-jm=', 'the month chart is gone, and with it the jump');
 });
 t('the amount a goal shows is scoped to what that goal counts', async () => {
@@ -554,15 +555,17 @@ t('pace is drawn, never narrated', async () => {
   no(s, '/day'); no(s, 'short'); no(s, 'by month end');
 });
 
-// ---------- desktop two-pane structure ----------
-t('render emits the calendar column and the panel as separate panes', async () => {
+// ---------- application shell structure ----------
+t('render emits navigation and content as separate application panes', async () => {
   const g = await bootReady();
   g.api.render();
   const html = g.captured.app;
-  has(html, 'class="body"');
+  has(html, 'class="appframe"');
+  has(html, 'class="sidebar"');
+  has(html, 'class="workspace"');
   has(html, 'class="calcol"');
   has(html, 'class="panel"');
-  // the calendar block must be inside the left pane, not loose in the sheet
+  // the calendar stays in navigation, before the main working panel
   const cal = html.indexOf('class="calcol"'), panel = html.indexOf('class="panel"');
   ok(cal < html.indexOf('class="cal"'), 'calendar sits inside .calcol');
   ok(html.indexOf('class="cal"') < panel, 'calendar comes before the panel pane');

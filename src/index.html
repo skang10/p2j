@@ -708,6 +708,134 @@
     .d{height:41px}
     .goal{padding:15px 0}
   }
+  /* ── Daybook application shell ───────────────────────────────────────── */
+  :root{
+    --paper:#F4F5F7;--surface:#FFFFFF;--sunk:#F1F2F4;--faint:#F8F9FA;
+    --hair:#E8EAED;--line:#DADDE2;--ink:#17191C;--body:#42464D;
+    --muted:#747981;--dust:#9DA2AA;--ghost:#C9CDD3;
+    --c0:#ECEEF1;--c1:#C8D9D4;--c2:#8AB5A7;--c3:#43816F;--c4:#165343;
+    --accent:#176B57;--soft:#E4F2ED;--edge:#A8D1C4;--wash:#D3E8E1;
+    --alert:#9A650F;--danger:#C33D36;--r:8px;--rs:6px;
+  }
+  body{background:var(--paper);font-size:14px;line-height:1.5;overflow-x:hidden}
+  button,input,select{letter-spacing:0}
+  .sheet{max-width:none;min-height:100%;margin:0;padding:0;background:var(--paper)}
+  .appframe{display:grid;grid-template-columns:294px minmax(0,1fr);min-height:100vh}
+
+  .sidebar{position:sticky;top:0;height:100vh;padding:28px 22px 24px;background:rgba(247,248,249,.94);
+    border-right:1px solid rgba(23,25,28,.09);backdrop-filter:blur(24px);overflow:auto}
+  .top{display:flex;align-items:center;gap:11px;padding:0 2px 28px}
+  .brandmark{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:9px;
+    background:var(--accent);color:#fff;font-size:18px;font-weight:700;box-shadow:0 4px 12px rgba(23,107,87,.22)}
+  .top h1{font-family:var(--sans);font-size:17px;line-height:1.2;font-weight:700;letter-spacing:0;color:var(--ink)}
+  .top p{margin-top:2px;font-size:11px;line-height:1.25;color:var(--muted)}
+  .top .ver{margin-left:auto;align-self:flex-start;padding-top:2px;font-size:10px}
+
+  .phead{display:block;margin:0 0 30px;border:0}
+  .tabs{display:flex;flex-direction:column;gap:3px;padding:0;background:transparent;border-radius:0}
+  .tab{width:100%;min-width:0;padding:9px 12px;border-radius:7px;text-align:left;font-family:var(--sans);
+    font-size:13px;font-weight:550;color:var(--muted)}
+  .tab::before{display:inline-block;width:22px;font-size:15px;line-height:1;vertical-align:-1px;color:currentColor}
+  .tab[data-tab="day"]::before{content:"●"}.tab[data-tab="stats"]::before{content:"◫"}
+  .tab[data-tab="archive"]::before{content:"▱"}
+  .tab:hover{background:rgba(23,25,28,.045);color:var(--ink)}
+  .tab.on{background:var(--soft);color:var(--accent);box-shadow:none}
+  .tab.on::after{content:none}
+  .ctx{display:block;padding:9px 12px 0;font-family:var(--sans);font-size:11px;white-space:normal}
+
+  .calcol{padding:0;background:transparent;border:0}
+  .nav{margin:0 0 12px;padding:0 3px}
+  .nav .m{font-family:var(--sans);font-size:13px;font-weight:650;letter-spacing:0;text-align:left;flex:1}
+  .nav button{width:27px;height:27px;margin-left:3px;border:1px solid var(--hair);border-radius:6px;
+    background:var(--surface);font-size:16px;color:var(--body)}
+  .nav button:hover:not(:disabled){background:var(--soft);border-color:var(--edge);color:var(--accent)}
+  .dow{gap:3px;margin-bottom:4px}.dow i{font-family:var(--sans);font-size:9px;letter-spacing:0}
+  .cal{gap:3px}
+  .d{height:31px;border-radius:6px;background:transparent}
+  .d .num{font-family:var(--sans);font-size:11px;color:var(--body)}
+  .d[data-l="1"],.d[data-l="2"],.d[data-l="3"],.d[data-l="4"]{border-radius:6px}
+  .d.cL,.d.cR{border-radius:6px}.d.cL::before{display:none}
+  .d.future{box-shadow:none}.d.future .num{color:var(--ghost)}
+  .d.today{box-shadow:inset 0 0 0 1px var(--accent)}
+  .d.sel,.d.today.sel{background:var(--accent);box-shadow:none}
+  .d.sel .num,.d.today.sel .num{color:#fff;font-weight:650}
+  .tally{margin-top:16px;padding:14px 3px 0;border-top:1px solid var(--hair);border-bottom:0}
+  .tally span{height:auto;line-height:1}.tally b{min-width:0;font-size:21px;text-align:left;color:var(--accent)}
+  .tally em{font-family:var(--sans);font-size:11px;margin-left:7px}
+
+  .workspace{min-width:0;padding:54px clamp(32px,5vw,76px) 64px}
+  .workhead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;max-width:920px;margin:0 auto 30px}
+  .eyebrow{margin-bottom:5px;font-size:12px;font-weight:650;color:var(--accent)}
+  .workhead h2{font-size:28px;line-height:1.15;font-weight:710;letter-spacing:0;color:var(--ink)}
+  .daystatus{display:flex;align-items:baseline;gap:6px;flex:none;color:var(--muted)}
+  .daystatus b{font-size:25px;line-height:1;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+  .daystatus span{font-size:11px}
+  .panel{max-width:920px;margin:0 auto;padding:0;background:transparent}
+
+  .goal{margin:0 0 10px;padding:20px 20px 19px;background:var(--surface);border:1px solid var(--hair)!important;
+    border-radius:8px;box-shadow:0 1px 2px rgba(23,25,28,.025);transition:border-color .16s,box-shadow .16s}
+  .goal:hover{border-color:#D6D9DD!important;box-shadow:0 6px 18px rgba(23,25,28,.055)}
+  .goal h3{font-size:16px;font-weight:670;letter-spacing:0}
+  .ghead{align-items:center}.gright{align-items:center;gap:12px}
+  .ghandle{left:-25px;top:25px}.gedit{opacity:0;font-size:12px}
+  .goal:hover .gedit,.gedit:focus-visible{opacity:1}
+  .prog{font-family:var(--sans);font-size:11px;letter-spacing:0}.prog b{font-size:16px;font-weight:650}
+  .pace,.pips,.bar{margin-top:13px}.ptrack,.bar{height:5px;background:var(--sunk)}
+  .ptrack .done,.bar i{background:var(--accent)}.ptrack .proj{background:var(--edge)}
+  .pips{gap:3px}.pip{width:7px;height:7px;border-radius:2px}.pip.f{background:var(--accent)}
+  .chips{gap:7px;margin-top:16px}
+  .chip{min-height:32px;padding:6px 11px;border:1px solid var(--hair);border-radius:7px;
+    background:var(--faint);font-size:12px;color:var(--body)}
+  .chip:hover{background:var(--soft);border-color:var(--edge);color:var(--accent)}
+  .chip.on,.minus{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip.on:hover,.minus:hover{background:#115544;border-color:#115544}
+  .grp .chip{border-radius:7px 0 0 7px}.minus{border-radius:0 7px 7px 0}
+  .doneline{margin-top:14px;padding-top:12px;border-top:1px solid var(--hair);font-size:12px}
+  .addrow{margin-top:12px;padding:0;border:0}
+  .addgoal{display:flex;align-items:center;gap:10px;width:100%;height:46px;padding:0 15px;
+    border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);
+    font-size:13px;font-weight:600;text-align:left;transition:background .16s,border-color .16s,color .16s}
+  .addgoal span{display:grid;place-items:center;width:23px;height:23px;border-radius:50%;
+    background:var(--soft);color:var(--accent);font-size:17px;font-weight:450;line-height:1}
+  .addgoal:hover{background:var(--surface);border-color:var(--hair);color:var(--accent)}
+  .addgoal:hover span{background:var(--accent);color:#fff}
+
+  .goal.ed{margin-bottom:10px;padding:20px;background:var(--surface);border-radius:8px;box-shadow:0 8px 28px rgba(23,25,28,.08)}
+  .ehead{padding-bottom:14px}.ehead h3{font-size:12px;color:var(--muted)}
+  input.etitle,.goal.ed .erow.sub input[type=text],select,input[type=number]{border:1px solid var(--line);border-radius:6px;background:var(--faint)}
+  input.etitle{font-size:16px;padding:9px 10px}.goal.ed .erow.sub input[type=text]{padding:7px 9px}
+  .frow{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0}
+  .flbl{padding:0;font-family:var(--sans);font-size:12px}.esep{margin:14px 0}
+  .btn.pri{background:var(--accent);border-color:var(--accent)}
+
+  .history{max-width:920px;margin:48px auto 0;padding-top:24px;border-top:1px solid var(--line)}
+  .historyhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:17px}
+  .historyhead h2{font-size:14px;font-weight:650;color:var(--ink)}
+  .historyhead span{font-size:11px;color:var(--muted)}
+  .heat{--hgap:3px;padding:0;overflow:hidden}.hmons i{font-family:var(--sans);font-size:9px;letter-spacing:0}
+  .hd{border-radius:2px}.hd.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .hd.future{box-shadow:none;background:transparent}
+
+  .sh{font-family:var(--sans);font-size:11px;letter-spacing:0;text-transform:uppercase;margin-top:28px}
+  .sh:first-of-type{margin-top:0}.amt,.ach,.arch{background:var(--surface)}
+  .amt,.ach{padding:2px 18px;border:1px solid var(--hair);border-radius:8px}
+  .amtrow,.arow{padding:13px 0}.arch{margin-bottom:10px;padding:18px;border:1px solid var(--hair);border-radius:8px}
+  .arch h3{font-size:15px}.notice{margin-bottom:14px;padding:10px 12px;border-radius:7px;background:var(--soft)}
+  .foot{position:fixed;right:18px;bottom:18px;padding:10px 14px;border-radius:7px;background:var(--surface);
+    box-shadow:0 8px 24px rgba(23,25,28,.14);z-index:5}
+
+  @media(max-width:820px){
+    .appframe{grid-template-columns:1fr}.sidebar{position:relative;height:auto;padding:20px 18px 16px;border-right:0;border-bottom:1px solid var(--hair)}
+    .top{padding-bottom:18px}.top p{display:none}.phead{margin-bottom:20px}.tabs{flex-direction:row;padding:3px;background:rgba(23,25,28,.055);border-radius:8px}
+    .tab{text-align:center;padding:7px 8px}.tab::before{display:none}.calcol{max-width:420px;margin:0 auto}.tally{display:none}
+    .workspace{padding:32px 18px 46px}.workhead{margin-bottom:22px}.workhead h2{font-size:23px}.history{margin-top:36px}
+  }
+  @media(max-width:520px){
+    .sidebar{padding-left:14px;padding-right:14px}.calcol{max-width:none}.workspace{padding:28px 14px 40px}
+    .workhead{align-items:flex-start}.daystatus{display:none}.goal{padding:17px 15px}.ghead{align-items:flex-start}
+    .gright{flex-direction:column;align-items:flex-end;gap:3px}.gedit{opacity:1}.history{overflow:hidden}
+    .heat{overflow-x:auto;padding-bottom:6px}.hmons,.hgrid{min-width:680px}.amtrow .u{min-width:74px}.arow .ag{display:none}
+  }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -967,14 +1095,15 @@ function render(){
   const run=streak();
 
   document.getElementById('app').innerHTML=`
-    <div class="top">
-      <h1>Daybook</h1>${version?`<span class="ver mono">${esc(version)}</span>`:''}
-    </div>
-
-    ${heatmap()}
-
-    <div class="body">
-      <div class="calcol">
+    <div class="appframe">
+      <aside class="sidebar">
+        <div class="top">
+          <span class="brandmark" aria-hidden="true">D</span>
+          <div><h1>Daybook</h1><p>Show up, one day at a time.</p></div>
+          ${version?`<span class="ver mono">${esc(version)}</span>`:''}
+        </div>
+        ${tabs()}
+        <div class="calcol">
         <div class="nav">
           <button id="prev" aria-label="Previous month">‹</button>
           <span class="m">${MON[view.m]} ${view.y}</span>
@@ -985,10 +1114,24 @@ function render(){
         ${run?`<div class="tally mono">
           <span><b>${run}</b><em>day${run===1?'':'s'} in a row</em></span>
         </div>`:''}
-      </div>
-      <div class="panel">
-        ${panel==='stats' ? statsPanel() : panel==='archive' ? archivePanel() : dayPanel(sel||tk,tk)}
-      </div>
+        </div>
+      </aside>
+      <main class="workspace">
+        <header class="workhead">
+          <div>
+            <p class="eyebrow">${panel==='day' ? (sel===tk?'Today':esc(label(sel||tk))) : panel==='stats' ? `${MON[view.m]} review` : 'Past goals'}</p>
+            <h2>${panel==='day' ? (sel===tk?'What will you show up for?':esc(label(sel||tk))) : panel==='stats' ? 'Your month at a glance' : 'Archive'}</h2>
+          </div>
+          ${panel==='day'?`<div class="daystatus"><b>${dayTotal(sel||tk)}</b><span>check-in${dayTotal(sel||tk)===1?'':'s'}</span></div>`:''}
+        </header>
+        <div class="panel">
+          ${panel==='stats' ? statsPanel() : panel==='archive' ? archivePanel() : dayPanel(sel||tk,tk)}
+        </div>
+        <section class="history" aria-label="Activity history">
+          <div class="historyhead"><h2>Consistency</h2><span>Last 12 months</span></div>
+          ${heatmap()}
+        </section>
+      </main>
     </div>
 
     ${foot()}`;
@@ -1030,7 +1173,7 @@ function archivePanel(){
         <button class="lnk" data-rg="${g.id}">Restore</button>
         <button class="lnk dgr" data-pg="${g.id}">Delete permanently</button></div></div>`;
   }).join('');
-  return `${tabs()}
+  return `
     ${notice?`<p class="notice">${esc(notice)}</p>`:''}
     ${rows||`<p class="hint" style="padding:10px 0">Nothing archived. Removing a goal that has
       check-ins puts it here, with its record intact.</p>`}`;
@@ -1125,11 +1268,11 @@ function tabs(){
 
 function dayPanel(k,tk){
   const F=firstDone(), full=live().length>=MAXGOALS;
-  return `${tabs()}
+  return `
     ${live().length?live().map(g=>goalBlock(g,k,F)).join('')
       :'<p class="hint" style="padding:10px 0">No goals yet.</p>'}
     <div class="addrow">
-      <button class="add addgoal" id="ag">+ goal</button>
+      <button class="add addgoal" id="ag"><span aria-hidden="true">+</span> Goal</button>
       ${full?`<p class="cap">You already have ${MAXGOALS}. Remove one to add another.</p>`:''}
     </div>`;
 }
@@ -1315,7 +1458,7 @@ function statsPanel(){
       <span class="v">${v}</span><span class="u">${u}</span></div>`;
   }).join('');
 
-  return `${tabs()}
+  return `
 
     <h4 class="sh">By goal</h4>
     <div class="amt">${rows||'<p class="hint">No goals yet.</p>'}</div>
