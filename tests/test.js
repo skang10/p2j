@@ -649,6 +649,63 @@ t('the readout block disappears entirely when there is no run', async () => {
   has(g.captured.app, 'class="tally mono"', 'and it returns once there is a run');
 });
 
+// ---------- the year heatmap ----------
+// The same encoding as the calendar at a wider zoom: one cell per day, the same ramp,
+// the same rule that past days are filled and future ones outlined.
+t('the heatmap is a year of days, 53 weeks by 7, ending on today', async () => {
+  const g = await bootReady({ now: '2026-07-31' });
+  const a = g.api;
+  const html = a.heatmap();
+  eq((html.match(/class="hd/g) || []).length, a.HWEEKS * 7, 'every day has a cell');
+  const start = a.heatStart();
+  eq(start.getDay(), 0, 'the grid starts on a Sunday, so the rows are weekdays');
+  eq(a.diffDays(start, a.today()), (a.HWEEKS - 1) * 7 + a.today().getDay(),
+     'and runs up to today');
+  has(html, `data-hk="${a.todayKey()}"`, 'today has a cell');
+  has(html, 'class="hd today"');
+});
+t('heatmap days after today are outlined and not clickable', async () => {
+  const g = await bootReady({ now: '2026-07-31' });      // a Friday: Sat is still to come
+  const html = g.api.heatmap();
+  eq((html.match(/class="hd future"/g) || []).length, 1, 'the rest of this week');
+  no(html, 'data-hk="2026-08-01"', 'a future day carries no jump target');
+});
+t('a heatmap cell carries the same level as the calendar cell for that day', async () => {
+  const a = await fixture();
+  a.view = { y: 2026, m: 6 };
+  const day = '2026-07-02';                              // s1 2 + s2 1 = 3 check-ins
+  eq(a.dayTotal(day), 3);
+  const lvl = a.level(3);
+  has(a.heatmap(), `data-l="${lvl}" data-hk="${day}"`);
+  has(a.calendar(a.todayKey()), `data-l="${lvl}" data-k="${day}"`);
+});
+t('a heatmap cell names its date and count in a tooltip', async () => {
+  const a = await fixture();
+  has(a.heatmap(), 'title="Jul 2 · 3 check-ins"');
+  has(a.heatmap(), 'title="Jul 3 · 1 check-in"', 'singular');
+});
+// Labelling by the week's last day named a month a column early — the week of Jul 26
+// ends on Aug 1, and was headed "Aug" while six of its seven days were July.
+t('the heatmap labels a month at the first week that begins inside it', async () => {
+  const g = await bootReady({ now: '2026-07-31' });
+  const a = g.api;
+  const html = a.heatmap();
+  const labels = (html.match(/<i>([A-Z][a-z]{2})<\/i>/g) || []).map(x => x.slice(3, 6));
+  const idx = labels.map(x => a.MONS.indexOf(x));
+  ok(idx.every(x => x >= 0), 'every label is a real month: ' + labels.join(' '));
+  // unwrap the year boundary, then the sequence must strictly increase
+  let carry = 0;
+  const abs = idx.map((m, i) => { if (i && m < idx[i - 1]) carry += 12; return m + carry; });
+  ok(abs.every((v, i) => i === 0 || v > abs[i - 1]),
+     'in chronological order, none repeated: ' + labels.join(' '));
+  eq(labels[labels.length - 1], 'Jul', 'ending on the month in progress, not the next one');
+  eq(labels[0], 'Jul', 'a 53-week window opens in the same month it closes in');
+  // Aug is dropped: the window opens on Jul 27, so Aug's first Sunday is one column
+  // later and its label would collide with July's.
+  eq(labels.length, 12, 'a label too close to the previous one is dropped, not crowded');
+  no(labels.join(' '), 'Jul Aug', 'which is exactly the pair that would have collided');
+});
+
 // ---------- joining consecutive days in the calendar ----------
 t('consecutive days are joined, isolated days are not', async () => {
   const a = await fixture();

@@ -63,6 +63,20 @@
   .nav button:hover:not(:disabled){color:var(--ink);background:var(--faint)}
   .nav button:disabled{opacity:.25;cursor:default}
 
+  /* a year at one cell per day, same ramp as the calendar below it */
+  .heat{padding:0 0 22px}
+  .hmons,.hgrid{display:grid;grid-template-columns:repeat(53,1fr);gap:3px}
+  .hmons i{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.02em;
+    color:var(--muted);white-space:nowrap;overflow:visible;padding-bottom:5px}
+  .hgrid{grid-auto-flow:column;grid-template-rows:repeat(7,1fr)}
+  .hd{aspect-ratio:1;background:var(--c0);border:0;border-radius:2px;padding:0;
+    cursor:pointer;transition:background .18s ease,box-shadow .12s ease}
+  .hd[data-l="1"]{background:var(--c1)} .hd[data-l="2"]{background:var(--c2)}
+  .hd[data-l="3"]{background:var(--c3)} .hd[data-l="4"]{background:var(--c4)}
+  .hd.future{background:transparent;box-shadow:inset 0 0 0 1px var(--hair);cursor:default}
+  .hd.today{box-shadow:inset 0 0 0 1.5px var(--c3)}
+  .hd:not(.future):hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
+
   /* ── the signature: a month as a strip of presence ──────────────────────
      A day you showed up is a solid block of ink with the date knocked out of
      it. Consecutive days merge into one continuous strip, so a month reads as
@@ -531,6 +545,8 @@ function render(){
       <h1>Check-in</h1>
     </div>
 
+    ${heatmap()}
+
     <div class="body">
       <div class="calcol">
         <div class="nav">
@@ -579,6 +595,49 @@ function archiveShelf(){
   return `<p class="cap">Archived · ${gone.map(x=>`${esc(x.title)}
     <button class="lnk" data-rg="${x.id}">Restore</button>
     <button class="lnk" data-pg="${x.id}">Delete for good</button>`).join(' · ')}</p>`;
+}
+
+// A year of days at one cell each, in the same ramp as the calendar — the same
+// instrument at a wider zoom, not a borrowed component. Columns are weeks, rows are
+// weekdays, and the last column holds today. Clicking a day takes the calendar to it,
+// which is the only jump between months left since the year strip and the stats chart
+// went; ‹ › alone made a month six back a six-click trip.
+const HWEEKS=53;
+function heatStart(){
+  const n=today(), d=new Date(n);
+  d.setDate(d.getDate() - (HWEEKS-1)*7 - n.getDay());   // back to the Sunday of the first week
+  return d;
+}
+function heatmap(){
+  const start=heatStart(), n=today(), tk=todayKey();
+  let cells='', mons='', shown=-1, lastAt=-9;
+  for(let w=0;w<HWEEKS;w++){
+    // A month is labelled at the first week that begins inside it. Labelling by the
+    // week's last day put the name a column early: the week of Jul 26 ends on Aug 1 and
+    // was headed "Aug" while six of its seven days were July.
+    const wk=new Date(start); wk.setDate(start.getDate()+w*7);
+    const m=wk.getMonth();
+    // A 53-week window opens partway through a month, so its first label can land a
+    // column before the next one and the two collide. Drop a label rather than crowd
+    // it — the month is still findable from the ones either side.
+    const fits = w-lastAt>=3;
+    const show = m!==shown && fits;
+    if(m!==shown) shown=m;
+    if(show) lastAt=w;
+    mons+=`<i>${show?MONS[m]:''}</i>`;
+  }
+  for(let i=0;i<HWEEKS*7;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const k=key(d);
+    if(d>n){ cells+='<span class="hd future"></span>'; continue; }
+    const t=dayTotal(k);
+    cells+=`<button class="hd${k===tk?' today':''}" data-l="${level(t)}" data-hk="${k}"
+      title="${label(k)} · ${t} check-in${t===1?'':'s'}"></button>`;
+  }
+  return `<div class="heat">
+    <div class="hmons">${mons}</div>
+    <div class="hgrid">${cells}</div>
+  </div>`;
 }
 
 function calendar(tk){
@@ -824,6 +883,8 @@ function bind(){
   on('[data-minus]',b=>b.onclick=()=>bump(b.dataset.minus,-1));
   on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
   on('.d[data-k]',c=>c.onclick=()=>{ sel=c.dataset.k; panel='day'; render(); });
+  on('.hd[data-hk]',c=>c.onclick=()=>{ const d=parseKey(c.dataset.hk);
+    view={y:d.getFullYear(),m:d.getMonth()}; sel=c.dataset.hk; panel='day'; render(); });
 
   document.getElementById('prev').onclick=()=>shift(-1);
   const nx=document.getElementById('next'); if(nx&&!nx.disabled) nx.onclick=()=>shift(1);

@@ -7,14 +7,14 @@ const path = require('path');
 
 const HTML = path.join(__dirname, '..', 'src', 'index.html');
 
-const NAMES = `KEY DOW MAXGOALS
+const NAMES = `KEY DOW MONS MAXGOALS
 pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId esc TAP
 Store load save seed ETAMIN
 dayTotal level dayKeys subTotal firstDone activeDays goalDays goalCount streak
 live liveSubs subLogged goalLogged
 dropGoal dropSub restoreGoal restoreSub purgeGoal archiveShelf
 bump clearSub stripSub
-render calendar dayPanel goalBlock paceLine pips
+render heatmap heatStart HWEEKS calendar dayPanel goalBlock paceLine pips
 achievements goalAmount statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
 
 const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'dataPath', 'saveErr',

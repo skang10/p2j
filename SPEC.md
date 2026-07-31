@@ -398,6 +398,22 @@ beside that link, since the goals below then belong to that day rather than to t
 
 **Day panel** — two panes above 820px wide, stacked below it (see §5.2).
 
+**Above both panes, a year heatmap**: 53 columns of 7, one cell per day, in the same ramp as the
+calendar and by the same rules — past days filled by `dayTotal`, future days outlined, today ringed.
+It is the calendar at a wider zoom rather than a borrowed component, which is why it is drawn in
+`--c0…--c4` and not in anybody's green.
+
+**Clicking a cell takes the calendar to that day**, and that is half the reason it exists. The year
+strip, the month review and the stats month chart could each jump between months and all three were
+removed; `‹ ›` alone made a month six back a six-click trip. The other half is that nothing showed
+more than the current month any more.
+
+Months are labelled along the top at the first week that *begins* inside them. Two earlier rules were
+wrong: labelling by the week's last day named a month a column early (the week of Jul 26 ends on
+Aug 1 and read `Aug` while six of its seven days were July), and labelling every month crowded the
+window's opening pair, since a 53-week window starts partway through a month. A label closer than
+three columns to the previous one is dropped — the month stays findable from the ones either side.
+
 *Left pane*: month navigation, then the calendar as the hero. Green intensity by `dayTotal`, date
 numbers visible, today ringed, past days clickable for backfill, future days drawn as outlines.
 Consecutive active days are joined into a continuous bar; runs break at the week edge because the
