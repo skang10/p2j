@@ -13,7 +13,7 @@ Store load save seed ETAMIN
 dayTotal level dayKeys subTotal firstDone activeDays goalDays goalCount streak
 live liveSubs subLogged goalLogged
 dropGoal dropSub restoreGoal restoreSub purgeGoal archiveShelf
-moveGoal nudgeGoal bump clearSub stripSub
+moveGoal nudgeGoal beginDrag bump clearSub stripSub
 render heatmap heatStart HWEEKS calendar dayPanel goalBlock paceLine pips
 achievements goalAmount statsPanel goalEditor tabs track bind shift`.split(/\s+/).filter(Boolean);
 

@@ -154,7 +154,7 @@
   /* The handle lives in the margin, the way Notion's does, so the titles keep one left
      edge instead of shifting 16px to make room for something usually invisible. Two
      bars drawn from ::before/::after — no icon font (§2.2), no shadow (§5.2). */
-  .ghandle{position:absolute;left:-22px;top:22px;width:15px;height:14px;
+  .ghandle{position:absolute;left:-22px;top:22px;width:15px;height:14px;touch-action:none;
     background:0;border:0;padding:0;cursor:grab;opacity:0;transition:opacity .12s}
   .ghandle::before,.ghandle::after{content:"";position:absolute;left:2px;right:2px;
     height:1.5px;border-radius:1px;background:var(--ghost)}
@@ -564,6 +564,36 @@ function nudgeGoal(id,dir){
   const h=document.querySelector(`[data-grip="${id}"]`); if(h) h.focus();
 }
 
+// The drag itself. Nothing is committed until the mouse is released, so letting go
+// away from any goal is a cancel.
+function beginDrag(id){
+  const rows=()=>[...document.querySelectorAll('[data-goal]')];
+  const src=rows().find(r=>r.dataset.goal===id);
+  if(!src) return;
+  dragId=id; src.classList.add('dragging');
+  let over=null, before=true;
+  const clear=()=>rows().forEach(r=>r.classList.remove('dropbefore','dropafter'));
+  document.onmousemove=e=>{
+    clear(); over=null;
+    for(const r of rows()){
+      const b=r.getBoundingClientRect();
+      if(e.clientY<b.top||e.clientY>b.bottom) continue;
+      if(r.dataset.goal===id) break;                 // over itself: nowhere to land
+      over=r.dataset.goal; before=e.clientY<b.top+b.height/2;
+      r.classList.add(before?'dropbefore':'dropafter');
+      break;
+    }
+  };
+  document.onmouseup=()=>{
+    document.onmousemove=null; document.onmouseup=null;
+    clear(); src.classList.remove('dragging'); dragId=null;
+    if(!over) return;
+    // dropping below a goal means landing before whatever follows it — or last
+    const vis=live(), i=vis.findIndex(g=>g.id===over);
+    moveGoal(id, before?over:(vis[i+1]?vis[i+1].id:null));
+  };
+}
+
 /* ---------- check-in ---------- */
 function bump(id,delta){
   const k=sel||todayKey(), day=state.logs[k]||{}, v=(day[id]||0)+delta;
@@ -949,33 +979,14 @@ function bind(){
     panel=p; render();});
   on('[data-edit]',b=>b.onclick=()=>{ editing=b.dataset.edit||null; render(); });
 
-  // Reordering: the browser's own drag and drop, no library (§2.2). `draggable` stays
-  // off until the handle is pressed — on the block itself, dragging a chip would start a
-  // goal drag, and inside the editor it would stop the text being selectable.
-  const clearDrop=()=>document.querySelectorAll('[data-goal]')
-    .forEach(x=>x.classList.remove('dropbefore','dropafter'));
-  const landing=(el,y)=>{ const r=el.getBoundingClientRect(); return y<r.top+r.height/2; };
+  // Reordering, on plain mouse events rather than HTML5 drag and drop. The native API
+  // needs `draggable` set before the gesture begins, and setting it from the handle's
+  // mousedown was already too late in the app's own webview — the drag never started.
+  // Mouse events have no engine-specific machinery to get wrong, and no library (§2.2).
   on('[data-grip]',h=>{
-    h.onmousedown=()=>{ const b=document.querySelector(`[data-goal="${h.dataset.grip}"]`);
-      if(b) b.setAttribute('draggable','true'); };
+    h.onmousedown=e=>{ e.preventDefault(); beginDrag(h.dataset.grip); };   // no text selection
     h.onkeydown=e=>{ const d=e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0;
       if(d){ e.preventDefault(); nudgeGoal(h.dataset.grip,d); } };
-  });
-  on('[data-goal]',el=>{
-    el.ondragstart=e=>{ dragId=el.dataset.goal; el.classList.add('dragging');
-      e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',dragId); };
-    el.ondragover=e=>{ if(!dragId||el.dataset.goal===dragId) return;
-      e.preventDefault();
-      const before=landing(el,e.clientY);
-      el.classList.toggle('dropbefore',before); el.classList.toggle('dropafter',!before); };
-    el.ondragleave=()=>el.classList.remove('dropbefore','dropafter');
-    el.ondrop=e=>{ e.preventDefault();
-      const over=el.dataset.goal, vis=live(), i=vis.findIndex(g=>g.id===over);
-      // dropping below a goal means landing before whatever follows it — or last
-      moveGoal(dragId, landing(el,e.clientY)?over:(vis[i+1]?vis[i+1].id:null));
-      dragId=null; };
-    el.ondragend=()=>{ el.removeAttribute('draggable'); el.classList.remove('dragging');
-      clearDrop(); dragId=null; };
   });
 
   const ag=document.getElementById('ag');

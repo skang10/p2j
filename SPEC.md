@@ -453,11 +453,16 @@ and that is the right way round: the quantities are the design.
 *Right pane*: the goals, each with its chips and — depending on type — pips or a projection track.
 
 **Goals can be reordered.** A drag handle sits in the left margin of each goal, appearing on hover
-or focus, drawn as two bars from `::before`/`::after` — no icon font (§2.2), no shadow (§5.2). The
-block is not `draggable` until the handle is pressed: on the block itself, dragging a chip would
-start a goal drag, and inside the editor it would stop the text being selectable. While a drag is in
-the air the source dims and the goal under the cursor shows a rule on the edge the drop would land
-on, above or below its midpoint.
+or focus, drawn as two bars from `::before`/`::after` — no icon font (§2.2), no shadow (§5.2). While
+a drag is in the air the source dims and the goal under the cursor shows a rule on the edge the drop
+would land on, above or below its midpoint. Releasing anywhere else is a cancel: nothing is committed
+until mouseup, over a goal.
+
+**It is built on plain mouse events, not the HTML5 drag-and-drop API**, and that is not a preference.
+The native API needs `draggable` set before the gesture begins; setting it from the handle's own
+`mousedown` was already too late in this app's webview and no drag ever started. Mouse events have no
+engine-specific machinery to get wrong. Only the handle starts a drag, which is also what keeps
+dragging a chip from moving its goal and keeps the editor's text selectable.
 
 **Arrow keys do the same thing** with the handle focused, and focus follows the goal so a run of
 presses keeps working. Drag-only reordering cannot be operated without a mouse.
