@@ -3,8 +3,9 @@
 Daybook is a small local check-in app for tracking a few goals and whether you showed
 up for them each day.
 
-The repository is named `p2j`: shorthand for "P to J", the original reason for building
-the app.
+The repository is named `p2j`, short for "P to J". The idea comes from the MBTI
+Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style
+and making planning feel a little more structured, visible, and fun.
 
 ## Project shape
 
