@@ -1,203 +1,268 @@
-<svg width="960" height="360" viewBox="0 0 960 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+<svg width="1120" height="520" viewBox="0 0 1120 520" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">P to J concept for Daybook</title>
-  <desc id="desc">A playful illustration showing loose ideas on the P side becoming structured goals and check-ins on the J side.</desc>
+  <desc id="desc">Two friendly illustrated people show the Daybook idea: flexible Prospecting energy becomes structured Judging check-ins.</desc>
   <style>
-    :root {
-      color-scheme: light dark;
+    .paper {
+      fill: #fff7e8;
     }
 
-    .bg {
-      fill: #f7f3e8;
+    .sky {
+      fill: #d9f0ef;
     }
 
-    .panel {
-      fill: #fffaf0;
-      stroke: #302b26;
-      stroke-width: 3;
+    .hill {
+      fill: #bfe3ca;
     }
 
     .ink {
-      fill: #302b26;
+      fill: #25333a;
+    }
+
+    .muted {
+      fill: #66777c;
     }
 
     .line {
-      stroke: #302b26;
-      stroke-width: 4;
+      stroke: #25333a;
+      stroke-width: 5;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
-    .soft-line {
-      stroke: #6f665c;
+    .thin {
+      stroke: #25333a;
       stroke-width: 3;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
-    .dash {
-      stroke: #d06f3c;
-      stroke-width: 5;
+    .soft {
+      stroke: #6c7d80;
+      stroke-width: 3;
       stroke-linecap: round;
-      stroke-dasharray: 10 14;
-      animation: dash 5s linear infinite;
+      stroke-linejoin: round;
     }
 
-    .accent {
-      fill: #d06f3c;
+    .cream {
+      fill: #fffaf0;
+    }
+
+    .skin {
+      fill: #f1b896;
+    }
+
+    .hair {
+      fill: #3a2b2f;
+    }
+
+    .p-shirt {
+      fill: #ef9f54;
+    }
+
+    .j-shirt {
+      fill: #2f9f9a;
     }
 
     .green {
-      fill: #4f9d69;
+      fill: #5abf75;
     }
 
     .blue {
-      fill: #4d7ea8;
+      fill: #4f86c6;
     }
 
-    .note {
+    .yellow {
+      fill: #f4c95d;
+    }
+
+    .coral {
+      fill: #e86f62;
+    }
+
+    .purple {
+      fill: #8d76c7;
+    }
+
+    .path {
+      stroke: #e86f62;
+      stroke-width: 7;
+      stroke-linecap: round;
+      stroke-dasharray: 12 18;
+      animation: path 4.5s linear infinite;
+    }
+
+    .spark {
       transform-box: fill-box;
       transform-origin: center;
-      animation: float 4.5s ease-in-out infinite;
+      animation: spark 3.4s ease-in-out infinite;
     }
 
-    .note:nth-of-type(2) {
-      animation-delay: .7s;
+    .spark:nth-of-type(2) {
+      animation-delay: .4s;
     }
 
-    .note:nth-of-type(3) {
+    .spark:nth-of-type(3) {
+      animation-delay: .9s;
+    }
+
+    .spark:nth-of-type(4) {
       animation-delay: 1.3s;
     }
 
-    .pulse {
+    .check {
       transform-box: fill-box;
       transform-origin: center;
-      animation: pulse 2.8s ease-in-out infinite;
+      animation: check 2.8s ease-in-out infinite;
     }
 
-    .traveler {
-      animation: travel 5s ease-in-out infinite;
+    .dot {
+      animation: dot 4.5s ease-in-out infinite;
     }
 
-    @keyframes dash {
+    @keyframes path {
       to {
-        stroke-dashoffset: -48;
+        stroke-dashoffset: -60;
       }
     }
 
-    @keyframes float {
+    @keyframes spark {
       0%, 100% {
-        transform: translateY(0) rotate(-3deg);
+        transform: translateY(0) rotate(-2deg);
       }
       50% {
         transform: translateY(-10px) rotate(4deg);
       }
     }
 
-    @keyframes pulse {
-      0%, 100% {
+    @keyframes check {
+      0%, 38%, 100% {
         transform: scale(1);
       }
       50% {
-        transform: scale(1.08);
+        transform: scale(1.12);
       }
     }
 
-    @keyframes travel {
-      0%, 12% {
+    @keyframes dot {
+      0%, 18% {
         transform: translate(0, 0);
         opacity: 0;
       }
-      22% {
+      26% {
         opacity: 1;
       }
       72% {
-        transform: translate(310px, 0);
+        transform: translate(250px, -6px);
         opacity: 1;
       }
-      86%, 100% {
-        transform: translate(310px, 0);
+      88%, 100% {
+        transform: translate(250px, -6px);
         opacity: 0;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .dash,
-      .note,
-      .pulse,
-      .traveler {
+      .path,
+      .spark,
+      .check,
+      .dot {
         animation: none;
       }
     }
   </style>
 
-  <rect class="bg" width="960" height="360" rx="28"/>
-  <rect x="34" y="34" width="892" height="292" rx="24" fill="#ffffff" opacity=".45"/>
+  <rect class="paper" width="1120" height="520" rx="36"/>
+  <path class="sky" d="M55 118c84-52 177-75 279-69 95 5 154 50 238 49 94-1 150-57 255-52 92 5 170 43 238 104v219H55V118Z"/>
+  <path class="hill" d="M0 347c97-43 185-62 265-57 91 6 150 44 237 45 91 2 153-36 248-39 133-5 240 38 370 88v136H0V347Z"/>
+  <path fill="#97d1bd" d="M0 420c124-39 234-48 330-27 72 15 136 50 210 49 95-1 154-58 253-60 99-1 205 38 327 93v45H0V420Z"/>
 
-  <text x="80" y="88" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="40" font-weight="800">P</text>
-  <text x="820" y="88" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="40" font-weight="800">J</text>
-  <text x="372" y="88" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="30" font-weight="800">Daybook</text>
-  <text x="343" y="119" fill="#6f665c" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="650">turn loose intent into visible check-ins</text>
+  <text x="78" y="80" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="28" font-weight="850">P to J</text>
+  <text x="78" y="111" class="muted" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="17" font-weight="700">make planning feel visible, light, and fun</text>
 
-  <g transform="translate(82 116)">
-    <circle cx="96" cy="70" r="42" fill="#f0c7a8" stroke="#302b26" stroke-width="4"/>
-    <path class="line" d="M58 62c18-42 69-39 84-2"/>
-    <path class="line" d="M78 74c8 7 25 8 36 0"/>
-    <circle class="ink" cx="82" cy="61" r="4"/>
-    <circle class="ink" cx="113" cy="61" r="4"/>
-    <path class="line" d="M96 113v80"/>
-    <path class="line" d="M96 134 55 168"/>
-    <path class="line" d="M96 134 137 166"/>
-    <path class="line" d="M96 193 62 242"/>
-    <path class="line" d="M96 193 132 242"/>
-
-    <g class="note">
-      <rect x="3" y="1" width="82" height="48" rx="8" fill="#ffe28a" stroke="#302b26" stroke-width="3"/>
-      <path class="soft-line" d="M18 18h40M18 32h24"/>
-    </g>
-    <g class="note">
-      <rect x="142" y="10" width="72" height="44" rx="8" fill="#b9d8f2" stroke="#302b26" stroke-width="3"/>
-      <path class="soft-line" d="M157 27h34M157 39h20"/>
-    </g>
-    <g class="note">
-      <rect x="25" y="203" width="78" height="45" rx="8" fill="#bfe5cd" stroke="#302b26" stroke-width="3"/>
-      <path class="soft-line" d="M40 220h38M40 233h22"/>
-    </g>
-    <text x="32" y="277" fill="#6f665c" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="700">ideas, energy, starts</text>
+  <g transform="translate(107 150)">
+    <ellipse cx="130" cy="300" rx="112" ry="24" fill="#6d9f8d" opacity=".28"/>
+    <path class="line" d="M116 196v102"/>
+    <path class="line" d="M116 232 72 268"/>
+    <path class="line" d="M116 232 168 258"/>
+    <path class="line" d="M116 297 80 348"/>
+    <path class="line" d="M116 297 151 348"/>
+    <path class="p-shirt" d="M65 183c18-37 84-48 111 0l-17 74H80L65 183Z" stroke="#25333a" stroke-width="5" stroke-linejoin="round"/>
+    <circle class="skin" cx="116" cy="92" r="49" stroke="#25333a" stroke-width="5"/>
+    <path class="hair" d="M67 83c6-41 36-62 76-50 28 8 40 30 31 62-10-20-25-28-46-25-25 4-44 0-61 13Z"/>
+    <circle class="ink" cx="99" cy="90" r="4"/>
+    <circle class="ink" cx="130" cy="90" r="4"/>
+    <path class="thin" d="M99 110c12 10 25 10 37 0"/>
+    <text x="49" y="383" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="28" font-weight="850">Prospecting</text>
+    <text x="57" y="410" class="muted" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="700">ideas, options, starts</text>
   </g>
 
-  <path class="dash" d="M335 194 C410 120 520 120 625 194"/>
-  <g class="traveler" transform="translate(321 180)">
-    <circle class="accent" cx="0" cy="0" r="13"/>
-    <path d="M-5 0h10M0-5v10" stroke="#fffaf0" stroke-width="3" stroke-linecap="round"/>
+  <g transform="translate(51 115)">
+    <g class="spark">
+      <rect x="96" y="7" width="90" height="56" rx="12" class="yellow" stroke="#25333a" stroke-width="4"/>
+      <path class="soft" d="M116 26h43M116 43h25"/>
+    </g>
+    <g class="spark">
+      <circle cx="271" cy="76" r="35" class="purple" stroke="#25333a" stroke-width="4"/>
+      <path d="M259 75l10 10 18-22" stroke="#fffaf0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g class="spark">
+      <path class="blue" d="M40 165 91 139l49 28-51 30-49-32Z" stroke="#25333a" stroke-width="4" stroke-linejoin="round"/>
+      <path class="thin" d="M91 139v58M40 165l49 27M140 167l-51 25"/>
+    </g>
+    <g class="spark">
+      <rect x="235" y="201" width="95" height="56" rx="12" class="cream" stroke="#25333a" stroke-width="4"/>
+      <path class="soft" d="M255 220h48M255 237h28"/>
+    </g>
+    <path class="thin" d="M173 75c38 22 62 49 73 82M129 174c38 2 69-7 95-27M194 267c30-17 50-39 61-65"/>
   </g>
 
-  <g transform="translate(650 116)">
-    <circle cx="96" cy="70" r="42" fill="#f0c7a8" stroke="#302b26" stroke-width="4"/>
-    <path class="line" d="M57 57c17-35 67-38 83 2"/>
-    <path class="line" d="M77 74c9 10 29 10 39 0"/>
-    <circle class="ink" cx="82" cy="61" r="4"/>
-    <circle class="ink" cx="113" cy="61" r="4"/>
-    <path class="line" d="M96 113v80"/>
-    <path class="line" d="M96 134 54 163"/>
-    <path class="line" d="M96 134 139 164"/>
-    <path class="line" d="M96 193 64 242"/>
-    <path class="line" d="M96 193 129 242"/>
+  <g transform="translate(445 139)">
+    <path class="path" d="M15 160c75-85 166-86 266 0"/>
+    <g class="dot" transform="translate(23 152)">
+      <circle class="coral" cx="0" cy="0" r="15"/>
+      <path d="M-6 0h12M0-6v12" stroke="#fffaf0" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <rect x="65" y="64" width="176" height="210" rx="24" class="cream" stroke="#25333a" stroke-width="5"/>
+    <path class="thin" d="M91 111h83M91 145h104M91 179h74"/>
+    <path class="thin" d="M94 224h118"/>
+    <circle cx="153" cy="262" r="20" class="green" stroke="#25333a" stroke-width="4"/>
+    <path d="M143 260l8 9 17-22" stroke="#fffaf0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="43" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="850">Daybook</text>
+    <text x="89" y="306" class="muted" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="750">small daily proof</text>
+  </g>
 
-    <g class="pulse">
-      <rect x="4" y="2" width="96" height="72" rx="10" fill="#fffaf0" stroke="#302b26" stroke-width="3"/>
-      <path class="soft-line" d="M25 21h48M25 39h42M25 57h30"/>
-      <path d="M13 21l5 5 8-11M13 39l5 5 8-11M13 57l5 5 8-11" stroke="#4f9d69" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    </g>
-    <g transform="translate(126 5)">
-      <rect x="0" y="0" width="88" height="76" rx="10" fill="#ffffff" stroke="#302b26" stroke-width="3"/>
-      <path class="line" d="M0 22h88"/>
-      <path class="soft-line" d="M22 0v22M66 0v22"/>
-      <rect class="blue" x="16" y="34" width="14" height="14" rx="3"/>
-      <rect class="green" x="38" y="34" width="14" height="14" rx="3"/>
-      <rect class="accent" x="60" y="34" width="14" height="14" rx="3"/>
-      <rect class="green" x="16" y="56" width="14" height="14" rx="3"/>
-      <rect class="blue" x="38" y="56" width="14" height="14" rx="3"/>
-    </g>
-    <text x="24" y="277" fill="#6f665c" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="700">goals, rhythm, proof</text>
+  <g transform="translate(783 150)">
+    <ellipse cx="135" cy="300" rx="112" ry="24" fill="#4f8d86" opacity=".25"/>
+    <path class="line" d="M132 197v102"/>
+    <path class="line" d="M132 231 85 260"/>
+    <path class="line" d="M132 231 190 257"/>
+    <path class="line" d="M132 298 95 348"/>
+    <path class="line" d="M132 298 166 348"/>
+    <path class="j-shirt" d="M79 184c19-38 84-46 112 0l-16 75H94L79 184Z" stroke="#25333a" stroke-width="5" stroke-linejoin="round"/>
+    <circle class="skin" cx="132" cy="92" r="49" stroke="#25333a" stroke-width="5"/>
+    <path class="hair" d="M84 84c4-39 31-62 70-55 28 5 44 26 42 56-16-17-35-22-58-15-22 6-38 6-54 14Z"/>
+    <circle class="ink" cx="116" cy="90" r="4"/>
+    <circle class="ink" cx="147" cy="90" r="4"/>
+    <path class="thin" d="M115 110c12 10 27 10 40 0"/>
+    <text x="63" y="383" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="28" font-weight="850">Judging</text>
+    <text x="35" y="410" class="muted" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="700">goals, rhythm, check-ins</text>
+  </g>
+
+  <g transform="translate(888 100)">
+    <rect x="0" y="0" width="130" height="118" rx="18" class="cream" stroke="#25333a" stroke-width="5"/>
+    <path class="line" d="M0 36h130"/>
+    <path class="soft" d="M32 0v36M98 0v36"/>
+    <rect class="blue" x="19" y="53" width="20" height="20" rx="5"/>
+    <rect class="green check" x="55" y="53" width="20" height="20" rx="5"/>
+    <rect class="coral" x="91" y="53" width="20" height="20" rx="5"/>
+    <rect class="green" x="19" y="85" width="20" height="20" rx="5"/>
+    <rect class="blue check" x="55" y="85" width="20" height="20" rx="5"/>
+    <rect class="yellow" x="91" y="85" width="20" height="20" rx="5"/>
+  </g>
+
+  <g transform="translate(715 250)">
+    <rect x="0" y="0" width="138" height="122" rx="18" class="cream" stroke="#25333a" stroke-width="5"/>
+    <path class="thin" d="M36 31h70M36 61h70M36 91h48"/>
+    <path d="M16 29l8 8 16-23M16 59l8 8 16-23M16 89l8 8 16-23" stroke="#5abf75" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>
