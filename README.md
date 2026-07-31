@@ -1,45 +1,71 @@
-# p2j
+# Daybook
 
-**P to J.** I'm a P — I work by feel, and plans mostly happen to me. This is the app I
-built to fix that at work: a few goals, and an honest record of whether I actually
-showed up to them.
+Daybook is a small local check-in app for tracking a few goals and whether you showed
+up for them each day.
 
-The app is called **Daybook**. `p2j` is what the repo is called, and what it's for.
+The repository is named `p2j`: shorthand for "P to J", the original reason for building
+the app.
 
-## Install
+## Project shape
 
-macOS only so far. Nothing in the code is macOS-specific and Tauri builds for Linux and
-Windows too, but it has only ever been built and run here.
+- Desktop shell: Tauri 2
+- Backend: Rust
+- Frontend: one hand-written HTML file at `src/index.html`
+- Package name: `checkin`
+- App name: `Daybook`
 
-Needs Rust 1.77+ and the Xcode command line tools.
+There is no npm install, bundler, or frontend build step.
+
+## Requirements
+
+- Rust 1.77 or newer
+- Tauri CLI 2
+- macOS with Xcode command line tools for the tested build path
+
+The code is not intentionally macOS-only, but this project has only been built and run
+on macOS so far.
 
 ```bash
 xcode-select --install
 cargo install tauri-cli --version "^2"
+```
 
+## Build
+
+```bash
 git clone https://github.com/skang10/p2j
 cd p2j/src-tauri
 cargo tauri build
 ```
 
-Drag `src-tauri/target/release/bundle/macos/Daybook.app` to `/Applications`. There's a
-`.dmg` next to it if you'd rather.
+The macOS app bundle is written to:
 
-No npm, no bundler, no build step for the frontend — it's one hand-written
+```text
+src-tauri/target/release/bundle/macos/Daybook.app
+```
+
+A `.dmg` is generated in the same bundle output area.
+
+## Test
+
+Frontend logic is covered by a lightweight Node harness that loads the script from
 `src/index.html`.
 
-## Where the data lives
-
-One JSON file, on your machine. The app makes no network requests of any kind.
-
+```bash
+node tests/test.js
 ```
+
+## Data
+
+Daybook stores data in one local JSON file and makes no network requests.
+
+```text
 ~/Library/Application Support/com.checkin.app/checkin.json
 ```
 
-The folder says `com.checkin.app` rather than anything with "daybook" in it. That's the
-bundle identifier, set before the app was renamed and deliberately left alone — it's
-what the app builds its data path from, so changing it would point Daybook at an empty
-directory and orphan the file.
+The folder still uses `com.checkin.app` because that is the Tauri bundle identifier.
+Changing it would make the app look in a new data directory and leave existing logs
+behind.
 
-The file is plain indented JSON, readable with `cat` and loadable with pandas. There's no
-export button, so back it up with `cp`.
+The file is plain indented JSON. There is currently no export button, so back it up with
+normal file tools such as `cp`.
