@@ -1,0 +1,203 @@
+<svg width="960" height="360" viewBox="0 0 960 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">P to J concept for Daybook</title>
+  <desc id="desc">A playful illustration showing loose ideas on the P side becoming structured goals and check-ins on the J side.</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    .bg {
+      fill: #f7f3e8;
+    }
+
+    .panel {
+      fill: #fffaf0;
+      stroke: #302b26;
+      stroke-width: 3;
+    }
+
+    .ink {
+      fill: #302b26;
+    }
+
+    .line {
+      stroke: #302b26;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .soft-line {
+      stroke: #6f665c;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .dash {
+      stroke: #d06f3c;
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-dasharray: 10 14;
+      animation: dash 5s linear infinite;
+    }
+
+    .accent {
+      fill: #d06f3c;
+    }
+
+    .green {
+      fill: #4f9d69;
+    }
+
+    .blue {
+      fill: #4d7ea8;
+    }
+
+    .note {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: float 4.5s ease-in-out infinite;
+    }
+
+    .note:nth-of-type(2) {
+      animation-delay: .7s;
+    }
+
+    .note:nth-of-type(3) {
+      animation-delay: 1.3s;
+    }
+
+    .pulse {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: pulse 2.8s ease-in-out infinite;
+    }
+
+    .traveler {
+      animation: travel 5s ease-in-out infinite;
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -48;
+      }
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) rotate(-3deg);
+      }
+      50% {
+        transform: translateY(-10px) rotate(4deg);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes travel {
+      0%, 12% {
+        transform: translate(0, 0);
+        opacity: 0;
+      }
+      22% {
+        opacity: 1;
+      }
+      72% {
+        transform: translate(310px, 0);
+        opacity: 1;
+      }
+      86%, 100% {
+        transform: translate(310px, 0);
+        opacity: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dash,
+      .note,
+      .pulse,
+      .traveler {
+        animation: none;
+      }
+    }
+  </style>
+
+  <rect class="bg" width="960" height="360" rx="28"/>
+  <rect x="34" y="34" width="892" height="292" rx="24" fill="#ffffff" opacity=".45"/>
+
+  <text x="80" y="88" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="40" font-weight="800">P</text>
+  <text x="820" y="88" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="40" font-weight="800">J</text>
+  <text x="372" y="88" class="ink" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="30" font-weight="800">Daybook</text>
+  <text x="343" y="119" fill="#6f665c" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="650">turn loose intent into visible check-ins</text>
+
+  <g transform="translate(82 116)">
+    <circle cx="96" cy="70" r="42" fill="#f0c7a8" stroke="#302b26" stroke-width="4"/>
+    <path class="line" d="M58 62c18-42 69-39 84-2"/>
+    <path class="line" d="M78 74c8 7 25 8 36 0"/>
+    <circle class="ink" cx="82" cy="61" r="4"/>
+    <circle class="ink" cx="113" cy="61" r="4"/>
+    <path class="line" d="M96 113v80"/>
+    <path class="line" d="M96 134 55 168"/>
+    <path class="line" d="M96 134 137 166"/>
+    <path class="line" d="M96 193 62 242"/>
+    <path class="line" d="M96 193 132 242"/>
+
+    <g class="note">
+      <rect x="3" y="1" width="82" height="48" rx="8" fill="#ffe28a" stroke="#302b26" stroke-width="3"/>
+      <path class="soft-line" d="M18 18h40M18 32h24"/>
+    </g>
+    <g class="note">
+      <rect x="142" y="10" width="72" height="44" rx="8" fill="#b9d8f2" stroke="#302b26" stroke-width="3"/>
+      <path class="soft-line" d="M157 27h34M157 39h20"/>
+    </g>
+    <g class="note">
+      <rect x="25" y="203" width="78" height="45" rx="8" fill="#bfe5cd" stroke="#302b26" stroke-width="3"/>
+      <path class="soft-line" d="M40 220h38M40 233h22"/>
+    </g>
+    <text x="32" y="277" fill="#6f665c" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="700">ideas, energy, starts</text>
+  </g>
+
+  <path class="dash" d="M335 194 C410 120 520 120 625 194"/>
+  <g class="traveler" transform="translate(321 180)">
+    <circle class="accent" cx="0" cy="0" r="13"/>
+    <path d="M-5 0h10M0-5v10" stroke="#fffaf0" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(650 116)">
+    <circle cx="96" cy="70" r="42" fill="#f0c7a8" stroke="#302b26" stroke-width="4"/>
+    <path class="line" d="M57 57c17-35 67-38 83 2"/>
+    <path class="line" d="M77 74c9 10 29 10 39 0"/>
+    <circle class="ink" cx="82" cy="61" r="4"/>
+    <circle class="ink" cx="113" cy="61" r="4"/>
+    <path class="line" d="M96 113v80"/>
+    <path class="line" d="M96 134 54 163"/>
+    <path class="line" d="M96 134 139 164"/>
+    <path class="line" d="M96 193 64 242"/>
+    <path class="line" d="M96 193 129 242"/>
+
+    <g class="pulse">
+      <rect x="4" y="2" width="96" height="72" rx="10" fill="#fffaf0" stroke="#302b26" stroke-width="3"/>
+      <path class="soft-line" d="M25 21h48M25 39h42M25 57h30"/>
+      <path d="M13 21l5 5 8-11M13 39l5 5 8-11M13 57l5 5 8-11" stroke="#4f9d69" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(126 5)">
+      <rect x="0" y="0" width="88" height="76" rx="10" fill="#ffffff" stroke="#302b26" stroke-width="3"/>
+      <path class="line" d="M0 22h88"/>
+      <path class="soft-line" d="M22 0v22M66 0v22"/>
+      <rect class="blue" x="16" y="34" width="14" height="14" rx="3"/>
+      <rect class="green" x="38" y="34" width="14" height="14" rx="3"/>
+      <rect class="accent" x="60" y="34" width="14" height="14" rx="3"/>
+      <rect class="green" x="16" y="56" width="14" height="14" rx="3"/>
+      <rect class="blue" x="38" y="56" width="14" height="14" rx="3"/>
+    </g>
+    <text x="24" y="277" fill="#6f665c" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="700">goals, rhythm, proof</text>
+  </g>
+</svg>

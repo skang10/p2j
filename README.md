@@ -7,6 +7,8 @@ The repository is named `p2j`, short for "P to J". The idea comes from the MBTI
 Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style
 and making planning feel a little more structured, visible, and fun.
 
+![P to J concept: loose ideas becoming structured check-ins in Daybook](docs/p2j-concept.svg)
+
 ## Project shape
 
 - Desktop shell: Tauri 2
@@ -39,20 +41,22 @@ cd p2j/src-tauri
 cargo tauri build
 ```
 
-The macOS app bundle is written to:
+That leaves you in `src-tauri`. The app bundle and the installer are written below it:
 
 ```text
-src-tauri/target/release/bundle/macos/Daybook.app
+target/release/bundle/macos/Daybook.app
+target/release/bundle/dmg/Daybook_0.1.0_aarch64.dmg
 ```
 
-A `.dmg` is generated in the same bundle output area.
+The `.dmg` is named for the architecture it was built on.
 
 ## Test
 
 Frontend logic is covered by a lightweight Node harness that loads the script from
-`src/index.html`.
+`src/index.html`. Run it from the repository root:
 
 ```bash
+cd ..
 node tests/test.js
 ```
 
