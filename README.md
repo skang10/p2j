@@ -7,7 +7,7 @@ The repository is named `p2j`, short for "P to J". The idea comes from the MBTI
 Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style
 and making planning feel a little more structured, visible, and fun.
 
-![P to J concept illustration: Prospecting ideas becoming Judging check-ins through Daybook](docs/p2d-concept.png)
+![P to J concept illustration: Prospecting ideas becoming Judging check-ins through Daybook](docs/p2j-concept.png)
 
 ## Project shape
 
