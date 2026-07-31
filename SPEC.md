@@ -488,7 +488,10 @@ goal over an archived one and land it somewhere else.
 heading; clicking it swaps that one goal for its editor — title, type, monthly target, sub-goals,
 removal — while the other goals stay in check-in mode. The editor is a labelled form: every
 control states what it is (`What a tap does`, `Monthly target`, `Sub-goals`) and
-every option states what it will do, rather than naming a kind. Fields that do not apply are absent —
+every option states what it will do, rather than naming a kind: `Marks the day done`, `Adds one`,
+`Crosses it off` — one verb each, with no trailing qualifier. `Adds one` said `to a monthly total`
+until the `Monthly target` field, which appears the moment that option is chosen, made it redundant;
+`Crosses it off` said `the list`, which only repeated the noun already heading the sub-goals. Fields that do not apply are absent —
 a non-count goal shows no monthly target, and no caption about one. `editing` holds the id of the goal
 being edited, or `null`. Archived sub-goals are listed below the live ones, greyed, each with
 `Restore`; that list is the only way back for a sub-goal, so it is not optional. There is no global edit mode: a single bottom toggle meant opening every

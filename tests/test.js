@@ -939,8 +939,8 @@ t('the type options describe what tapping does, not the internal kind', async ()
   a.editing = a.state.goals[0].id; a.render();
   const html = g.captured.app;
   has(html, 'Marks the day done');
-  has(html, 'Adds one to a monthly total');
-  has(html, 'Crosses it off the list');
+  has(html, '>Adds one<');
+  has(html, '>Crosses it off<');
   for (const jargon of ['>Daily<', '>Count<', '>List<'])
     no(html, jargon, 'no implementation vocabulary in the picker');
 });

@@ -864,7 +864,10 @@ function goalBlock(g,k,F){
 // the fields actually on screen.
 // The type of a goal decides what tapping a chip does, so the options say exactly
 // that rather than naming the underlying kind. Every field carries its own label.
-const TAP={daily:'Marks the day done',count:'Adds one to a monthly total',list:'Crosses it off the list'};
+// Three verbs, one each. The trailing qualifiers went: "to a monthly total" is said
+// better by the Monthly target field that appears the moment you pick it, and "the list"
+// only repeated the noun already above the sub-goals.
+const TAP={daily:'Marks the day done',count:'Adds one',list:'Crosses it off'};
 function goalEditor(g){
   const field=(lb,ctrl)=>`<label class="frow"><span class="flbl">${lb}</span><span class="fctl">${ctrl}</span></label>`;
   const kept=goalCount(g), keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);
