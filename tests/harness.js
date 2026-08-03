@@ -16,7 +16,7 @@ dropGoal dropSub restoreGoal restoreSub purgeGoal archivePanel lastWorked
 moveGoal nudgeGoal beginDrag bump clearSub stripSub
 render heatmap heatStart HWEEKS calendar dayPanel snapshotPanel goalBlock paceLine pips
 achievements goalAmount statsPanel goalEditor tabs track bind shift
-beginEdit cancelEdit commitEdit createGoal`.split(/\s+/).filter(Boolean);
+beginEdit cancelEdit commitEdit createGoal navigateGoal`.split(/\s+/).filter(Boolean);
 
 const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'draftGoal', 'draftIsNew', 'categoryScope', 'dataPath', 'saveErr', 'version',
                  'notice', 'purging'];

@@ -922,6 +922,7 @@
   .minibar{grid-column:1/-1;display:block;height:3px;overflow:hidden;border-radius:999px;background:var(--sunk)}
   .minibar>span{display:block;height:100%;border-radius:999px;background:var(--edge)}
   .chartcard{margin-bottom:14px;padding:20px;border:1px solid var(--hair);border-radius:8px;background:var(--surface)}
+  .chartcard>.ach{padding:0;border:0;border-radius:0}
   .statsempty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:360px;
     padding:56px 20px;text-align:center}
   .emptychart{display:flex;align-items:flex-end;justify-content:center;gap:5px;width:62px;height:54px;margin-bottom:20px;
@@ -938,6 +939,26 @@
   .scopecontrol button{min-height:26px;padding:4px 9px;border:0;border-radius:5px;background:transparent;
     color:var(--muted);font-size:10px;font-weight:600;cursor:pointer}
   .scopecontrol button.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(23,25,28,.1)}
+  .recordlist{display:grid;border-top:1px solid var(--hair)}
+  .recordrow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;min-height:52px;
+    padding:9px 0;border-bottom:1px solid var(--hair)}
+  button.recordrow{width:100%;border-left:0;border-right:0;border-top:0;background:transparent;text-align:left;cursor:pointer}
+  button.recordrow:hover{background:var(--faint)}
+  .recordsummary{margin-bottom:22px;padding:18px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+  .recordsummary .charthead{margin-bottom:8px;padding:0 2px}
+  .recordsummary .recordlist{border-top:0}
+  .recordsummary .recordrow:last-child{border-bottom:0}
+  .recordjump{margin-left:5px;font-size:18px;line-height:1;color:var(--dust)}
+  button.recordrow:hover .recordjump{color:var(--accent)}
+  .recordname{display:flex;align-items:center;gap:7px;min-width:0}.recordname b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-size:12px;font-weight:650;color:var(--ink)}
+  .typebadge{display:inline-flex;align-items:center;flex:none;min-height:19px;padding:2px 6px;border:1px solid var(--hair);
+    border-radius:4px;background:var(--faint);font-size:8px;font-weight:600;color:var(--muted)}
+  .headingline{display:flex;align-items:center;gap:8px}
+  .sectioncount{font-size:10px;font-weight:600;color:var(--muted)}
+  .recordvalue{display:flex;align-items:baseline;gap:5px;color:var(--muted)}
+  .recordvalue b{font-size:19px;font-weight:650;color:var(--accent);font-variant-numeric:tabular-nums}
+  .recordvalue span{font-size:9px}
   .barchart{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));align-items:end;gap:18px;
     min-height:238px;padding:8px 4px 0}
   .barcol{display:grid;grid-template-rows:22px 160px 32px;justify-items:center;align-items:end;min-width:0}
@@ -1344,7 +1365,7 @@ function archivePanel(){
     const {v,u}=goalAmount(g), last=lastWorked(g), open=archiveOpen.has(g.id);
     const details=g.subs.map(s=>`<div class="archsub"><span>${esc(s.title)}</span>
       <b>${subTotal(s.id)}</b><em>record${subTotal(s.id)===1?'':'s'}</em></div>`).join('');
-    return `<div class="arch">
+    return `<div class="arch" data-archive-goal="${g.id}">
       <button class="archtoggle" data-ao="${g.id}" aria-expanded="${open}">
         <h3>${esc(g.title)}</h3><span aria-hidden="true">›</span></button>
       <p class="acap"><b>${v}</b> ${u}${last?` · last worked ${short(last)}`:''}</p>
@@ -1622,7 +1643,7 @@ function achievements(){
   const out=[], F=firstDone();
   state.goals.forEach(g=>{
     if(g.type==='list')
-      g.subs.forEach(s=>{ if(F[s.id]) out.push({d:F[s.id],g:g.title,t:s.title}); });
+      g.subs.forEach(s=>{ if(F[s.id]) out.push({d:F[s.id],g:g.title,gid:g.id,t:s.title}); });
     if(g.type==='count'){
       const acc={}, tg=g.target||40;
       Object.keys(state.logs).sort().forEach(k=>{
@@ -1631,7 +1652,7 @@ function achievements(){
         const mk=k.slice(0,7), before=acc[mk]||0;
         acc[mk]=before+add;
         if(before<tg && acc[mk]>=tg)
-          out.push({d:k,g:g.title,t:`${MONS[+mk.slice(5)-1]} target met · ${tg}`,hit:true});
+          out.push({d:k,g:g.title,gid:g.id,t:`${MONS[+mk.slice(5)-1]} target met · ${tg}`,hit:true});
       });
     }
   });
@@ -1661,17 +1682,19 @@ function statsPanel(){
     <div class="emptychart" aria-hidden="true"><i></i><i></i><i></i></div>
     <h3>No stats yet</h3><p>No Goals to chart.</p>
     <button class="btn pri" id="emptyGoal">Create Goal</button></div>`;
-  const ach=achievements().filter(a=>inMonth(a.d,view.y,view.m));
+  const ach=achievements().filter(a=>inMonth(a.d,view.y,view.m)&&!a.hit);
   const colors=['#176B57','#7B61A8','#3276A8','#C17A32','#B24C62'];
   const monthGoals=state.goals.filter(g=>!g.archived||goalAmount(g,view.y,view.m).v>0);
-  const monthly=monthGoals.map((g,index)=>{
-    const {v,u}=goalAmount(g,view.y,view.m);
-    const max=g.type==='count'?(g.target||40):g.type==='list'?Math.max(1,g.subs.length):daysIn(view.y,view.m);
-    const pct=Math.min(100,max?v/max*100:0);
-    return `<div class="barcol" title="${esc(g.title)} · ${v} ${esc(u)}">
-      <span class="barvalue">${v}</span>
-      <span class="barwell"><i style="height:${pct}%;background:${colors[index%colors.length]}"></i></span>
-      <span class="barlabel">${esc(g.title)}${g.archived?'<i class="gone">archived</i>':''}</span></div>`;
+  const records=monthGoals.map(g=>{
+    const n=goalCount(g,view.y,view.m);
+    return `<button class="recordrow" data-stat-goal="${g.id}" aria-label="${esc(g.title)} · ${n} record${n===1?'':'s'}">
+      <div class="recordname"><b>${esc(g.title)}${g.archived?'<i class="gone">archived</i>':''}</b><span class="typebadge">${TAP[g.type]}</span></div>
+      <div class="recordvalue"><b>${n}</b><span>record${n===1?'':'s'}</span><i class="recordjump" aria-hidden="true">›</i></div></button>`;
+  }).join('');
+  const activeDays=monthGoals.filter(g=>g.type==='daily').map(g=>{
+    const n=goalDays(g,view.y,view.m);
+    return `<div class="recordrow" data-stat-target="${g.id}"><div class="recordname"><b>${esc(g.title)}${g.archived?'<i class="gone">archived</i>':''}</b></div>
+      <div class="recordvalue"><b>${n}</b><span>active day${n===1?'':'s'}</span></div></div>`;
   }).join('');
   const donutGoals=state.goals.filter(g=>g.type==='count'&&(!g.archived||(
     categoryScope==='all'?goalAmount(g).v>0:goalAmount(g,view.y,view.m).v>0)));
@@ -1682,7 +1705,7 @@ function statsPanel(){
     const stops=values.map((n,i)=>{const from=at;at+=total?n/total*100:0;
       return `${colors[i%colors.length]} ${from}% ${at}%`}).join(',');
     const fill=total&&stops?`conic-gradient(${stops})`:'var(--sunk)';
-    return `<section class="donutgroup">
+    return `<section class="donutgroup" data-stat-target="${g.id}">
       <div class="donut" role="img" aria-label="${esc(g.title)} ${categoryScope==='all'?'all-time':'monthly'} total ${total}" style="background:${fill}">
         <span><b>${total}</b><em>total</em></span></div>
       <div class="donutmeta"><h4>${esc(g.title)}</h4><p>${categoryScope==='all'?'All-time':'Selected month'} by category</p>
@@ -1692,23 +1715,26 @@ function statsPanel(){
   }).join('');
 
   return `
-    <section class="chartcard">
-      <div class="charthead"><div><h4>Monthly progress</h4><p>Progress toward each goal's monthly capacity</p></div></div>
-      <div class="barchart">${monthly||'<p class="hint">No goals yet.</p>'}</div>
+    <section class="recordsummary">
+      <div class="charthead"><div><h4>Monthly records</h4></div></div>
+      <div class="recordlist">${records}</div>
     </section>
-    ${donuts?`<section class="chartcard"><div class="charthead"><div><h4>Category mix</h4><p>Adds one records by category</p></div>
+    ${activeDays?`<section class="chartcard"><div class="charthead"><div class="headingline"><h4>Active days</h4><span class="typebadge">Marks the day done</span></div></div>
+      <div class="recordlist">${activeDays}</div></section>`:''}
+    ${donuts?`<section class="chartcard"><div class="charthead"><div class="headingline"><h4>Category mix</h4><span class="typebadge">Adds one</span></div>
       <div class="scopecontrol" aria-label="Category mix range">
         <button class="${categoryScope==='month'?'active':''}" data-cscope="month">This month</button>
         <button class="${categoryScope==='all'?'active':''}" data-cscope="all">All time</button>
       </div></div>${donuts}</section>`:''}
 
-    ${ach.length?`<h4 class="sh">Completed · ${ach.length} item${ach.length===1?'':'s'}</h4>
+    ${ach.length?`<section class="chartcard"><div class="charthead"><div class="headingline"><h4>Completed</h4><span class="typebadge">Crosses it off</span></div>
+      <span class="sectioncount">${ach.length} item${ach.length===1?'':'s'} this month</span></div>
     <div class="ach">${ach.map(a=>
-      `<div class="arow${a.hit?' hit':''}">
+      `<div class="arow${a.hit?' hit':''}" data-stat-target="${a.gid}">
         <span class="ad mono">${short(a.d)}</span>
         <span class="at">${esc(a.t)}</span>
         <span class="ag">${esc(a.g)}</span></div>`).join('')
-      }</div>`:''}`;
+      }</div></section>`:''}`;
 }
 
 /* ---------- events ---------- */
@@ -1745,6 +1771,10 @@ function createGoal(){
   draftGoal={id,type:'daily',title:'New goal',subs:[]};
   draftIsNew=true; editing=id; panel='day'; render();
 }
+function navigateGoal(id){
+  document.querySelector(`[data-stat-target="${id}"]`)
+    ?.scrollIntoView({behavior:'smooth',block:'center'});
+}
 function bind(){
   on('[data-tog]',b=>b.onclick=()=>{const k=sel||todayKey();
     bump(b.dataset.tog,(state.logs[k]||{})[b.dataset.tog]?-1:1);});
@@ -1757,6 +1787,7 @@ function bind(){
     archiveOpen.has(id)?archiveOpen.delete(id):archiveOpen.add(id); render(); });
   on('[data-sm]',b=>b.onclick=()=>shift(+b.dataset.sm));
   on('[data-cscope]',b=>b.onclick=()=>{categoryScope=b.dataset.cscope;render();});
+  on('[data-stat-goal]',b=>b.onclick=()=>navigateGoal(b.dataset.statGoal));
   on('.d[data-k]',c=>c.onclick=()=>{ sel=c.dataset.k; panel='day'; render(); });
   on('.hd[data-hk]',c=>c.onclick=()=>{ const d=parseKey(c.dataset.hk);
     view={y:d.getFullYear(),m:d.getMonth()}; sel=c.dataset.hk; panel='day'; render(); });

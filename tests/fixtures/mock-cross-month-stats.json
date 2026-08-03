@@ -1,0 +1,54 @@
+{
+  "_mockScenario": "cross-month-stats",
+  "goals": [
+    {
+      "id": "stats-count",
+      "type": "count",
+      "target": 12,
+      "title": "Practice sessions",
+      "subs": [
+        { "id": "stats-arrays", "title": "Arrays" },
+        { "id": "stats-sql", "title": "SQL" }
+      ]
+    },
+    {
+      "id": "stats-daily",
+      "type": "daily",
+      "title": "Writing routine",
+      "subs": [
+        { "id": "stats-draft", "title": "Draft" },
+        { "id": "stats-edit", "title": "Edit" }
+      ]
+    },
+    {
+      "id": "stats-list",
+      "type": "list",
+      "title": "Release checklist",
+      "subs": [
+        { "id": "stats-outline", "title": "Outline" },
+        { "id": "stats-review", "title": "Peer review" },
+        { "id": "stats-publish", "title": "Publish" }
+      ]
+    },
+    {
+      "id": "stats-archived",
+      "type": "count",
+      "target": 6,
+      "title": "July sprint",
+      "archived": true,
+      "subs": [
+        { "id": "stats-ticket", "title": "Tickets" }
+      ]
+    }
+  ],
+  "logs": {
+    "2026-06-08": { "stats-arrays": 2, "stats-draft": 1 },
+    "2026-06-20": { "stats-sql": 1, "stats-outline": 1 },
+    "2026-07-05": { "stats-arrays": 4, "stats-draft": 1, "stats-ticket": 2 },
+    "2026-07-18": { "stats-sql": 2, "stats-edit": 1, "stats-ticket": 4 },
+    "2026-07-25": { "stats-review": 1 },
+    "2026-08-01": { "stats-arrays": 1, "stats-draft": 1 },
+    "2026-08-03": { "stats-sql": 3, "stats-edit": 1 },
+    "2026-08-04": { "stats-publish": 1 }
+  }
+}

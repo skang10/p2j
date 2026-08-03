@@ -1,21 +1,19 @@
-# Daybook
-
-Daybook is a small local check-in app for tracking a few goals and whether you showed
-up for them each day.
-
-The repository is named `p2j`, short for "P to J". The idea comes from the MBTI
-Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style
-and making planning feel a little more structured, visible, and fun.
+# P2J Daybook
 
 ![P to J concept illustration: Prospecting ideas becoming Judging check-ins through Daybook](docs/p2j-concept.png)
+
+P2J Daybook is a local check-in app for tracking a few goals and whether you showed
+up for them each day.
+
+`p2j`, short for "P to J". The idea comes from the MBTI
+Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style to a more
+structured, check-in style.
 
 ## Project shape
 
 - Desktop shell: Tauri 2
 - Backend: Rust
-- Frontend: one hand-written HTML file at `src/index.html`
-- Package name: `checkin`
-- App name: `Daybook`
+- Frontend: JavaScript, HTML, CSS
 
 ## Requirements
 

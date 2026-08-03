@@ -269,13 +269,17 @@ t('day panel renders the calendar, the goals and their chips', async () => {
 // Stats answers one question now: how much have I done. Everything it used to draw
 // answered a different one — when in the week do I work, am I trending, what share is
 // each goal of the whole — and none of those is an amount.
-t('Stats shows charts and only adds a completion log when it has entries', async () => {
+t('Stats separates monthly records, active days, category mix, and completed items', async () => {
   const g = await bootReady();
   const a = g.api;
   a.panel = 'stats'; a.render();
   const html = g.captured.app;
-  has(html, 'Monthly progress'); has(html, 'Category mix'); no(html, 'Completed · 0');
-  eq((html.match(/class="barcol"/g) || []).length, 3, 'one bar per goal');
+  has(html, 'Monthly records'); has(html, 'Active days'); has(html, 'Category mix'); no(html, 'Crosses it off items · 0');
+  has(html, '<span class="typebadge">Marks the day done</span>');
+  has(html, '<span class="typebadge">Adds one</span>');
+  no(html, 'Check-ins recorded for each Goal', 'section subtitles are replaced by labels');
+  eq((html.match(/aria-label="[^"]+ · \d+ records?"/g) || []).length, 3, 'one record total per goal');
+  no(html, 'class="barcol"', 'different goal units are not combined in a bar chart');
   no(html, 'Last 12 months', 'consistency history belongs to Today');
   no(html, 'By weekday'); no(html, 'share of check-ins');
   no(html, 'class="amtrow', 'the old amount list is gone');
@@ -315,17 +319,27 @@ t('the amount a goal shows is scoped to what that goal counts', async () => {
 t('Stats switches months without leaving Stats', async () => {
   const a = await fixture();
   a.panel = 'stats'; a.view = { y: 2026, m: 6 };
-  has(a.statsPanel(), 'Problems · 6 check-ins', 'July count total');
+  has(a.statsPanel(), 'Problems · 6 records', 'July count total');
   a.shift(1);
   eq(a.panel, 'stats'); eq(a.view, { y: 2026, m: 7 });
-  has(a.statsPanel(), 'Problems · 4 check-ins', 'August count total');
+  has(a.statsPanel(), 'Problems · 4 records', 'August count total');
 });
-t('Stats renders a column chart and a selected-month donut chart', async () => {
+t('Stats renders per-goal record totals and a selected-month donut chart', async () => {
   const a = await fixture();
   const html = a.statsPanel();
-  eq((html.match(/class="barcol"/g) || []).length, 3, 'one monthly bar per goal');
+  eq((html.match(/aria-label="[^"]+ · \d+ records?"/g) || []).length, 3, 'one monthly record row per goal');
   has(html, 'class="donut"');
   has(html, 'aria-label="Problems monthly total 6"');
+});
+t('Monthly record rows navigate within Stats to their type-specific detail', async () => {
+  const g = await arch(); const a = g.api;
+  const html = a.statsPanel();
+  has(html, 'class="recordsummary"'); has(html, 'data-stat-goal="g1"');
+  has(html, '<section class="donutgroup" data-stat-target="g1">', 'Adds one points to Category mix');
+  has(html, 'data-stat-target="g3"', 'Marks the day done points to Active days');
+  has(html, 'data-stat-target="g2"', 'Crosses it off points to Completed');
+  a.panel = 'stats'; a.navigateGoal('g1');
+  eq(a.panel, 'stats', 'the jump does not leave Stats');
 });
 t('Adds one category mix defaults to the selected month and can show all time', async () => {
   const a = await fixture();
@@ -344,7 +358,7 @@ t('archived sub-goals leave the visible Stats category breakdown', async () => {
   const html = a.statsPanel();
   has(html, '<em>DP</em><b>5</b>');
   no(html, '<em>Trees</em>', 'Stats categories mirror the active Today categories');
-  has(html, 'Problems · 6 check-ins', 'historical records still count in the selected-month total');
+  has(html, 'Problems · 6 records', 'historical records still count in the selected-month total');
 });
 t('every goal offers its own Edit control', async () => {
   const g = await bootReady();
@@ -530,9 +544,8 @@ t('daily goal says "1 day" and "2 days"', async () => {
   a.state.logs['2026-07-04'] = { d1: 1 };
   has(a.goalBlock(g, '2026-07-03', a.firstDone()), '<b>2</b> days this month');
 });
-// The summary line that used to head this panel — days logged, check-ins, attendance,
-// and the "Since Jul 31" span — is gone. Stats is four charts and nothing else.
-t('stats opens straight into its charts, with no summary figures', async () => {
+// The old generic summary — days logged, attendance, and "Since Jul 31" — is gone.
+t('stats opens straight into its type-specific sections, with no generic summary', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state.logs = {};
@@ -541,7 +554,7 @@ t('stats opens straight into its charts, with no summary figures', async () => {
   const html = a.statsPanel();          // the panel alone: the calendar column has its own run readout
   no(html, 'day logged'); no(html, 'attendance'); no(html, 'Since ');
   no(html, 'class="tally', 'no readout block in here any more');
-  no(html, 'Completed · 0 items', 'an empty Completed section stays out of the way');
+  no(html, 'Crosses it off items · 0', 'an empty Completed section stays out of the way');
   no(html, 'Finished list items', 'there is no input-like empty-state explanation');
 });
 t('no "1 <noun>s" anywhere in a single-item render', async () => {
@@ -1322,7 +1335,7 @@ t('an explicit mock scenario may exercise the true empty state', async () => {
   has(g.captured.app, 'No goals yet.');
   g.api.panel = 'stats'; g.api.render();
   has(g.captured.app, 'No stats yet'); has(g.captured.app, 'id="emptyGoal"');
-  no(g.captured.app, 'class="chartcard"'); no(g.captured.app, 'Completed · 0 items');
+  no(g.captured.app, 'class="chartcard"'); no(g.captured.app, 'Crosses it off items · 0');
   g.api.panel = 'archive'; g.api.render();
   has(g.captured.app, 'Nothing archived.');
 });
@@ -1369,6 +1382,17 @@ t('the archive mock covers archived goals, an archived item, and preserved logs'
   eq(mock.goals.flatMap(g => g.subs).filter(s => s.archived).length, 1);
   eq(mock.logs['2026-08-01']['archive-code'], 3, 'archived goal records remain in history');
   eq(mock.logs['2026-07-15']['live-old'], 1, 'archived sub-goal records remain in history');
+});
+t('the cross-month Stats mock separates monthly and all-time totals', async () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-cross-month-stats.json'), 'utf8'));
+  const count = (month, ids) => Object.entries(mock.logs)
+    .filter(([day]) => day.startsWith(`2026-${month}`))
+    .reduce((sum, [, day]) => sum + ids.reduce((n, id) => n + (day[id] || 0), 0), 0);
+  eq(['06', '07', '08'].map(m => count(m, ['stats-arrays', 'stats-sql'])), [3, 6, 4]);
+  eq(count('07', ['stats-ticket']), 6, 'the archived goal belongs to July');
+  eq(count('08', ['stats-ticket']), 0, 'the archived goal is absent from August');
+  eq(count('06', ['stats-arrays']) + count('07', ['stats-arrays']) + count('08', ['stats-arrays']), 7);
 });
 t('load always lands on today in the day panel', async () => {
   const g = await loadFrom({ goals: [{ id: 'a', type: 'daily', cad: 'free', title: 'g', subs: [] }], logs: {} });
@@ -1465,7 +1489,7 @@ t('stats still credit an archived goal, and say it is archived', async () => {
   a.dropGoal('g1'); a.dropGoal('g2');
   const sp = a.statsPanel();
   has(sp, 'Problems', 'it keeps its row');
-  has(sp, 'Problems · 6 check-ins', 'with its selected-month total');
+  has(sp, 'Problems · 6 records', 'with its selected-month total');
   has(sp, '<em>DP</em><b>5</b>', 'its category breakdown follows the selected month');
   has(sp, '<i class="gone">archived</i>', 'and says why a name you no longer track is here');
   ok(a.achievements().some(x => x.t === 'A'), 'and a finished list item stays an achievement');
