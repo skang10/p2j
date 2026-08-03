@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Daybook</title>
+<title>P2J Daybook</title>
 <style>
   /* ───────────────────────────────────────────────────────────────────────
      "Figure" — this is a plot of one person's attendance, not a dashboard.
@@ -725,11 +725,12 @@
   .sidebar{position:sticky;top:0;height:100vh;padding:28px 22px 24px;background:rgba(247,248,249,.94);
     border-right:1px solid rgba(23,25,28,.09);backdrop-filter:blur(24px);overflow:auto}
   .top{display:flex;align-items:center;gap:11px;padding:0 2px 28px}
-  .brandmark{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:9px;
-    background:var(--accent);color:#fff;font-size:18px;font-weight:700;box-shadow:0 4px 12px rgba(23,107,87,.22)}
+  .brandmark{display:block;width:36px;height:36px;flex:none;border-radius:9px;object-fit:cover;
+    box-shadow:0 4px 12px rgba(23,25,28,.13)}
   .top h1{font-family:var(--sans);font-size:17px;line-height:1.2;font-weight:700;letter-spacing:0;color:var(--ink)}
   .top p{margin-top:2px;font-size:11px;line-height:1.25;color:var(--muted)}
-  .top .ver{margin-left:auto;align-self:flex-start;padding-top:2px;font-size:10px}
+  .top .ver{margin-left:auto;align-self:center;padding:0;background:transparent;color:var(--muted);
+    font-family:var(--sans);font-size:10px;font-weight:500}
 
   .phead{display:block;margin:0 0 30px;border:0}
   .tabs{display:flex;flex-direction:column;gap:3px;padding:0;background:transparent;border-radius:0}
@@ -744,9 +745,9 @@
   .ctx{display:block;padding:9px 12px 0;font-family:var(--sans);font-size:11px;white-space:normal}
 
   .calcol{padding:0;background:transparent;border:0}
-  .nav{margin:0 0 12px;padding:0 3px}
-  .nav .m{font-family:var(--sans);font-size:13px;font-weight:650;letter-spacing:0;text-align:left;flex:1}
-  .nav button{width:27px;height:27px;margin-left:3px;border:1px solid var(--hair);border-radius:6px;
+  .nav{display:grid;grid-template-columns:27px minmax(0,1fr) 27px;align-items:center;margin:0 0 12px;padding:0 3px}
+  .nav .m{font-family:var(--sans);font-size:13px;font-weight:650;letter-spacing:0;text-align:center}
+  .nav button{width:27px;height:27px;margin:0;border:1px solid var(--hair);border-radius:6px;
     background:var(--surface);font-size:16px;color:var(--body)}
   .nav button:hover:not(:disabled){background:var(--soft);border-color:var(--edge);color:var(--accent)}
   .dow{gap:3px;margin-bottom:4px}.dow i{font-family:var(--sans);font-size:9px;letter-spacing:0}
@@ -759,9 +760,12 @@
   .d.today{box-shadow:inset 0 0 0 1px var(--accent)}
   .d.sel,.d.today.sel{background:var(--accent);box-shadow:none}
   .d.sel .num,.d.today.sel .num{color:#fff;font-weight:650}
-  .tally{margin-top:16px;padding:14px 3px 0;border-top:1px solid var(--hair);border-bottom:0}
-  .tally span{height:auto;line-height:1}.tally b{min-width:0;font-size:21px;text-align:left;color:var(--accent)}
-  .tally em{font-family:var(--sans);font-size:11px;margin-left:7px}
+  .tally{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;padding:16px 0 0;
+    border-top:1px solid var(--hair);border-bottom:0}
+  .tally span{display:flex;flex-direction:column;align-items:center;height:auto;line-height:1;text-align:center}
+  .tally span+span{border-left:1px solid var(--hair)}
+  .tally b{min-width:0;font-family:var(--sans);font-size:22px;font-weight:650;text-align:center;color:var(--accent)}
+  .tally em{margin:7px 0 0;font-family:var(--sans);font-size:10px;font-style:normal;color:var(--muted)}
 
   .workspace{min-width:0;padding:54px clamp(32px,5vw,76px) 64px}
   .workhead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;max-width:920px;margin:0 auto 30px}
@@ -770,6 +774,12 @@
   .daystatus{display:flex;align-items:baseline;gap:6px;flex:none;color:var(--muted)}
   .daystatus b{font-size:25px;line-height:1;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
   .daystatus span{font-size:11px}
+  .monthswitch{display:grid;grid-template-columns:30px minmax(120px,auto) 30px;align-items:center;gap:5px}
+  .monthswitch span{text-align:center;font-size:12px;font-weight:600;color:var(--body)}
+  .monthswitch button{width:30px;height:30px;border:1px solid var(--line);border-radius:7px;background:var(--surface);
+    color:var(--body);font-size:17px;cursor:pointer}
+  .monthswitch button:hover:not(:disabled){border-color:var(--edge);background:var(--soft);color:var(--accent)}
+  .monthswitch button:disabled{opacity:.35;cursor:default}
   .panel{max-width:920px;margin:0 auto;padding:0;background:transparent}
 
   .goal{margin:0 0 10px;padding:20px 20px 19px;background:var(--surface);border:1px solid var(--hair)!important;
@@ -779,7 +789,9 @@
   .ghead{align-items:center}.gright{align-items:center;gap:12px}
   .ghandle{left:-25px;top:25px}.gedit{opacity:0;font-size:12px}
   .goal:hover .gedit,.gedit:focus-visible{opacity:1}
-  .prog{font-family:var(--sans);font-size:11px;letter-spacing:0}.prog b{font-size:16px;font-weight:650}
+  .prog{font-family:var(--sans);font-size:11px;line-height:1.2;letter-spacing:0;color:var(--muted)}
+  .prog b{font-size:16px;font-weight:650}
+  .prog i{margin-left:4px;margin-right:7px;color:var(--dust)}
   .pace,.pips,.bar{margin-top:13px}.ptrack,.bar{height:5px;background:var(--sunk)}
   .ptrack .done,.bar i{background:var(--accent)}.ptrack .proj{background:var(--edge)}
   .pips{gap:3px}.pip{width:7px;height:7px;border-radius:2px}.pip.f{background:var(--accent)}
@@ -807,6 +819,46 @@
   .frow{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0}
   .flbl{padding:0;font-family:var(--sans);font-size:12px}.esep{margin:14px 0}
   .btn.pri{background:var(--accent);border-color:var(--accent)}
+  .editorbackdrop{position:fixed;inset:0;z-index:20;border:0;background:rgba(23,25,28,.18);
+    backdrop-filter:blur(2px);cursor:default;animation:fadein .16s ease-out}
+  .goal.ed{position:fixed;z-index:21;top:0;right:0;bottom:0;width:min(430px,calc(100vw - 32px));
+    margin:0;padding:28px 26px 32px;border:0!important;border-radius:0;background:var(--surface);
+    box-shadow:-18px 0 48px rgba(23,25,28,.13);overflow-y:auto;animation:drawerin .2s ease-out}
+  .goal.ed:hover{border:0!important;box-shadow:-18px 0 48px rgba(23,25,28,.13)}
+  .goal.ed.steady{animation:none}
+  .goal.ed .ehead{position:sticky;top:-28px;z-index:1;margin:-28px -26px 20px;padding:24px 26px 16px;
+    background:rgba(255,255,255,.94);border-bottom:1px solid var(--hair);backdrop-filter:blur(18px)}
+  .goal.ed .ehead h3{font-size:15px;font-weight:650;color:var(--ink)}
+  .goal.ed .etitle{margin-bottom:14px;padding:10px 11px;font-size:15px;font-weight:600}
+  .settingsgroup{margin-bottom:2px;padding:0 12px;border:1px solid var(--hair);border-radius:8px;background:var(--faint)}
+  .settingsgroup .frow{min-height:44px;padding:7px 0}
+  .settingsgroup .frow+.frow{border-top:1px solid var(--hair)}
+  .settingsgroup .flbl{font-size:11px;color:var(--muted)}
+  .settingsgroup .fctl{display:flex;justify-content:flex-end}
+  .settingsgroup select,.settingsgroup input[type=number]{height:30px;padding:3px 26px 3px 8px;border:0;
+    background:transparent;box-shadow:none;color:var(--ink);font-size:12px;font-weight:550;text-align:right}
+  .settingsgroup input[type=number]{width:70px;padding-right:5px}
+  .settingsgroup select:focus,.settingsgroup input[type=number]:focus{border:0;box-shadow:none}
+  .substickers{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:5px 0 2px}
+  .goal.ed .erow.sub.sticker{display:inline-flex;align-items:center;gap:3px;width:auto;max-width:100%;
+    padding:4px 5px 4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--sunk)}
+  .goal.ed .erow.sub.sticker:focus-within{border-color:var(--edge);background:var(--soft)}
+  .goal.ed .erow.sub.sticker input[type=text]{flex:none;width:calc(var(--chars) * 1ch);max-width:250px;min-width:0;padding:2px 1px;
+    border:0;border-radius:0;background:transparent;color:var(--body);font-size:12px;font-weight:550}
+  .goal.ed .erow.sub.sticker:focus-within input[type=text]{color:var(--accent)}
+  .goal.ed .erow.sub.sticker input[type=text]:hover{border:0}
+  .goal.ed .erow.sub.sticker input[type=text]:focus{border:0;box-shadow:none}
+  .goal.ed .erow.sub.sticker .x{width:21px;height:21px;border-radius:50%;font-size:14px;color:var(--muted)}
+  .goal.ed .erow.sub.sticker .x:hover{background:rgba(23,25,28,.08);color:var(--ink)}
+  .substickeradd{display:grid;place-items:center;width:31px;height:31px;padding:0;border:1px solid var(--line);
+    border-radius:50%;background:var(--sunk);color:var(--muted)}
+  .substickeradd span{font-size:17px;line-height:1;color:var(--muted)}
+  .substickeradd:hover{border-color:var(--edge);background:var(--soft)}
+  .substickeradd:hover span{color:var(--accent)}
+  .goal.ed .edfoot{position:sticky;bottom:-32px;margin:20px -26px -32px;padding:15px 26px 22px;
+    background:rgba(255,255,255,.94);border-top:1px solid var(--hair);backdrop-filter:blur(18px)}
+  @keyframes drawerin{from{transform:translateX(24px);opacity:.7}to{transform:translateX(0);opacity:1}}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
 
   .history{max-width:920px;margin:48px auto 0;padding-top:24px;border-top:1px solid var(--line)}
   .historyhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:17px}
@@ -820,14 +872,66 @@
   .sh:first-of-type{margin-top:0}.amt,.ach,.arch{background:var(--surface)}
   .amt,.ach{padding:2px 18px;border:1px solid var(--hair);border-radius:8px}
   .amtrow,.arow{padding:13px 0}.arch{margin-bottom:10px;padding:18px;border:1px solid var(--hair);border-radius:8px}
+  .amtrow{flex-wrap:wrap;column-gap:10px;row-gap:8px}
+  .amtrow.hasbreak{padding-bottom:12px;border-bottom:0}
+  .statbar{display:block;width:100%;height:5px;overflow:hidden;border-radius:999px;background:var(--sunk)}
+  .statbar>span{display:block;height:100%;border-radius:999px;background:var(--accent)}
+  .countbreak{display:grid;gap:10px;padding:0 0 15px;border-bottom:1px solid var(--hair)}
+  .countbreak:last-child{border-bottom:0}
+  .countlabel{width:100%;padding-top:1px;font-size:10px;color:var(--dust)}
+  .countcat{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:3px 12px}
+  .countcat i{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;
+    font-style:normal;color:var(--muted)}
+  .countcat b{font-size:12px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+  .minibar{grid-column:1/-1;display:block;height:3px;overflow:hidden;border-radius:999px;background:var(--sunk)}
+  .minibar>span{display:block;height:100%;border-radius:999px;background:var(--edge)}
+  .chartcard{margin-bottom:14px;padding:20px;border:1px solid var(--hair);border-radius:8px;background:var(--surface)}
+  .charthead{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+  .charthead h4{font-size:14px;font-weight:650;color:var(--ink)}
+  .charthead p{margin-top:2px;font-size:10px;color:var(--muted)}
+  .barchart{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));align-items:end;gap:18px;
+    min-height:238px;padding:8px 4px 0}
+  .barcol{display:grid;grid-template-rows:22px 160px 32px;justify-items:center;align-items:end;min-width:0}
+  .barvalue{align-self:start;font-size:12px;font-weight:650;color:var(--body);font-variant-numeric:tabular-nums}
+  .barwell{position:relative;display:block;width:min(42px,70%);height:160px;overflow:hidden;border-radius:7px 7px 4px 4px;
+    background:var(--sunk)}
+  .barwell i{position:absolute;left:0;right:0;bottom:0;display:block;min-height:2px;border-radius:7px 7px 3px 3px}
+  .barlabel{align-self:start;width:100%;padding-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    text-align:center;font-size:10px;color:var(--muted)}
+  .barlabel i.gone{display:block;margin:1px 0 0;font-size:8px}
+  .donutgroup{display:grid;grid-template-columns:150px minmax(0,1fr);align-items:center;gap:28px;padding:10px 0 22px}
+  .donutgroup+.donutgroup{padding-top:22px;border-top:1px solid var(--hair)}
+  .donut{position:relative;width:142px;height:142px;border-radius:50%}
+  .donut::after{content:"";position:absolute;inset:25px;border-radius:50%;background:var(--surface)}
+  .donut>span{position:absolute;inset:25px;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .donut b{font-size:24px;line-height:1;font-weight:680;color:var(--ink);font-variant-numeric:tabular-nums}
+  .donut em{margin-top:5px;font-size:9px;font-style:normal;color:var(--muted)}
+  .donutmeta h4{font-size:14px;font-weight:650;color:var(--ink)}
+  .donutmeta>p{margin:2px 0 13px;font-size:10px;color:var(--muted)}
+  .donutlegend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}
+  .donutlegend>span{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:7px;min-width:0}
+  .donutlegend i{width:8px;height:8px;border-radius:2px}
+  .donutlegend em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-style:normal;color:var(--muted)}
+  .donutlegend b{font-size:11px;font-weight:650;color:var(--body);font-variant-numeric:tabular-nums}
   .arch h3{font-size:15px}.notice{margin-bottom:14px;padding:10px 12px;border-radius:7px;background:var(--soft)}
+  .archtoggle{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;background:transparent;
+    color:var(--ink);cursor:pointer;text-align:left}
+  .archtoggle>span{font-size:21px;line-height:1;color:var(--dust);transition:transform .16s,color .16s}
+  .archtoggle[aria-expanded="true"]>span{transform:rotate(90deg);color:var(--accent)}
+  .archtoggle:hover>span{color:var(--accent)}
+  .archdetail{margin-top:14px;padding:5px 12px;border:1px solid var(--hair);border-radius:7px;background:var(--faint)}
+  .archsub{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:baseline;gap:5px;padding:9px 0;
+    border-bottom:1px solid var(--hair);font-size:12px}
+  .archsub:last-child{border-bottom:0}.archsub span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--body)}
+  .archsub b{font-size:13px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+  .archsub em{font-size:10px;font-style:normal;color:var(--muted)}
   .foot{position:fixed;right:18px;bottom:18px;padding:10px 14px;border-radius:7px;background:var(--surface);
     box-shadow:0 8px 24px rgba(23,25,28,.14);z-index:5}
 
   @media(max-width:820px){
     .appframe{grid-template-columns:1fr}.sidebar{position:relative;height:auto;padding:20px 18px 16px;border-right:0;border-bottom:1px solid var(--hair)}
     .top{padding-bottom:18px}.top p{display:none}.phead{margin-bottom:20px}.tabs{flex-direction:row;padding:3px;background:rgba(23,25,28,.055);border-radius:8px}
-    .tab{text-align:center;padding:7px 8px}.tab::before{display:none}.calcol{max-width:420px;margin:0 auto}.tally{display:none}
+    .tab{text-align:center;padding:7px 8px}.tab::before{display:none}.calcol{max-width:420px;margin:0 auto}.tally{display:grid}
     .workspace{padding:32px 18px 46px}.workhead{margin-bottom:22px}.workhead h2{font-size:23px}.history{margin-top:36px}
   }
   @media(max-width:520px){
@@ -835,6 +939,12 @@
     .workhead{align-items:flex-start}.daystatus{display:none}.goal{padding:17px 15px}.ghead{align-items:flex-start}
     .gright{flex-direction:column;align-items:flex-end;gap:3px}.gedit{opacity:1}.history{overflow:hidden}
     .heat{overflow-x:auto;padding-bottom:6px}.hmons,.hgrid{min-width:680px}.amtrow .u{min-width:74px}.arow .ag{display:none}
+    .goal.ed{width:100vw;padding-left:20px;padding-right:20px}
+    .goal.ed .ehead{margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px}
+    .goal.ed .edfoot{margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px}
+    .chartcard{padding:16px}.barchart{gap:10px}.barcol{grid-template-rows:22px 130px 32px}.barwell{height:130px}
+    .donutgroup{grid-template-columns:112px minmax(0,1fr);gap:18px}.donut{width:108px;height:108px}
+    .donut::after,.donut>span{inset:20px}.donutlegend{grid-template-columns:1fr}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -856,6 +966,7 @@ let purging=null;                  // the archived goal awaiting a permanent del
 let dragId=null;                   // the goal being dragged, while it is in the air
 let version='';                    // read from the bundle at startup, blank in a browser
 const doneOpen=new Set();          // list goals whose finished items are unfolded
+const archiveOpen=new Set();       // archived goals whose preserved details are visible
 
 /* ---------- helpers ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -867,6 +978,8 @@ const label=k=>{const d=parseKey(k);return MONS[d.getMonth()]+' '+d.getDate()};
 const short=k=>{const d=parseKey(k);return (d.getMonth()+1)+'/'+d.getDate()};
 const mKey=(y,m)=>y+'-'+pad(m+1);
 const inMonth=(k,y,m)=>k.startsWith(mKey(y,m));
+const inLastMonth=k=>{const end=today(),start=new Date(end);start.setMonth(start.getMonth()-1);
+  const d=parseKey(k);return d>=start&&d<=end};
 const daysIn=(y,m)=>new Date(y,m+1,0).getDate();
 const diffDays=(a,b)=>Math.round((b-a)/864e5);
 const newId=()=>Math.random().toString(36).slice(2,8);
@@ -993,7 +1106,7 @@ function dropSub(id){
     if(subLogged(id)) g.subs[i].archived=true; else g.subs.splice(i,1);
     break;
   }
-  save(); render();
+  save(); editing?refreshEditor():render();
 }
 function restoreGoal(id){
   const g=state.goals.find(x=>x.id===id); if(!g) return;
@@ -1005,7 +1118,7 @@ function restoreGoal(id){
 }
 function restoreSub(id){
   for(const g of state.goals){ const s=g.subs.find(s=>s.id===id); if(s){ delete s.archived; break; } }
-  save(); render();
+  save(); editing?refreshEditor():render();
 }
 // The only path that removes logs. It exists so archiving is not a one-way street:
 // a goal you are certain about can still be erased, and it says how much it will cost.
@@ -1088,18 +1201,19 @@ function stripSub(id){
 function clearSub(id){ stripSub(id); save(); render(); }
 
 /* ---------- render ---------- */
-function render(){
+function render(quietEditor=false){
   const n=today(), tk=todayKey();
   const isCur = view.y===n.getFullYear() && view.m===n.getMonth();
   const canNext = view.y<n.getFullYear() || (view.y===n.getFullYear()&&view.m<n.getMonth());
   const run=streak();
+  const records=dayKeys().reduce((sum,k)=>sum+dayTotal(k),0);
 
   document.getElementById('app').innerHTML=`
     <div class="appframe">
       <aside class="sidebar">
         <div class="top">
-          <span class="brandmark" aria-hidden="true">D</span>
-          <div><h1>Daybook</h1><p>Show up, one day at a time.</p></div>
+          <img class="brandmark" src="daybook-icon.png" alt="">
+          <div><h1>P2J Daybook</h1></div>
           ${version?`<span class="ver mono">${esc(version)}</span>`:''}
         </div>
         ${tabs()}
@@ -1111,9 +1225,10 @@ function render(){
         </div>
         <div class="dow">${DOW.map(d=>`<i>${d}</i>`).join('')}</div>
         <div class="cal">${calendar(tk)}</div>
-        ${run?`<div class="tally mono">
-          <span><b>${run}</b><em>day${run===1?'':'s'} in a row</em></span>
-        </div>`:''}
+        <div class="tally">
+          <span><b>${run}</b><em>Day Streak</em></span>
+          <span><b>${records}</b><em>Total Records</em></span>
+        </div>
         </div>
       </aside>
       <main class="workspace">
@@ -1122,15 +1237,20 @@ function render(){
             <p class="eyebrow">${panel==='day' ? (sel===tk?'Today':esc(label(sel||tk))) : panel==='stats' ? `${MON[view.m]} review` : 'Past goals'}</p>
             <h2>${panel==='day' ? (sel===tk?'What will you show up for?':esc(label(sel||tk))) : panel==='stats' ? 'Your month at a glance' : 'Archive'}</h2>
           </div>
-          ${panel==='day'?`<div class="daystatus"><b>${dayTotal(sel||tk)}</b><span>check-in${dayTotal(sel||tk)===1?'':'s'}</span></div>`:''}
+          ${panel==='day'?`<div class="daystatus"><b>${dayTotal(sel||tk)}</b><span>check-in${dayTotal(sel||tk)===1?'':'s'}</span></div>`:
+            panel==='stats'?`<div class="monthswitch" aria-label="Stats month">
+              <button data-sm="-1" aria-label="Previous stats month">‹</button>
+              <span>${MON[view.m]} ${view.y}</span>
+              <button data-sm="1" ${canNext?'':'disabled'} aria-label="Next stats month">›</button>
+            </div>`:''}
         </header>
         <div class="panel">
-          ${panel==='stats' ? statsPanel() : panel==='archive' ? archivePanel() : dayPanel(sel||tk,tk)}
+          ${panel==='stats' ? statsPanel() : panel==='archive' ? archivePanel() : dayPanel(sel||tk,tk,quietEditor)}
         </div>
-        <section class="history" aria-label="Activity history">
+        ${panel==='day'?`<section class="history" aria-label="Activity history">
           <div class="historyhead"><h2>Consistency</h2><span>Last 12 months</span></div>
           ${heatmap()}
-        </section>
+        </section>`:''}
       </main>
     </div>
 
@@ -1166,9 +1286,14 @@ function archivePanel(){
           <button class="lnk dgr" data-purge="${g.id}">Delete</button>
           <button class="lnk" id="nopurge">Cancel</button></p></div>`;
     }
-    const {v,u}=goalAmount(g), last=lastWorked(g);
-    return `<div class="arch"><h3>${esc(g.title)}</h3>
+    const {v,u}=goalAmount(g), last=lastWorked(g), open=archiveOpen.has(g.id);
+    const details=g.subs.map(s=>`<div class="archsub"><span>${esc(s.title)}</span>
+      <b>${subTotal(s.id)}</b><em>record${subTotal(s.id)===1?'':'s'}</em></div>`).join('');
+    return `<div class="arch">
+      <button class="archtoggle" data-ao="${g.id}" aria-expanded="${open}">
+        <h3>${esc(g.title)}</h3><span aria-hidden="true">›</span></button>
       <p class="acap"><b>${v}</b> ${u}${last?` · last worked ${short(last)}`:''}</p>
+      ${open?`<div class="archdetail">${details||'<p class="hint">No sub-goals.</p>'}</div>`:''}
       <div class="arow2">
         <button class="lnk" data-rg="${g.id}">Restore</button>
         <button class="lnk dgr" data-pg="${g.id}">Delete permanently</button></div></div>`;
@@ -1262,23 +1387,25 @@ function tabs(){
         `<button class="tab${panel===p?' on':''}" data-tab="${p}"${
           panel===p?' aria-current="page"':''}>${name}</button>`).join('')}</nav>
       <span class="grow"></span>
-      ${home?'':`<span class="ctx">${showDate?esc(label(sel))+' · ':''}<button class="lnk" id="back">Back to today</button></span>`}
+      ${panel==='day'&&!home?`<span class="ctx">${showDate?esc(label(sel))+' · ':''}<button class="lnk" id="back">Back to today</button></span>`:''}
     </div>`;
 }
 
-function dayPanel(k,tk){
+function dayPanel(k,tk,quietEditor=false){
   const F=firstDone(), full=live().length>=MAXGOALS;
+  const activeEditor=editing?live().find(g=>g.id===editing):null;
   return `
     ${live().length?live().map(g=>goalBlock(g,k,F)).join('')
       :'<p class="hint" style="padding:10px 0">No goals yet.</p>'}
     <div class="addrow">
       <button class="add addgoal" id="ag"><span aria-hidden="true">+</span> Goal</button>
       ${full?`<p class="cap">You already have ${MAXGOALS}. Remove one to add another.</p>`:''}
-    </div>`;
+    </div>
+    ${activeEditor?`<button class="editorbackdrop" data-edit="" aria-label="Close editor"></button>
+      ${goalEditor(activeEditor,quietEditor)}`:''}`;
 }
 
 function goalBlock(g,k,F){
-  if(editing===g.id) return goalEditor(g);
   const ed=`<button class="lnk gedit" data-edit="${g.id}">Edit</button>`;
   const grip=`<button class="ghandle" data-grip="${g.id}"
     aria-label="Move ${esc(g.title)}" title="Drag to reorder, or use the arrow keys"></button>`;
@@ -1315,12 +1442,13 @@ function goalBlock(g,k,F){
     // A long list finishes far more than it has open, and the finished pile is the
     // least actionable thing on the screen — unfolded it pushed the next goal off the
     // bottom. Every one of them is still listed, dated, in Stats' completion log.
-    if(fin.length){
-      const all=doneOpen.has(g.id), show=all?fin:fin.slice(0,DONEMAX), rest=fin.length-show.length;
-      done=`<div class="doneline"><span class="lb">Done</span>${
+    const recent=fin.filter(s=>inLastMonth(F[s.id]));
+    if(recent.length){
+      const all=doneOpen.has(g.id), show=all?recent:recent.slice(0,DONEMAX), rest=recent.length-show.length;
+      done=`<div class="doneline"><span class="lb">Done · last month</span>${
         show.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}<em>${short(F[s.id])}</em></button>`).join('')}${
         rest>0?`<button class="lnk fold" data-more="${g.id}">+${rest} more</button>`:''}${
-        all&&fin.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
+        all&&recent.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
     }
   }
   else{
@@ -1342,27 +1470,31 @@ function goalBlock(g,k,F){
 // better by the Monthly target field that appears the moment you pick it, and "the list"
 // only repeated the noun already above the sub-goals.
 const TAP={daily:'Marks the day done',count:'Adds one',list:'Crosses it off'};
-function goalEditor(g){
+function goalEditor(g,quiet=false){
   const field=(lb,ctrl)=>`<label class="frow"><span class="flbl">${lb}</span><span class="fctl">${ctrl}</span></label>`;
   const kept=goalCount(g), keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);
-  return `<div class="goal ed">
+  return `<div class="goal ed${quiet?' steady':''}">
     <div class="ehead"><h3>Edit goal</h3>
       <button class="x" data-edit="" title="Close">×</button></div>
     <input class="etitle" type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
-    ${field('What a tap does',
-      `<select data-gy="${g.id}">${Object.entries(TAP).map(([v,n])=>
-        `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>`)}
-    ${g.type==='count'?field('Monthly target',
-      `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`):''}
+    <div class="settingsgroup">
+      ${field('Tap action',
+        `<select data-gy="${g.id}">${Object.entries(TAP).map(([v,n])=>
+          `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>`)}
+      ${g.type==='count'?field('Monthly target',
+        `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`):''}
+    </div>
     <div class="esep"></div>
     <p class="flab">Sub-goals${subs.length?` <span class="fcount">${subs.length}</span>`:''}</p>
-    ${subs.map(s=>`<div class="erow sub">
-      <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
-      <button class="x" data-ds="${s.id}" title="${subLogged(s.id)?'Archive':'Delete'}">×</button></div>`).join('')}
+    <div class="substickers">
+      ${subs.map(s=>`<div class="erow sub sticker" style="--chars:${Math.max(3,Math.min(28,s.title.length+.5))}">
+        <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
+        <button class="x" data-ds="${s.id}" title="${subLogged(s.id)?'Archive':'Delete'}">×</button></div>`).join('')}
+      <button class="add substickeradd" data-as="${g.id}" aria-label="Add sub-goal" title="Add sub-goal"><span aria-hidden="true">+</span></button>
+    </div>
     ${gone.length?`<p class="flab gone">Archived <span class="fcount">${gone.length}</span></p>
       ${gone.map(s=>`<div class="erow sub gone"><span class="sname">${esc(s.title)}</span>
         <button class="lnk" data-rs="${s.id}">Restore</button></div>`).join('')}`:''}
-    <button class="add" data-as="${g.id}">+ sub-goal</button>
     <div class="esep"></div>
     <div class="dzone">
       <button class="drop" data-dg="${g.id}">${keep?'Archive this goal':'Delete this goal'}</button>
@@ -1438,30 +1570,51 @@ function achievements(){
 // what the goal is: a count goal totals its check-ins, a list goal counts what is
 // crossed off, and a daily goal counts days, because three of its sub-goals ticked on
 // one day is still one day.
-function goalAmount(g){
+function goalAmount(g,y,m){
   const F=firstDone();
-  if(g.type==='list') return {v:g.subs.filter(s=>F[s.id]).length, u:`of ${g.subs.length} done`};
+  const dated=s=>F[s.id]&&(y===undefined||inMonth(F[s.id],y,m));
+  if(g.type==='list') return {v:g.subs.filter(dated).length, u:`of ${g.subs.length} done`};
   if(g.type==='daily'){
-    const d=dayKeys().filter(k=>g.subs.some(s=>state.logs[k][s.id])).length;
+    const d=dayKeys().filter(k=>(y===undefined||inMonth(k,y,m))&&g.subs.some(s=>state.logs[k][s.id])).length;
     return {v:d, u:`day${d===1?'':'s'}`};
   }
-  const c=g.subs.reduce((a,s)=>a+subTotal(s.id),0);
+  const c=g.subs.reduce((a,s)=>a+subTotal(s.id,y,m),0);
   return {v:c, u:`check-in${c===1?'':'s'}`};
 }
 
 function statsPanel(){
-  const ach=achievements();
-  const rows=state.goals.map(g=>{
-    const {v,u}=goalAmount(g);
-    return `<div class="amtrow"><span class="lb">${esc(g.title)}${
-      g.archived?'<i class="gone">archived</i>':''}</span>
-      <span class="v">${v}</span><span class="u">${u}</span></div>`;
+  const ach=achievements().filter(a=>inMonth(a.d,view.y,view.m));
+  const colors=['#176B57','#7B61A8','#3276A8','#C17A32','#B24C62'];
+  const monthly=state.goals.map((g,index)=>{
+    const {v,u}=goalAmount(g,view.y,view.m);
+    const max=g.type==='count'?(g.target||40):g.type==='list'?Math.max(1,g.subs.length):daysIn(view.y,view.m);
+    const pct=Math.min(100,max?v/max*100:0);
+    return `<div class="barcol" title="${esc(g.title)} · ${v} ${esc(u)}">
+      <span class="barvalue">${v}</span>
+      <span class="barwell"><i style="height:${pct}%;background:${colors[index%colors.length]}"></i></span>
+      <span class="barlabel">${esc(g.title)}${g.archived?'<i class="gone">archived</i>':''}</span></div>`;
+  }).join('');
+  const donuts=state.goals.filter(g=>g.type==='count').map(g=>{
+    const active=liveSubs(g), values=active.map(s=>subTotal(s.id)), total=values.reduce((a,b)=>a+b,0);
+    let at=0;
+    const stops=values.map((n,i)=>{const from=at;at+=total?n/total*100:0;
+      return `${colors[i%colors.length]} ${from}% ${at}%`}).join(',');
+    const fill=total&&stops?`conic-gradient(${stops})`:'var(--sunk)';
+    return `<section class="donutgroup">
+      <div class="donut" role="img" aria-label="${esc(g.title)} cumulative total ${total}" style="background:${fill}">
+        <span><b>${total}</b><em>total</em></span></div>
+      <div class="donutmeta"><h4>${esc(g.title)}</h4><p>Cumulative by category</p>
+        <div class="donutlegend">${active.map((s,i)=>`<span><i style="background:${colors[i%colors.length]}"></i>
+          <em>${esc(s.title)}</em><b>${values[i]}</b></span>`).join('')}</div></div>
+    </section>`;
   }).join('');
 
   return `
-
-    <h4 class="sh">By goal</h4>
-    <div class="amt">${rows||'<p class="hint">No goals yet.</p>'}</div>
+    <section class="chartcard">
+      <div class="charthead"><div><h4>Monthly progress</h4><p>Progress toward each goal's monthly capacity</p></div></div>
+      <div class="barchart">${monthly||'<p class="hint">No goals yet.</p>'}</div>
+    </section>
+    ${donuts?`<section class="chartcard"><div class="charthead"><div><h4>Category mix</h4><p>All-time Adds one records</p></div></div>${donuts}</section>`:''}
 
     <h4 class="sh">Completed · ${ach.length} item${ach.length===1?'':'s'}</h4>
     <div class="ach">${ach.length?ach.map(a=>
@@ -1474,6 +1627,15 @@ function statsPanel(){
 
 /* ---------- events ---------- */
 const on=(q,f)=>document.querySelectorAll(q).forEach(f);
+function refreshEditor(focusId=null){
+  const current=document.querySelector('.goal.ed'), scroll=current?current.scrollTop:0;
+  render(true);
+  const drawer=document.querySelector('.goal.ed'); if(drawer) drawer.scrollTop=scroll;
+  if(focusId){
+    const input=document.querySelector(`[data-st="${focusId}"]`);
+    if(input){input.focus();input.select();}
+  }
+}
 function bind(){
   on('[data-tog]',b=>b.onclick=()=>{const k=sel||todayKey();
     bump(b.dataset.tog,(state.logs[k]||{})[b.dataset.tog]?-1:1);});
@@ -1482,6 +1644,9 @@ function bind(){
   on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
   on('[data-more]',b=>b.onclick=()=>{ const id=b.dataset.more;
     doneOpen.has(id)?doneOpen.delete(id):doneOpen.add(id); render(); });
+  on('[data-ao]',b=>b.onclick=()=>{ const id=b.dataset.ao;
+    archiveOpen.has(id)?archiveOpen.delete(id):archiveOpen.add(id); render(); });
+  on('[data-sm]',b=>b.onclick=()=>shift(+b.dataset.sm));
   on('.d[data-k]',c=>c.onclick=()=>{ sel=c.dataset.k; panel='day'; render(); });
   on('.hd[data-hk]',c=>c.onclick=()=>{ const d=parseKey(c.dataset.hk);
     view={y:d.getFullYear(),m:d.getMonth()}; sel=c.dataset.hk; panel='day'; render(); });
@@ -1515,10 +1680,12 @@ function bind(){
                       subs:[{id:newId(),title:'New sub-goal'}]});
     editing=id; panel='day'; save(); render();};
   on('[data-as]',b=>b.onclick=()=>{
-    state.goals.find(g=>g.id===b.dataset.as).subs.push({id:newId(),title:'New sub-goal'});save();render();});
+    const id=newId();
+    state.goals.find(g=>g.id===b.dataset.as).subs.push({id,title:'New sub-goal'});save();refreshEditor(id);
+  });
   on('[data-gt]',i=>i.oninput=()=>{state.goals.find(g=>g.id===i.dataset.gt).title=i.value;save();});
   on('[data-gy]',s=>s.onchange=()=>{const g=state.goals.find(g=>g.id===s.dataset.gy);
-    g.type=s.value; if(g.type==='count'&&!g.target)g.target=40; save(); render();});
+    g.type=s.value; if(g.type==='count'&&!g.target)g.target=40; save(); refreshEditor();});
   on('[data-gn]',i=>i.oninput=()=>{
     state.goals.find(g=>g.id===i.dataset.gn).target=Math.max(1,+i.value||1); save();});
   on('[data-st]',i=>i.oninput=()=>{
@@ -1538,7 +1705,8 @@ function shift(d){
   if(m<0){m=11;y--;} if(m>11){m=0;y++;}
   view={y,m};
   const n=today(), cur=y===n.getFullYear()&&m===n.getMonth();
-  panel='day'; sel=cur?todayKey():null;
+  if(panel!=='stats') panel='day';
+  sel=cur?todayKey():null;
   render();
 }
 

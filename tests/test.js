@@ -269,16 +269,24 @@ t('day panel renders the calendar, the goals and their chips', async () => {
 // Stats answers one question now: how much have I done. Everything it used to draw
 // answered a different one — when in the week do I work, am I trending, what share is
 // each goal of the whole — and none of those is an amount.
-t('stats is one amount per goal and the list of finished things', async () => {
+t('Stats is charts followed by the selected month completion log', async () => {
   const g = await bootReady();
   const a = g.api;
   a.panel = 'stats'; a.render();
   const html = g.captured.app;
-  has(html, 'By goal'); has(html, 'Completed');
-  eq((html.match(/class="amtrow"/g) || []).length, 3, 'one row per goal');
-  has(html, 'Last 12 months', 'the shared consistency history remains available');
+  has(html, 'Monthly progress'); has(html, 'Category mix'); has(html, 'Completed');
+  eq((html.match(/class="barcol"/g) || []).length, 3, 'one bar per goal');
+  no(html, 'Last 12 months', 'consistency history belongs to Today');
   no(html, 'By weekday'); no(html, 'share of check-ins');
-  no(html, 'class="cols"'); no(html, 'data-jm=', 'the month chart is gone, and with it the jump');
+  no(html, 'class="amtrow', 'the old amount list is gone');
+});
+t('consistency history is shown only with the Today view', async () => {
+  const g = await bootReady();
+  const a = g.api;
+  a.panel = 'day'; a.render();
+  has(g.captured.app, 'Consistency'); has(g.captured.app, 'Last 12 months');
+  a.panel = 'archive'; a.render();
+  no(g.captured.app, 'Consistency'); no(g.captured.app, 'Last 12 months');
 });
 t('the amount a goal shows is scoped to what that goal counts', async () => {
   const a = await fixture();
@@ -290,6 +298,37 @@ t('the amount a goal shows is scoped to what that goal counts', async () => {
   a.state.logs['2026-07-04'] = { d1: 1 };
   eq(a.goalAmount(daily), { v: 2, u: 'days' });
 });
+t('Stats switches months without leaving Stats', async () => {
+  const a = await fixture();
+  a.panel = 'stats'; a.view = { y: 2026, m: 6 };
+  has(a.statsPanel(), 'Problems · 6 check-ins', 'July count total');
+  a.shift(1);
+  eq(a.panel, 'stats'); eq(a.view, { y: 2026, m: 7 });
+  has(a.statsPanel(), 'Problems · 4 check-ins', 'August count total');
+});
+t('Stats renders a column chart and a cumulative donut chart', async () => {
+  const a = await fixture();
+  const html = a.statsPanel();
+  eq((html.match(/class="barcol"/g) || []).length, 3, 'one monthly bar per goal');
+  has(html, 'class="donut"');
+  has(html, 'aria-label="Problems cumulative total 15"');
+});
+t('Adds one goals show an all-time cumulative breakdown by sub-goal', async () => {
+  const a = await fixture();
+  const html = a.statsPanel();
+  has(html, 'aria-label="Problems cumulative total 15"');
+  has(html, '<em>DP</em><b>10</b>');
+  has(html, '<em>Trees</em><b>5</b>');
+  eq((html.match(/class="donutgroup"/g) || []).length, 1, 'only the count goal has a category donut');
+});
+t('archived sub-goals leave the visible Stats category breakdown', async () => {
+  const a = await fixture();
+  a.state.goals[0].subs[1].archived = true;
+  const html = a.statsPanel();
+  has(html, '<em>DP</em><b>10</b>');
+  no(html, '<em>Trees</em>', 'Stats categories mirror the active Today categories');
+  has(html, 'Problems · 6 check-ins', 'historical records still count in the selected-month total');
+});
 t('every goal offers its own Edit control', async () => {
   const g = await bootReady();
   g.api.render();
@@ -297,13 +336,14 @@ t('every goal offers its own Edit control', async () => {
   eq((html.match(/class="lnk gedit"/g) || []).length, g.api.state.goals.length,
      'one Edit per goal, none for ad-hoc');
 });
-t('editing one goal opens its editor in place and leaves the others alone', async () => {
+t('editing one goal opens one drawer and leaves the goal list intact', async () => {
   const g = await bootReady();
   const a = g.api;
   const target = a.state.goals[0];
   a.editing = target.id; a.render();
   const html = g.captured.app;
   eq((html.match(/class="goal ed"/g) || []).length, 1, 'exactly one goal is in edit mode');
+  has(html, 'class="editorbackdrop"', 'the editor is presented as a separate layer');
   has(html, `data-gt="${target.id}"`, 'its title is editable');
   has(html, `data-gy="${target.id}"`);
   has(html, `data-gn="${target.id}"`, 'count goal exposes its monthly target');
@@ -633,33 +673,34 @@ t('streak is 0 when the run ended before yesterday', async () => {
   const a = await withRun(6, 2);              // finished two days ago
   eq(a.streak(), 0);
 });
-t('the run appears in the tally, pluralised', async () => {
+t('the summary shows the current streak and all-time records', async () => {
   const g = await bootReady();
   const a = g.api;
   a.state.logs = {};
   a.sel = a.todayKey();
   a.bump(a.state.goals[0].subs[0].id, 1);
   a.render();
-  has(g.captured.app, '<b>1</b><em>day in a row');
-  no(g.captured.app, '<b>1</b><em>days in a row');
+  has(g.captured.app, '<b>1</b><em>Day Streak');
+  has(g.captured.app, '<b>1</b><em>Total Records');
   const d = a.today(); d.setDate(d.getDate() - 1);
   a.state.logs[a.key(d)] = { x: 1 };
   a.render();
-  has(g.captured.app, '<b>2</b><em>days in a row');
+  has(g.captured.app, '<b>2</b><em>Day Streak');
+  has(g.captured.app, '<b>2</b><em>Total Records');
 });
-// The run is the only readout left under the calendar and it hides itself at zero,
-// so the container has to go with it — an empty one would draw its rule under nothing,
-// the same way the footer did.
-t('the readout block disappears entirely when there is no run', async () => {
+// Total records remains useful even when the current streak has ended, so the summary
+// is stable rather than appearing and disappearing with activity.
+t('the summary remains visible when there is no current streak', async () => {
   const g = await bootReady();
   g.api.state.logs = {};
   g.api.render();
-  no(g.captured.app, 'in a row');
-  no(g.captured.app, 'class="tally mono"', 'no container, so no rule');
+  has(g.captured.app, 'class="tally"');
+  has(g.captured.app, '<b>0</b><em>Day Streak');
+  has(g.captured.app, '<b>0</b><em>Total Records');
   no(g.captured.app, 'active this month', 'the active-days readout is gone for good');
   g.api.sel = g.api.todayKey();
   g.api.bump(g.api.state.goals[0].subs[0].id, 1);
-  has(g.captured.app, 'class="tally mono"', 'and it returns once there is a run');
+  has(g.captured.app, '<b>1</b><em>Day Streak');
 });
 
 // ---------- the Done line folds ----------
@@ -670,8 +711,10 @@ async function longList(doneCount) {
   const a = g.api;
   const subs = Array.from({ length: 40 }, (_, i) => ({ id: 'l' + i, title: 'Topic ' + i }));
   const logs = {};
-  // crossed off one a week, so the dates are distinct and ordered
-  subs.slice(0, doneCount).forEach((s, i) => { logs['2026-0' + (1 + (i % 6)) + '-' + String(1 + i % 28).padStart(2, '0')] = { [s.id]: 1 }; });
+  // crossed off on recent distinct days, so all are eligible for the rolling Done line
+  subs.slice(0, doneCount).forEach((s, i) => {
+    const d=a.today(); d.setDate(d.getDate()-(doneCount-1-i)); logs[a.key(d)] = { [s.id]: 1 };
+  });
   a.state = { goals: [{ id: 'gl', type: 'list', title: 'To learn', subs }], logs };
   a.view = { y: 2026, m: 6 };
   a.doneOpen.clear();
@@ -714,7 +757,8 @@ t('the Done line is newest first, so the fold keeps what you just crossed off', 
 t('the header names the app, and stays put at every width', async () => {
   const g = await bootReady();
   g.api.render();
-  has(g.captured.app, '<h1>Daybook</h1>');
+  has(g.captured.app, '<h1>P2J Daybook</h1>');
+  has(g.captured.app, 'src="daybook-icon.png"', 'the product icon appears with its name');
   has(g.captured.app, 'class="top"', 'it used to be hidden on desktop, where the title bar said it');
 });
 t('the version is shown only when the bundle supplies one', async () => {
@@ -801,8 +845,8 @@ t('every goal offers a drag handle, and it names the goal it moves', async () =>
   has(html, 'aria-label="Move Problems"');
   has(html, 'data-goal="' + a.state.goals[0].id + '"');
   a.editing = a.state.goals[0].id; a.render();
-  eq((g.captured.app.match(/class="ghandle"/g) || []).length, 2,
-     'the goal being edited has no handle: its text has to stay selectable');
+  eq((g.captured.app.match(/class="ghandle"/g) || []).length, 3,
+     'the original goal list stays intact behind the editor drawer');
 });
 
 // ---------- the year heatmap ----------
@@ -944,13 +988,15 @@ t('the tab rail no longer names a month', async () => {
   no(g.captured.app, 'class="tab">June<', 'the rail is two fixed labels now');
   has(g.captured.app, 'June 2026', 'the calendar still says which month you are looking at');
 });
-t('back-to-today is offered only when you are away from today', async () => {
+t('back-to-today is offered only for another date in the Today view', async () => {
   const g = await bootReady();
   const a = g.api;
   a.panel = 'day'; a.sel = a.todayKey(); a.view = { y: TY, m: TM }; a.render();
   no(g.captured.app, 'id="back"', 'already home, nothing to go back to');
   a.panel = 'stats'; a.render();
-  has(g.captured.app, 'id="back"', 'offered from stats');
+  no(g.captured.app, 'id="back"', 'Stats is its own view');
+  a.panel = 'archive'; a.render();
+  no(g.captured.app, 'id="back"', 'Archive is its own view');
   a.panel = 'day'; a.view = { y: 2026, m: 5 }; a.sel = null; a.render();
   has(g.captured.app, 'id="back"', 'offered from another month');
 });
@@ -970,10 +1016,18 @@ t('every editor control carries a label', async () => {
   const a = g.api;
   a.editing = a.state.goals[0].id; a.render();          // the count goal
   const html = g.captured.app;
-  has(html, '<span class="flbl">What a tap does</span>');
+  has(html, '<span class="flbl">Tap action</span>');
   has(html, '<span class="flbl">Monthly target</span>');
   has(html, 'Sub-goals');
   eq((html.match(/class="frow"/g) || []).length, 2, 'two labelled fields on a count goal');
+});
+t('editable sub-goals are grouped as stickers with an inline add control', async () => {
+  const g = await bootReady();
+  const html = g.api.goalEditor(g.api.state.goals[0]);
+  has(html, 'class="substickers"');
+  has(html, 'class="erow sub sticker"');
+  has(html, 'class="add substickeradd"');
+  has(html, 'aria-label="Add sub-goal"');
 });
 t('the type options describe what tapping does, not the internal kind', async () => {
   const g = await bootReady();
@@ -1319,7 +1373,8 @@ t('stats still credit an archived goal, and say it is archived', async () => {
   a.dropGoal('g1'); a.dropGoal('g2');
   const sp = a.statsPanel();
   has(sp, 'Problems', 'it keeps its row');
-  has(sp, '<span class="v">11</span>', 'with its real total');
+  has(sp, 'Problems · 6 check-ins', 'with its selected-month total');
+  has(sp, '<em>DP</em><b>10</b>', 'while its category breakdown remains cumulative');
   has(sp, '<i class="gone">archived</i>', 'and says why a name you no longer track is here');
   ok(a.achievements().some(x => x.t === 'A'), 'and a finished list item stays an achievement');
 });
@@ -1338,7 +1393,16 @@ t('a removed goal leaves no undo offer behind', async () => {
   a.render();
   no(g.captured.app, 'Undo');
   has(a.archivePanel(), 'data-rg="g1"', 'the archive tab is the way back');
-});t('restoring is refused when the live goals are already at the cap', async () => {
+});
+t('an archived goal expands to show its preserved sub-goal records', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1');
+  let html = a.archivePanel();
+  has(html, 'data-ao="g1"'); no(html, 'class="archdetail"');
+  a.archiveOpen.add('g1'); html = a.archivePanel();
+  has(html, 'class="archdetail"'); has(html, 'DP'); has(html, '<b>10</b><em>records');
+});
+t('restoring is refused when the live goals are already at the cap', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1');
   while (a.live().length < a.MAXGOALS) a.state.goals.push({ id: a.newId(), type: 'daily', title: 'x', subs: [] });

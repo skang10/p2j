@@ -9,7 +9,7 @@ const HTML = path.join(__dirname, '..', 'src', 'index.html');
 
 const NAMES = `KEY DOW MONS MAXGOALS
 pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId esc TAP
-Store load readVersion save seed ETAMIN DONEMAX doneOpen
+Store load readVersion save seed ETAMIN DONEMAX doneOpen archiveOpen
 dayTotal level dayKeys subTotal firstDone activeDays goalDays goalCount streak
 live liveSubs subLogged goalLogged
 dropGoal dropSub restoreGoal restoreSub purgeGoal archivePanel lastWorked
