@@ -9,6 +9,16 @@ up for them each day.
 Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style to a more
 structured, check-in style.
 
+## Screenshots
+
+### Today
+
+![P2J Daybook Today view](docs/daybook-today.png)
+
+### Stats
+
+![P2J Daybook monthly Stats view](docs/daybook-stats.png)
+
 ## Requirements
 
 - Rust 1.77 or newer

@@ -1,0 +1,79 @@
+{
+  "_mockScenario": "readme-showcase",
+  "goals": [
+    {
+      "id": "readme-daily",
+      "type": "daily",
+      "title": "Daily focus",
+      "subs": [
+        { "id": "readme-plan", "title": "Plan the day" },
+        { "id": "readme-focus", "title": "Deep work" },
+        { "id": "readme-review", "title": "Daily review" }
+      ]
+    },
+    {
+      "id": "readme-count",
+      "type": "count",
+      "target": 20,
+      "title": "Technical practice",
+      "subs": [
+        { "id": "readme-arrays", "title": "Arrays" },
+        { "id": "readme-sql", "title": "SQL" },
+        { "id": "readme-systems", "title": "System design" }
+      ]
+    },
+    {
+      "id": "readme-list",
+      "type": "list",
+      "title": "August milestones",
+      "subs": [
+        { "id": "readme-outline", "title": "Write the outline" },
+        { "id": "readme-prototype", "title": "Build the prototype" },
+        { "id": "readme-feedback", "title": "Collect feedback" },
+        { "id": "readme-polish", "title": "Polish the release" },
+        { "id": "readme-publish", "title": "Publish" }
+      ]
+    },
+    {
+      "id": "readme-archived",
+      "type": "count",
+      "target": 12,
+      "title": "Interview preparation",
+      "archived": true,
+      "subs": [
+        { "id": "readme-coding", "title": "Coding rounds" },
+        { "id": "readme-behavioral", "title": "Behavioral stories" }
+      ]
+    }
+  ],
+  "logs": {
+    "2026-08-01": {
+      "readme-plan": 1,
+      "readme-arrays": 2,
+      "readme-outline": 1,
+      "readme-coding": 2
+    },
+    "2026-08-02": {
+      "readme-plan": 1,
+      "readme-focus": 1,
+      "readme-sql": 2,
+      "readme-prototype": 1,
+      "readme-behavioral": 1
+    },
+    "2026-08-03": {
+      "readme-focus": 1,
+      "readme-review": 1,
+      "readme-arrays": 3,
+      "readme-systems": 2,
+      "readme-feedback": 1,
+      "readme-coding": 2
+    },
+    "2026-08-04": {
+      "readme-plan": 1,
+      "readme-focus": 1,
+      "readme-sql": 1,
+      "readme-systems": 1,
+      "readme-behavioral": 2
+    }
+  }
+}

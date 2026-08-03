@@ -1473,6 +1473,14 @@ t('a Category mix with more than five Categories spans both columns', async () =
   a.view = { y: 2026, m: 7 };
   has(a.statsPanel(), '<section class="donutgroup wide" data-stat-target="categories-goal">');
 });
+t('the README showcase fixture stays compact while covering the full product', () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-readme.json'), 'utf8'));
+  eq(mock.goals.filter(g => !g.archived).map(g => g.type), ['daily', 'count', 'list']);
+  eq(mock.goals.filter(g => g.archived).length, 1);
+  eq(Object.keys(mock.logs), ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04']);
+  ok(mock.goals.every(g => g.subs.length <= 5), 'the README view does not require pagination');
+});
 t('load always lands on today in the day panel', async () => {
   const g = await loadFrom({ goals: [{ id: 'a', type: 'daily', cad: 'free', title: 'g', subs: [] }], logs: {} });
   eq(g.api.view, { y: TY, m: TM });
