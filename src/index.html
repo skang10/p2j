@@ -992,7 +992,11 @@
   .donut>span{position:absolute;inset:20px;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .donut b{font-size:22px;line-height:1;font-weight:680;color:var(--ink);font-variant-numeric:tabular-nums}
   .donut em{margin-top:5px;font-size:9px;font-style:normal;color:var(--muted)}
-  .donutmeta h4{margin-bottom:9px;font-size:13px;font-weight:650;color:var(--ink)}
+  .donutmeta{min-width:0}
+  .donutmeta h4{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 7px;min-width:0;margin-bottom:9px;
+    font-size:13px;font-weight:650;color:var(--ink)}
+  .donutmeta h4>span{min-width:0;overflow-wrap:anywhere}
+  .donutmeta h4 i.gone{flex:none;margin-left:0}
   .donutmeta>p{margin:2px 0 13px;font-size:10px;color:var(--muted)}
   .donutlegend{display:grid;grid-template-columns:1fr;gap:7px}
   .donutlegend>span{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:7px;min-width:0}
@@ -1758,7 +1762,7 @@ function statsPanel(){
     return `<section class="donutgroup${active.length>5?' wide':''}" data-stat-target="${g.id}">
       <div class="donut" role="img" aria-label="${esc(g.title)} monthly total ${total}" style="background:${fill}">
         <span><b>${total}</b><em>total</em></span></div>
-      <div class="donutmeta"><h4>${esc(g.title)}${g.archived?'<i class="gone">archived</i>':''}</h4>
+      <div class="donutmeta"><h4><span>${esc(g.title)}</span>${g.archived?'<i class="gone">archived</i>':''}</h4>
         <div class="donutlegend">${active.map((s,i)=>`<span><i style="background:${colors[i%colors.length]}"></i>
           <em>${esc(s.title)}</em><b>${values[i]}</b></span>`).join('')}</div></div>
     </section>`;
