@@ -269,12 +269,12 @@ t('day panel renders the calendar, the goals and their chips', async () => {
 // Stats answers one question now: how much have I done. Everything it used to draw
 // answered a different one — when in the week do I work, am I trending, what share is
 // each goal of the whole — and none of those is an amount.
-t('Stats is charts followed by the selected month completion log', async () => {
+t('Stats shows charts and only adds a completion log when it has entries', async () => {
   const g = await bootReady();
   const a = g.api;
   a.panel = 'stats'; a.render();
   const html = g.captured.app;
-  has(html, 'Monthly progress'); has(html, 'Category mix'); has(html, 'Completed');
+  has(html, 'Monthly progress'); has(html, 'Category mix'); no(html, 'Completed · 0');
   eq((html.match(/class="barcol"/g) || []).length, 3, 'one bar per goal');
   no(html, 'Last 12 months', 'consistency history belongs to Today');
   no(html, 'By weekday'); no(html, 'share of check-ins');
@@ -287,6 +287,20 @@ t('consistency history is shown only with the Today view', async () => {
   has(g.captured.app, 'Consistency'); has(g.captured.app, 'Last 12 months');
   a.panel = 'archive'; a.render();
   no(g.captured.app, 'Consistency'); no(g.captured.app, 'Last 12 months');
+});
+t('a past day renders an immutable snapshot of only that day', async () => {
+  const a = await fixture();
+  const html = a.dayPanel('2026-07-02', a.todayKey());
+  has(html, 'Read-only snapshot'); has(html, 'Problems');
+  has(html, 'DP'); has(html, 'Trees'); has(html, '×2');
+  no(html, 'data-add='); no(html, 'data-tog='); no(html, 'data-edit='); no(html, 'id="ag"');
+  no(html, 'To learn', 'untouched goals are absent from the snapshot');
+});
+t('a historical snapshot retains goals that were later archived', async () => {
+  const a = await fixture();
+  a.state.goals[0].archived = true;
+  const html = a.snapshotPanel('2026-07-02');
+  has(html, 'Problems'); has(html, '<i class="gone">archived</i>');
 });
 t('the amount a goal shows is scoped to what that goal counts', async () => {
   const a = await fixture();
@@ -306,26 +320,29 @@ t('Stats switches months without leaving Stats', async () => {
   eq(a.panel, 'stats'); eq(a.view, { y: 2026, m: 7 });
   has(a.statsPanel(), 'Problems · 4 check-ins', 'August count total');
 });
-t('Stats renders a column chart and a cumulative donut chart', async () => {
+t('Stats renders a column chart and a selected-month donut chart', async () => {
   const a = await fixture();
   const html = a.statsPanel();
   eq((html.match(/class="barcol"/g) || []).length, 3, 'one monthly bar per goal');
   has(html, 'class="donut"');
-  has(html, 'aria-label="Problems cumulative total 15"');
+  has(html, 'aria-label="Problems monthly total 6"');
 });
-t('Adds one goals show an all-time cumulative breakdown by sub-goal', async () => {
+t('Adds one category mix defaults to the selected month and can show all time', async () => {
   const a = await fixture();
-  const html = a.statsPanel();
-  has(html, 'aria-label="Problems cumulative total 15"');
-  has(html, '<em>DP</em><b>10</b>');
-  has(html, '<em>Trees</em><b>5</b>');
+  let html = a.statsPanel();
+  has(html, 'data-cscope="month"'); has(html, 'data-cscope="all"');
+  has(html, 'aria-label="Problems monthly total 6"');
+  has(html, '<em>DP</em><b>5</b>'); has(html, '<em>Trees</em><b>1</b>');
+  a.categoryScope = 'all'; html = a.statsPanel();
+  has(html, 'aria-label="Problems all-time total 15"');
+  has(html, '<em>DP</em><b>10</b>'); has(html, '<em>Trees</em><b>5</b>');
   eq((html.match(/class="donutgroup"/g) || []).length, 1, 'only the count goal has a category donut');
 });
 t('archived sub-goals leave the visible Stats category breakdown', async () => {
   const a = await fixture();
   a.state.goals[0].subs[1].archived = true;
   const html = a.statsPanel();
-  has(html, '<em>DP</em><b>10</b>');
+  has(html, '<em>DP</em><b>5</b>');
   no(html, '<em>Trees</em>', 'Stats categories mirror the active Today categories');
   has(html, 'Problems · 6 check-ins', 'historical records still count in the selected-month total');
 });
@@ -363,7 +380,7 @@ t('the editor closes back to the check-in view', async () => {
   const g = await bootReady();
   const a = g.api;
   a.editing = a.state.goals[0].id; a.render();
-  has(g.captured.app, 'data-edit=""', 'Done clears the edit target');
+  has(g.captured.app, 'data-cancel-edit', 'the editor offers an explicit cancel action');
   a.editing = null; a.render();
   no(g.captured.app, 'class="goal ed"');
 });
@@ -495,12 +512,11 @@ t('a newly added goal is written with everything load() needs', async () => {
   const a = g.api;
   a.state.goals.pop();
   const before = a.state.goals.length;
-  const id = a.newId();          // mirror what the #ag click handler does
-  a.state.goals.push({ id, type: 'daily', title: 'New goal',
-                       subs: [{ id: a.newId(), title: 'New sub-goal' }] });
+  a.createGoal();
+  a.commitEdit();
   const fresh = a.state.goals[a.state.goals.length - 1];
   eq(a.state.goals.length, before + 1);
-  eq([fresh.type, fresh.subs.length], ['daily', 1]);
+  eq([fresh.type, fresh.subs.length], ['daily', 0]);
   const copy = JSON.parse(JSON.stringify(a.state));   // what load() would read back
   eq(copy.goals[copy.goals.length - 1], fresh, 'a save/load round trip changes nothing');
 });
@@ -525,7 +541,8 @@ t('stats opens straight into its charts, with no summary figures', async () => {
   const html = a.statsPanel();          // the panel alone: the calendar column has its own run readout
   no(html, 'day logged'); no(html, 'attendance'); no(html, 'Since ');
   no(html, 'class="tally', 'no readout block in here any more');
-  has(html, 'Completed · 0 items', 'and zero is still plural');
+  no(html, 'Completed · 0 items', 'an empty Completed section stays out of the way');
+  no(html, 'Finished list items', 'there is no input-like empty-state explanation');
 });
 t('no "1 <noun>s" anywhere in a single-item render', async () => {
   const g = await bootReady();
@@ -701,6 +718,13 @@ t('the summary remains visible when there is no current streak', async () => {
   g.api.sel = g.api.todayKey();
   g.api.bump(g.api.state.goals[0].subs[0].id, 1);
   has(g.captured.app, '<b>1</b><em>Day Streak');
+});
+t('Total Records links the summary to the activity history', async () => {
+  const g = await bootReady();
+  g.api.render();
+  has(g.captured.app, 'id="recordsJump"');
+  has(g.captured.app, 'title="View activity history"');
+  has(g.captured.app, 'aria-label="Activity history"');
 });
 
 // ---------- the Done line folds ----------
@@ -881,8 +905,8 @@ t('a heatmap cell carries the same level as the calendar cell for that day', asy
 });
 t('a heatmap cell names its date and count in a tooltip', async () => {
   const a = await fixture();
-  has(a.heatmap(), 'title="Jul 2 · 3 check-ins"');
-  has(a.heatmap(), 'title="Jul 3 · 1 check-in"', 'singular');
+  has(a.heatmap(), 'title="Jul 2 · 3 records"');
+  has(a.heatmap(), 'title="Jul 3 · 1 record"', 'singular');
 });
 // Labelling by the week's last day named a month a column early — the week of Jul 26
 // ends on Aug 1, and was headed "Aug" while six of its seven days were July.
@@ -890,8 +914,8 @@ t('the heatmap labels a month at the first week that begins inside it', async ()
   const g = await bootReady({ now: '2026-07-31' });
   const a = g.api;
   const html = a.heatmap();
-  const labels = [...html.matchAll(/<i>([A-Z][a-z]{2})(?: (\d{4}))?<\/i>/g)].map(m => m[1]);
-  const years = [...html.matchAll(/<i>[A-Z][a-z]{2} (\d{4})<\/i>/g)].map(m => m[1]);
+  const labels = [...html.matchAll(/<i[^>]*>([A-Z][a-z]{2})(?: (\d{4}))?<\/i>/g)].map(m => m[1]);
+  const years = [...html.matchAll(/<i[^>]*>[A-Z][a-z]{2} (\d{4})<\/i>/g)].map(m => m[1]);
   // a 53-week window spans two calendar years, so "Jul ... Jan ... Jul" would not say
   // which July you are looking at
   eq(years, ['2025', '2026'], 'the year is named on the first label and where it changes');
@@ -910,6 +934,10 @@ t('the heatmap labels a month at the first week that begins inside it', async ()
   eq(labels.length, 11, 'a label too close to the previous one is dropped, not crowded');
   no(labels.join(' '), 'Jul Aug');
   no(labels.join(' '), 'Jan Feb', 'the pair that collided once the year was added');
+});
+t('a month label in the final heatmap columns aligns inward', async () => {
+  const g = await bootReady({ now: '2026-08-03' });
+  has(g.api.heatmap(), '<i class="edge">Aug</i>');
 });
 
 // ---------- joining consecutive days in the calendar ----------
@@ -1028,6 +1056,14 @@ t('editable sub-goals are grouped as stickers with an inline add control', async
   has(html, 'class="erow sub sticker"');
   has(html, 'class="add substickeradd"');
   has(html, 'aria-label="Add sub-goal"');
+});
+t('a goal without items offers a clear first sub-goal action', async () => {
+  const g = await bootReady(); const a = g.api;
+  a.createGoal();
+  const html = a.goalEditor(a.draftGoal);
+  has(html, 'class="add firstsub"'); has(html, 'Add first sub-goal');
+  no(html, '<p class="flab">Sub-goals', 'an empty section heading is not shown');
+  no(html, 'class="add substickeradd"', 'the compact icon is reserved for a populated list');
 });
 t('the type options describe what tapping does, not the internal kind', async () => {
   const g = await bootReady();
@@ -1280,6 +1316,60 @@ t('load seeds when the file parses but has an empty goal list', async () => {
   const g = await loadFrom({ goals: [], logs: { '2026-07-01': { z: 1 } } });
   eq(g.api.state.goals.length, 3, 'seed replaces the whole state');
 });
+t('an explicit mock scenario may exercise the true empty state', async () => {
+  const g = await loadFrom({ _mockScenario: 'empty-state', goals: [], logs: {} });
+  eq(g.api.state.goals, []);
+  has(g.captured.app, 'No goals yet.');
+  g.api.panel = 'stats'; g.api.render();
+  has(g.captured.app, 'No stats yet'); has(g.captured.app, 'id="emptyGoal"');
+  no(g.captured.app, 'class="chartcard"'); no(g.captured.app, 'Completed · 0 items');
+  g.api.panel = 'archive'; g.api.render();
+  has(g.captured.app, 'Nothing archived.');
+});
+t('the three-type mock fixture covers every tap behavior', async () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-three-types.json'), 'utf8'));
+  eq(mock.goals.map(g => g.type), ['daily', 'count', 'list']);
+  eq(mock.goals[1].target, 12);
+  eq(mock.logs['2026-08-03']['daily-plan'], 1);
+  eq(mock.logs['2026-08-03']['count-arrays'], 2);
+  eq(mock.logs['2026-08-03']['list-indexes'], 1);
+});
+t('the Adds one mock fixture covers zero through over-target states', async () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-adds-one-states.json'), 'utf8'));
+  const totals = Object.fromEntries(mock.goals.map(g => [g.id,
+    Object.values(mock.logs).reduce((sum, day) =>
+      sum + g.subs.reduce((n, s) => n + (day[s.id] || 0), 0), 0)]));
+  eq(totals, { 'count-zero': 0, 'count-partial': 4, 'count-target': 10, 'count-over': 14 });
+  ok(mock.goals.every(g => g.type === 'count' && g.target === 10));
+});
+t('the list-history mock has open, recent, folded, and old items', async () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-list-history.json'), 'utf8'));
+  const goal = mock.goals[0];
+  const finished = new Set(Object.values(mock.logs).flatMap(day => Object.keys(day)));
+  eq(goal.subs.filter(s => !finished.has(s.id)).length, 2, 'two items remain actionable');
+  eq(goal.subs.filter(s => s.id.includes('recent')).length, 8, 'more than DONEMAX are recent');
+  eq(goal.subs.filter(s => s.id.includes('old')).length, 2, 'old completions test the rolling cutoff');
+});
+t('the history mock covers every heat intensity and a multi-goal snapshot', async () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-history-snapshots.json'), 'utf8'));
+  const total = day => Object.values(mock.logs[day]).reduce((a, b) => a + b, 0);
+  eq(['2025-08-15', '2026-01-10', '2026-07-29', '2026-08-03'].map(total), [1, 2, 4, 6]);
+  eq(mock.goals.map(g => g.type), ['daily', 'count', 'list']);
+  eq(mock.logs['2026-07-30'], undefined, 'an adjacent empty day is available to inspect');
+});
+t('the archive mock covers archived goals, an archived item, and preserved logs', async () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-archive.json'), 'utf8'));
+  eq(mock.goals.filter(g => g.archived).length, 2);
+  eq(mock.goals.filter(g => !g.archived).length, 1);
+  eq(mock.goals.flatMap(g => g.subs).filter(s => s.archived).length, 1);
+  eq(mock.logs['2026-08-01']['archive-code'], 3, 'archived goal records remain in history');
+  eq(mock.logs['2026-07-15']['live-old'], 1, 'archived sub-goal records remain in history');
+});
 t('load always lands on today in the day panel', async () => {
   const g = await loadFrom({ goals: [{ id: 'a', type: 'daily', cad: 'free', title: 'g', subs: [] }], logs: {} });
   eq(g.api.view, { y: TY, m: TM });
@@ -1365,7 +1455,9 @@ t('an archived goal stops counting against MAXGOALS', async () => {
   a.dropGoal('g1');                                 // g1 has logs, so it archives
   a.render(); a.bind();
   g.els.get('ag').onclick();
-  eq(a.live().length, a.MAXGOALS, 'archiving freed the slot and the new goal took it');
+  eq(a.live().length, a.MAXGOALS - 1, 'the new goal remains a draft before Save');
+  a.commitEdit();
+  eq(a.live().length, a.MAXGOALS, 'Save commits the new goal into the freed slot');
   eq(a.state.goals.length, before + 1, 'the archived one is still in the file');
 });
 t('stats still credit an archived goal, and say it is archived', async () => {
@@ -1374,9 +1466,18 @@ t('stats still credit an archived goal, and say it is archived', async () => {
   const sp = a.statsPanel();
   has(sp, 'Problems', 'it keeps its row');
   has(sp, 'Problems · 6 check-ins', 'with its selected-month total');
-  has(sp, '<em>DP</em><b>10</b>', 'while its category breakdown remains cumulative');
+  has(sp, '<em>DP</em><b>5</b>', 'its category breakdown follows the selected month');
   has(sp, '<i class="gone">archived</i>', 'and says why a name you no longer track is here');
   ok(a.achievements().some(x => x.t === 'A'), 'and a finished list item stays an achievement');
+});
+t('Stats hides an archived goal in months where it has no records', async () => {
+  const g = await arch(); const a = g.api;
+  a.dropGoal('g1');
+  a.view = { y: 2026, m: 7 };
+  let sp = a.statsPanel();
+  no(sp, 'Problems', 'the archived goal is absent from an unrelated month');
+  a.categoryScope = 'all'; sp = a.statsPanel();
+  has(sp, 'Problems', 'All time still includes an archived goal with historical records');
 });
 t('an archived goal is gone from the check-in screen but not from the record', async () => {
   const g = await arch(); const a = g.api;
@@ -1468,7 +1569,7 @@ t('an archived sub-goal keeps counting toward the goal it belongs to', async () 
 t('the editor × closes the editor and cannot remove anything', async () => {
   const g = await arch(); const a = g.api;
   const ed = a.goalEditor(a.state.goals[0]);
-  has(ed, '<button class="x" data-edit="" title="Close">', 'the × is a close control');
+  has(ed, '<button class="x" data-cancel-edit title="Cancel">', 'the × is a cancel control');
   no(ed, 'class="x" data-dg', 'no × anywhere removes the goal');
   eq((ed.match(/data-dg=/g) || []).length, 1, 'exactly one control removes the goal');
 });
@@ -1491,7 +1592,54 @@ t('sub-goal rows keep their × , because a row-level × removes that row', async
 });
 t('Save is the primary button and closes the editor', async () => {
   const g = await arch(); const a = g.api;
-  has(a.goalEditor(a.state.goals[0]), '<button class="btn pri" data-edit="">Save</button>');
+  has(a.goalEditor(a.state.goals[0]), '<button class="btn pri" data-save-edit>Save</button>');
+});
+t('Tap action uses an application-rendered menu with the application font', async () => {
+  const g = await bootReady(); const a = g.api;
+  const html = a.goalEditor(a.state.goals[0]);
+  has(html, 'class="tapmenu"'); has(html, 'role="menuitemradio"');
+  no(html, '<select', 'the OS-native popup cannot replace the application font');
+  has(require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'index.html'), 'utf8'),
+      '.tapoption{', 'the options are rendered and styled by Daybook');
+});
+t('creating a goal stays in a disposable draft until Save', async () => {
+  const g = await bootReady(); const a = g.api;
+  const before = a.state.goals.length;
+  a.createGoal();
+  eq(a.state.goals.length, before, 'opening Create Goal does not change stored goals');
+  a.draftGoal.title = 'Discard me';
+  a.cancelEdit();
+  eq(a.state.goals.length, before, 'Cancel discards the unsaved goal');
+  a.createGoal();
+  eq(a.draftGoal.title, 'New goal', 'creating again starts with a fresh form');
+  a.draftGoal.title = 'Keep me';
+  a.commitEdit();
+  eq(a.state.goals.length, before + 1, 'Save adds the goal once');
+  eq(a.state.goals[a.state.goals.length - 1].title, 'Keep me');
+});
+t('a new goal starts without sub-goals and added rows start blank', async () => {
+  const g = await bootReady(); const a = g.api;
+  a.createGoal();
+  eq(a.draftGoal.subs, [], 'Create Goal does not invent a sub-goal');
+  const id = a.newId();
+  a.draftGoal.subs.push({ id, title: '' });
+  has(a.goalEditor(a.draftGoal), `data-st="${id}" placeholder="Sub-goal"`);
+  no(a.goalEditor(a.draftGoal), 'New sub-goal');
+  a.commitEdit();
+  eq(a.state.goals[a.state.goals.length - 1].subs, [], 'an untouched blank row is not saved');
+});
+t('editing an existing goal commits only when Save is used', async () => {
+  const g = await bootReady(); const a = g.api;
+  const id = a.state.goals[0].id;
+  const original = a.state.goals[0].title;
+  a.beginEdit(id);
+  a.draftGoal.title = 'Discard this edit';
+  a.cancelEdit();
+  eq(a.state.goals[0].title, original, 'Cancel leaves the stored goal unchanged');
+  a.beginEdit(id);
+  a.draftGoal.title = 'Saved edit';
+  a.commitEdit();
+  eq(a.state.goals[0].title, 'Saved edit', 'Save replaces the stored goal');
 });
 t('the archived flag survives a save/load round trip', async () => {
   const g = await arch(); const a = g.api;

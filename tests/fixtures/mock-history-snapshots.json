@@ -1,0 +1,51 @@
+{
+  "_mockScenario": "history-and-snapshots",
+  "goals": [
+    {
+      "id": "history-daily",
+      "type": "daily",
+      "title": "Focus routine",
+      "subs": [
+        { "id": "history-plan", "title": "Plan" },
+        { "id": "history-focus", "title": "Deep work" }
+      ]
+    },
+    {
+      "id": "history-count",
+      "type": "count",
+      "target": 20,
+      "title": "Practice sessions",
+      "subs": [
+        { "id": "history-code", "title": "Coding" },
+        { "id": "history-sql", "title": "SQL" }
+      ]
+    },
+    {
+      "id": "history-list",
+      "type": "list",
+      "title": "Reading queue",
+      "subs": [
+        { "id": "history-book-one", "title": "Designing Data-Intensive Applications" },
+        { "id": "history-book-two", "title": "Database Internals" }
+      ]
+    }
+  ],
+  "logs": {
+    "2025-08-15": { "history-plan": 1 },
+    "2026-01-10": { "history-code": 2 },
+    "2026-07-29": {
+      "history-plan": 1,
+      "history-focus": 1,
+      "history-code": 1,
+      "history-book-one": 1
+    },
+    "2026-08-01": { "history-sql": 1 },
+    "2026-08-02": { "history-plan": 1, "history-code": 1 },
+    "2026-08-03": {
+      "history-plan": 1,
+      "history-focus": 1,
+      "history-code": 3,
+      "history-sql": 1
+    }
+  }
+}

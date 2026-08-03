@@ -1,0 +1,63 @@
+{
+  "_mockScenario": "adds-one-states",
+  "goals": [
+    {
+      "id": "count-zero",
+      "type": "count",
+      "target": 10,
+      "title": "Zero progress",
+      "subs": [
+        { "id": "zero-reading", "title": "Reading" },
+        { "id": "zero-writing", "title": "Writing" }
+      ]
+    },
+    {
+      "id": "count-partial",
+      "type": "count",
+      "target": 10,
+      "title": "Partial progress",
+      "subs": [
+        { "id": "partial-reading", "title": "Reading" },
+        { "id": "partial-writing", "title": "Writing" }
+      ]
+    },
+    {
+      "id": "count-target",
+      "type": "count",
+      "target": 10,
+      "title": "Target reached",
+      "subs": [
+        { "id": "target-arrays", "title": "Arrays" },
+        { "id": "target-sql", "title": "SQL" },
+        { "id": "target-systems", "title": "System design" }
+      ]
+    },
+    {
+      "id": "count-over",
+      "type": "count",
+      "target": 10,
+      "title": "Over target",
+      "subs": [
+        { "id": "over-arrays", "title": "Arrays" },
+        { "id": "over-sql", "title": "SQL" },
+        { "id": "over-systems", "title": "System design" }
+      ]
+    }
+  ],
+  "logs": {
+    "2026-08-01": {
+      "partial-reading": 2,
+      "target-arrays": 4,
+      "over-arrays": 5
+    },
+    "2026-08-02": {
+      "target-sql": 3,
+      "over-sql": 5
+    },
+    "2026-08-03": {
+      "partial-writing": 2,
+      "target-systems": 3,
+      "over-systems": 4
+    }
+  }
+}

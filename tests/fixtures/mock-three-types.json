@@ -1,0 +1,44 @@
+{
+  "_mockScenario": "three-goal-types",
+  "goals": [
+    {
+      "id": "mock-daily",
+      "type": "daily",
+      "title": "Morning routine",
+      "subs": [
+        { "id": "daily-plan", "title": "Plan the day" },
+        { "id": "daily-focus", "title": "Focus block" },
+        { "id": "daily-review", "title": "End-of-day review" }
+      ]
+    },
+    {
+      "id": "mock-count",
+      "type": "count",
+      "target": 12,
+      "title": "Practice problems",
+      "subs": [
+        { "id": "count-arrays", "title": "Arrays" },
+        { "id": "count-sql", "title": "SQL" },
+        { "id": "count-systems", "title": "System design" }
+      ]
+    },
+    {
+      "id": "mock-list",
+      "type": "list",
+      "title": "Topics to review",
+      "subs": [
+        { "id": "list-indexes", "title": "Database indexes" },
+        { "id": "list-caching", "title": "Caching strategies" },
+        { "id": "list-queues", "title": "Message queues" }
+      ]
+    }
+  ],
+  "logs": {
+    "2026-08-03": {
+      "daily-plan": 1,
+      "count-arrays": 2,
+      "count-sql": 1,
+      "list-indexes": 1
+    }
+  }
+}

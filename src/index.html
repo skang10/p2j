@@ -719,6 +719,7 @@
   }
   body{background:var(--paper);font-size:14px;line-height:1.5;overflow-x:hidden}
   button,input,select{letter-spacing:0}
+  select,select option{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","PingFang SC",sans-serif}
   .sheet{max-width:none;min-height:100%;margin:0;padding:0;background:var(--paper)}
   .appframe{display:grid;grid-template-columns:294px minmax(0,1fr);min-height:100vh}
 
@@ -762,18 +763,22 @@
   .d.sel .num,.d.today.sel .num{color:#fff;font-weight:650}
   .tally{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;padding:16px 0 0;
     border-top:1px solid var(--hair);border-bottom:0}
-  .tally span{display:flex;flex-direction:column;align-items:center;height:auto;line-height:1;text-align:center}
-  .tally span+span{border-left:1px solid var(--hair)}
+  .tally>*{display:flex;flex-direction:column;align-items:center;height:auto;line-height:1;text-align:center}
+  .tally>*+*{border-left:1px solid var(--hair)}
   .tally b{min-width:0;font-family:var(--sans);font-size:22px;font-weight:650;text-align:center;color:var(--accent)}
   .tally em{margin:7px 0 0;font-family:var(--sans);font-size:10px;font-style:normal;color:var(--muted)}
+  .tallyitem{border:0;background:transparent;cursor:pointer}
+  .tallyitem.static{cursor:default}
+  .tallyitem:hover b{color:#115544}.tallyitem:hover em{color:var(--body)}
 
   .workspace{min-width:0;padding:54px clamp(32px,5vw,76px) 64px}
   .workhead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;max-width:920px;margin:0 auto 30px}
   .eyebrow{margin-bottom:5px;font-size:12px;font-weight:650;color:var(--accent)}
   .workhead h2{font-size:28px;line-height:1.15;font-weight:710;letter-spacing:0;color:var(--ink)}
-  .daystatus{display:flex;align-items:baseline;gap:6px;flex:none;color:var(--muted)}
-  .daystatus b{font-size:25px;line-height:1;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
-  .daystatus span{font-size:11px}
+  .daystatus{display:flex;align-items:center;gap:18px;flex:none;color:var(--muted)}
+  .daymetric{display:flex;align-items:baseline;gap:5px}
+  .daystatus b{font-size:22px;line-height:1;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+  .daymetric>span{font-size:10px}
   .monthswitch{display:grid;grid-template-columns:30px minmax(120px,auto) 30px;align-items:center;gap:5px}
   .monthswitch span{text-align:center;font-size:12px;font-weight:600;color:var(--body)}
   .monthswitch button{width:30px;height:30px;border:1px solid var(--line);border-radius:7px;background:var(--surface);
@@ -811,6 +816,15 @@
     background:var(--soft);color:var(--accent);font-size:17px;font-weight:450;line-height:1}
   .addgoal:hover{background:var(--surface);border-color:var(--hair);color:var(--accent)}
   .addgoal:hover span{background:var(--accent);color:#fff}
+  .snapshotnote{display:inline-flex;align-items:center;min-height:28px;margin-bottom:14px;padding:5px 10px;
+    border-radius:6px;background:var(--sunk);font-size:10px;font-weight:600;color:var(--muted)}
+  .goal.snapshot{box-shadow:none}.goal.snapshot:hover{border-color:var(--hair)!important;box-shadow:none}
+  .goal.snapshot h3 i.gone{font-size:9px;font-weight:500}
+  .snapshotchips{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}
+  .snapshotchip{display:inline-flex;align-items:center;gap:6px;min-height:31px;padding:6px 10px;border:1px solid var(--hair);
+    border-radius:7px;background:var(--faint);font-size:12px;color:var(--body)}
+  .snapshotchip b{font-size:10px;font-weight:650;color:var(--accent);font-variant-numeric:tabular-nums}
+  .snapshotempty{padding:24px 0}
 
   .goal.ed{margin-bottom:10px;padding:20px;background:var(--surface);border-radius:8px;box-shadow:0 8px 28px rgba(23,25,28,.08)}
   .ehead{padding-bottom:14px}.ehead h3{font-size:12px;color:var(--muted)}
@@ -839,6 +853,21 @@
     background:transparent;box-shadow:none;color:var(--ink);font-size:12px;font-weight:550;text-align:right}
   .settingsgroup input[type=number]{width:70px;padding-right:5px}
   .settingsgroup select:focus,.settingsgroup input[type=number]:focus{border:0;box-shadow:none}
+  .tapmenu{position:relative;font-family:var(--sans)}
+  .tapmenu summary{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:150px;height:30px;
+    padding:3px 4px 3px 8px;list-style:none;cursor:pointer;color:var(--ink);font-size:12px;font-weight:550}
+  .tapmenu summary::-webkit-details-marker{display:none}
+  .tapmenu summary::after{content:"";width:7px;height:7px;margin:0 3px 4px 5px;transform:rotate(45deg);
+    border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted)}
+  .tapmenu[open] summary::after{margin-top:5px;margin-bottom:0;transform:rotate(225deg)}
+  .tapoptions{position:absolute;z-index:3;top:34px;right:0;width:190px;padding:5px;border:1px solid var(--line);
+    border-radius:8px;background:var(--surface);box-shadow:0 10px 30px rgba(23,25,28,.15)}
+  .tapoption{display:grid;grid-template-columns:16px 1fr;align-items:center;gap:7px;width:100%;min-height:34px;
+    padding:7px 9px;border:0;border-radius:5px;background:transparent;text-align:left;font-family:var(--sans);
+    font-size:12px;font-weight:500;color:var(--body);cursor:pointer}
+  .tapoption:hover{background:var(--sunk);color:var(--ink)}
+  .tapoption .check{font-size:13px;font-weight:700;color:var(--accent);visibility:hidden}
+  .tapoption.active .check{visibility:visible}
   .substickers{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:5px 0 2px}
   .goal.ed .erow.sub.sticker{display:inline-flex;align-items:center;gap:3px;width:auto;max-width:100%;
     padding:4px 5px 4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--sunk)}
@@ -855,6 +884,12 @@
   .substickeradd span{font-size:17px;line-height:1;color:var(--muted)}
   .substickeradd:hover{border-color:var(--edge);background:var(--soft)}
   .substickeradd:hover span{color:var(--accent)}
+  .firstsub{display:inline-flex;align-items:center;gap:9px;width:max-content;max-width:100%;min-height:38px;margin-top:2px;
+    box-sizing:border-box;border:1px solid var(--line);border-radius:7px;background:var(--sunk);color:var(--body);
+    font-size:11px;font-weight:600;line-height:1.3;white-space:normal;overflow-wrap:anywhere}
+  .goal.ed .add.firstsub{padding:8px 16px}
+  .firstsub span{flex:none;font-size:16px;line-height:1;color:var(--accent)}
+  .firstsub:hover{border-color:var(--edge);background:var(--soft);color:var(--accent)}
   .goal.ed .edfoot{position:sticky;bottom:-32px;margin:20px -26px -32px;padding:15px 26px 22px;
     background:rgba(255,255,255,.94);border-top:1px solid var(--hair);backdrop-filter:blur(18px)}
   @keyframes drawerin{from{transform:translateX(24px);opacity:.7}to{transform:translateX(0);opacity:1}}
@@ -865,6 +900,7 @@
   .historyhead h2{font-size:14px;font-weight:650;color:var(--ink)}
   .historyhead span{font-size:11px;color:var(--muted)}
   .heat{--hgap:3px;padding:0;overflow:hidden}.hmons i{font-family:var(--sans);font-size:9px;letter-spacing:0}
+  .hmons i.edge{transform:translateX(-10px);text-align:left}
   .hd{border-radius:2px}.hd.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
   .hd.future{box-shadow:none;background:transparent}
 
@@ -886,9 +922,22 @@
   .minibar{grid-column:1/-1;display:block;height:3px;overflow:hidden;border-radius:999px;background:var(--sunk)}
   .minibar>span{display:block;height:100%;border-radius:999px;background:var(--edge)}
   .chartcard{margin-bottom:14px;padding:20px;border:1px solid var(--hair);border-radius:8px;background:var(--surface)}
+  .statsempty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:360px;
+    padding:56px 20px;text-align:center}
+  .emptychart{display:flex;align-items:flex-end;justify-content:center;gap:5px;width:62px;height:54px;margin-bottom:20px;
+    padding:9px;border-radius:8px;background:var(--sunk)}
+  .emptychart i{display:block;width:9px;border-radius:3px 3px 1px 1px;background:var(--ghost)}
+  .emptychart i:nth-child(1){height:15px}.emptychart i:nth-child(2){height:28px}.emptychart i:nth-child(3){height:21px}
+  .statsempty h3{font-size:17px;font-weight:650;color:var(--ink)}
+  .statsempty p{margin:4px 0 18px;font-size:12px;color:var(--muted)}
+  .statsempty .btn{min-height:34px;padding:7px 13px}
   .charthead{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
   .charthead h4{font-size:14px;font-weight:650;color:var(--ink)}
   .charthead p{margin-top:2px;font-size:10px;color:var(--muted)}
+  .scopecontrol{display:flex;flex:none;padding:2px;border-radius:7px;background:var(--sunk)}
+  .scopecontrol button{min-height:26px;padding:4px 9px;border:0;border-radius:5px;background:transparent;
+    color:var(--muted);font-size:10px;font-weight:600;cursor:pointer}
+  .scopecontrol button.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(23,25,28,.1)}
   .barchart{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));align-items:end;gap:18px;
     min-height:238px;padding:8px 4px 0}
   .barcol{display:grid;grid-template-rows:22px 160px 32px;justify-items:center;align-items:end;min-width:0}
@@ -960,7 +1009,7 @@ const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','D
 const ETAMIN=5;   // days that must have elapsed before a rate is worth projecting (§8.1)
 const DONEMAX=5;  // finished list items shown before the rest fold away (§5)
 let state={goals:[],logs:{}};
-let view=null, sel=null, panel='day', editing=null, saveErr=false;
+let view=null, sel=null, panel='day', editing=null, draftGoal=null, draftIsNew=false, categoryScope='month', saveErr=false;
 let notice='';
 let purging=null;                  // the archived goal awaiting a permanent delete
 let dragId=null;                   // the goal being dragged, while it is in the air
@@ -1009,11 +1058,15 @@ async function readVersion(){
 }
 
 async function load(){
+  let explicitMock=false;
   try{
     const raw = await Store.read();
-    if(raw && raw.trim() && raw.trim()!=='{}') state = JSON.parse(raw);
+    if(raw && raw.trim() && raw.trim()!=='{}'){
+      state = JSON.parse(raw);
+      explicitMock=Boolean(state._mockScenario);
+    }
   }catch(e){ console.warn('Read failed, starting fresh', e); }
-  if(!state.goals||!state.goals.length) state=seed();
+  if(!state.goals||(!state.goals.length&&!explicitMock)) state=seed();
   if(!state.logs) state.logs={};
   state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
     delete g.cad; });   // cadence is gone; drop the dead field on the way through
@@ -1097,7 +1150,7 @@ function dropGoal(id){
   const g=state.goals[i];
   if(goalLogged(g)) g.archived=true;
   else state.goals.splice(i,1);
-  if(editing===id) editing=null;
+  if(editing===id){editing=null;draftGoal=null;draftIsNew=false;}
   notice=''; purging=null; save(); render();
 }
 function dropSub(id){
@@ -1226,18 +1279,20 @@ function render(quietEditor=false){
         <div class="dow">${DOW.map(d=>`<i>${d}</i>`).join('')}</div>
         <div class="cal">${calendar(tk)}</div>
         <div class="tally">
-          <span><b>${run}</b><em>Day Streak</em></span>
-          <span><b>${records}</b><em>Total Records</em></span>
+          <div class="tallyitem static"><b>${run}</b><em>Day Streak</em></div>
+          <button class="tallyitem" id="recordsJump" title="View activity history"><b>${records}</b><em>Total Records</em></button>
         </div>
         </div>
       </aside>
       <main class="workspace">
         <header class="workhead">
           <div>
-            <p class="eyebrow">${panel==='day' ? (sel===tk?'Today':esc(label(sel||tk))) : panel==='stats' ? `${MON[view.m]} review` : 'Past goals'}</p>
+            <p class="eyebrow">${panel==='day' ? (sel===tk?'Today':'Past day') : panel==='stats' ? `${MON[view.m]} review` : 'Past goals'}</p>
             <h2>${panel==='day' ? (sel===tk?'What will you show up for?':esc(label(sel||tk))) : panel==='stats' ? 'Your month at a glance' : 'Archive'}</h2>
           </div>
-          ${panel==='day'?`<div class="daystatus"><b>${dayTotal(sel||tk)}</b><span>check-in${dayTotal(sel||tk)===1?'':'s'}</span></div>`:
+          ${panel==='day'?`<div class="daystatus">
+            <span class="daymetric"><b>${dayTotal(sel||tk)}</b><span>record${dayTotal(sel||tk)===1?'':'s'}</span></span>
+          </div>`:
             panel==='stats'?`<div class="monthswitch" aria-label="Stats month">
               <button data-sm="-1" aria-label="Previous stats month">‹</button>
               <span>${MON[view.m]} ${view.y}</span>
@@ -1335,7 +1390,7 @@ function heatmap(){
     const show = m!==shown && w-lastAt>=(lastWide?6:3);
     if(m!==shown) shown=m;
     if(show){ lastAt=w; lastWide=withYear; shownY=y; }
-    mons+=`<i>${show?MONS[m]+(withYear?' '+y:''):''}</i>`;
+    mons+=`<i${show&&w>HWEEKS-4?' class="edge"':''}>${show?MONS[m]+(withYear?' '+y:''):''}</i>`;
   }
   for(let i=0;i<HWEEKS*7;i++){
     const d=new Date(start); d.setDate(start.getDate()+i);
@@ -1343,7 +1398,7 @@ function heatmap(){
     if(d>n){ cells+='<span class="hd future"></span>'; continue; }
     const t=dayTotal(k);
     cells+=`<button class="hd${k===tk?' today':''}" data-l="${level(t)}" data-hk="${k}"
-      title="${label(k)} · ${t} check-in${t===1?'':'s'}"></button>`;
+      title="${label(k)} · ${t} record${t===1?'':'s'}"></button>`;
   }
   return `<div class="heat">
     <div class="hmons">${mons}</div>
@@ -1392,8 +1447,9 @@ function tabs(){
 }
 
 function dayPanel(k,tk,quietEditor=false){
+  if(k!==tk) return snapshotPanel(k);
   const F=firstDone(), full=live().length>=MAXGOALS;
-  const activeEditor=editing?live().find(g=>g.id===editing):null;
+  const activeEditor=editing?(draftGoal||live().find(g=>g.id===editing)):null;
   return `
     ${live().length?live().map(g=>goalBlock(g,k,F)).join('')
       :'<p class="hint" style="padding:10px 0">No goals yet.</p>'}
@@ -1401,8 +1457,24 @@ function dayPanel(k,tk,quietEditor=false){
       <button class="add addgoal" id="ag"><span aria-hidden="true">+</span> Goal</button>
       ${full?`<p class="cap">You already have ${MAXGOALS}. Remove one to add another.</p>`:''}
     </div>
-    ${activeEditor?`<button class="editorbackdrop" data-edit="" aria-label="Close editor"></button>
+    ${activeEditor?`<button class="editorbackdrop" data-cancel-edit aria-label="Cancel editing"></button>
       ${goalEditor(activeEditor,quietEditor)}`:''}`;
+}
+
+function snapshotPanel(k){
+  const day=state.logs[k]||{};
+  const goals=state.goals.filter(g=>g.subs.some(s=>day[s.id]));
+  const rows=goals.map(g=>{
+    const entries=g.subs.filter(s=>day[s.id]);
+    const total=entries.reduce((n,s)=>n+day[s.id],0);
+    return `<div class="goal snapshot">
+      <div class="ghead"><h3>${esc(g.title)}${g.archived?'<i class="gone">archived</i>':''}</h3>
+        <span class="prog"><b>${total}</b> record${total===1?'':'s'}</span></div>
+      <div class="snapshotchips">${entries.map(s=>`<span class="snapshotchip">${esc(s.title)}${
+        day[s.id]>1?`<b>×${day[s.id]}</b>`:''}</span>`).join('')}</div></div>`;
+  }).join('');
+  return `<div class="snapshotnote">Read-only snapshot</div>
+    ${rows||'<p class="hint snapshotempty">No records for this day.</p>'}`;
 }
 
 function goalBlock(g,k,F){
@@ -1475,23 +1547,25 @@ function goalEditor(g,quiet=false){
   const kept=goalCount(g), keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);
   return `<div class="goal ed${quiet?' steady':''}">
     <div class="ehead"><h3>Edit goal</h3>
-      <button class="x" data-edit="" title="Close">×</button></div>
+      <button class="x" data-cancel-edit title="Cancel">×</button></div>
     <input class="etitle" type="text" value="${esc(g.title)}" data-gt="${g.id}" placeholder="Goal">
     <div class="settingsgroup">
       ${field('Tap action',
-        `<select data-gy="${g.id}">${Object.entries(TAP).map(([v,n])=>
-          `<option value="${v}"${g.type===v?' selected':''}>${n}</option>`).join('')}</select>`)}
+        `<details class="tapmenu"><summary>${TAP[g.type]}</summary>
+          <div class="tapoptions" role="menu">${Object.entries(TAP).map(([v,n])=>
+            `<button class="tapoption${g.type===v?' active':''}" data-gy="${g.id}" data-type="${v}" role="menuitemradio" aria-checked="${g.type===v}">
+              <span class="check" aria-hidden="true">✓</span><span>${n}</span></button>`).join('')}</div></details>`)}
       ${g.type==='count'?field('Monthly target',
         `<input type="number" min="1" value="${g.target||40}" data-gn="${g.id}">`):''}
     </div>
     <div class="esep"></div>
-    <p class="flab">Sub-goals${subs.length?` <span class="fcount">${subs.length}</span>`:''}</p>
+    ${subs.length?`<p class="flab">Sub-goals <span class="fcount">${subs.length}</span></p>
     <div class="substickers">
       ${subs.map(s=>`<div class="erow sub sticker" style="--chars:${Math.max(3,Math.min(28,s.title.length+.5))}">
         <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
         <button class="x" data-ds="${s.id}" title="${subLogged(s.id)?'Archive':'Delete'}">×</button></div>`).join('')}
       <button class="add substickeradd" data-as="${g.id}" aria-label="Add sub-goal" title="Add sub-goal"><span aria-hidden="true">+</span></button>
-    </div>
+    </div>`:`<button class="add firstsub" data-as="${g.id}"><span aria-hidden="true">+</span>Add first sub-goal</button>`}
     ${gone.length?`<p class="flab gone">Archived <span class="fcount">${gone.length}</span></p>
       ${gone.map(s=>`<div class="erow sub gone"><span class="sname">${esc(s.title)}</span>
         <button class="lnk" data-rs="${s.id}">Restore</button></div>`).join('')}`:''}
@@ -1503,7 +1577,7 @@ function goalEditor(g,quiet=false){
     </div>
     <div class="erow edfoot">
       <span class="grow"></span>
-      <button class="btn pri" data-edit="">Save</button>
+      <button class="btn pri" data-save-edit>Save</button>
     </div>
   </div>`;
 }
@@ -1583,9 +1657,14 @@ function goalAmount(g,y,m){
 }
 
 function statsPanel(){
+  if(!state.goals.length) return `<div class="statsempty">
+    <div class="emptychart" aria-hidden="true"><i></i><i></i><i></i></div>
+    <h3>No stats yet</h3><p>No Goals to chart.</p>
+    <button class="btn pri" id="emptyGoal">Create Goal</button></div>`;
   const ach=achievements().filter(a=>inMonth(a.d,view.y,view.m));
   const colors=['#176B57','#7B61A8','#3276A8','#C17A32','#B24C62'];
-  const monthly=state.goals.map((g,index)=>{
+  const monthGoals=state.goals.filter(g=>!g.archived||goalAmount(g,view.y,view.m).v>0);
+  const monthly=monthGoals.map((g,index)=>{
     const {v,u}=goalAmount(g,view.y,view.m);
     const max=g.type==='count'?(g.target||40):g.type==='list'?Math.max(1,g.subs.length):daysIn(view.y,view.m);
     const pct=Math.min(100,max?v/max*100:0);
@@ -1594,16 +1673,19 @@ function statsPanel(){
       <span class="barwell"><i style="height:${pct}%;background:${colors[index%colors.length]}"></i></span>
       <span class="barlabel">${esc(g.title)}${g.archived?'<i class="gone">archived</i>':''}</span></div>`;
   }).join('');
-  const donuts=state.goals.filter(g=>g.type==='count').map(g=>{
-    const active=liveSubs(g), values=active.map(s=>subTotal(s.id)), total=values.reduce((a,b)=>a+b,0);
+  const donutGoals=state.goals.filter(g=>g.type==='count'&&(!g.archived||(
+    categoryScope==='all'?goalAmount(g).v>0:goalAmount(g,view.y,view.m).v>0)));
+  const donuts=donutGoals.map(g=>{
+    const active=liveSubs(g), values=active.map(s=>categoryScope==='all'?subTotal(s.id):subTotal(s.id,view.y,view.m));
+    const total=values.reduce((a,b)=>a+b,0);
     let at=0;
     const stops=values.map((n,i)=>{const from=at;at+=total?n/total*100:0;
       return `${colors[i%colors.length]} ${from}% ${at}%`}).join(',');
     const fill=total&&stops?`conic-gradient(${stops})`:'var(--sunk)';
     return `<section class="donutgroup">
-      <div class="donut" role="img" aria-label="${esc(g.title)} cumulative total ${total}" style="background:${fill}">
+      <div class="donut" role="img" aria-label="${esc(g.title)} ${categoryScope==='all'?'all-time':'monthly'} total ${total}" style="background:${fill}">
         <span><b>${total}</b><em>total</em></span></div>
-      <div class="donutmeta"><h4>${esc(g.title)}</h4><p>Cumulative by category</p>
+      <div class="donutmeta"><h4>${esc(g.title)}</h4><p>${categoryScope==='all'?'All-time':'Selected month'} by category</p>
         <div class="donutlegend">${active.map((s,i)=>`<span><i style="background:${colors[i%colors.length]}"></i>
           <em>${esc(s.title)}</em><b>${values[i]}</b></span>`).join('')}</div></div>
     </section>`;
@@ -1614,15 +1696,19 @@ function statsPanel(){
       <div class="charthead"><div><h4>Monthly progress</h4><p>Progress toward each goal's monthly capacity</p></div></div>
       <div class="barchart">${monthly||'<p class="hint">No goals yet.</p>'}</div>
     </section>
-    ${donuts?`<section class="chartcard"><div class="charthead"><div><h4>Category mix</h4><p>All-time Adds one records</p></div></div>${donuts}</section>`:''}
+    ${donuts?`<section class="chartcard"><div class="charthead"><div><h4>Category mix</h4><p>Adds one records by category</p></div>
+      <div class="scopecontrol" aria-label="Category mix range">
+        <button class="${categoryScope==='month'?'active':''}" data-cscope="month">This month</button>
+        <button class="${categoryScope==='all'?'active':''}" data-cscope="all">All time</button>
+      </div></div>${donuts}</section>`:''}
 
-    <h4 class="sh">Completed · ${ach.length} item${ach.length===1?'':'s'}</h4>
-    <div class="ach">${ach.length?ach.map(a=>
+    ${ach.length?`<h4 class="sh">Completed · ${ach.length} item${ach.length===1?'':'s'}</h4>
+    <div class="ach">${ach.map(a=>
       `<div class="arow${a.hit?' hit':''}">
         <span class="ad mono">${short(a.d)}</span>
         <span class="at">${esc(a.t)}</span>
         <span class="ag">${esc(a.g)}</span></div>`).join('')
-      :'<p class="hint">Finished list items, and count goals that hit their monthly target, show up here.</p>'}</div>`;
+      }</div>`:''}`;
 }
 
 /* ---------- events ---------- */
@@ -1636,6 +1722,29 @@ function refreshEditor(focusId=null){
     if(input){input.focus();input.select();}
   }
 }
+function beginEdit(id){
+  const source=state.goals.find(g=>g.id===id); if(!source)return;
+  draftGoal=JSON.parse(JSON.stringify(source)); draftIsNew=false; editing=id; render();
+}
+function cancelEdit(){
+  editing=null; draftGoal=null; draftIsNew=false; render();
+}
+function commitEdit(){
+  if(!draftGoal)return cancelEdit();
+  draftGoal.subs=draftGoal.subs.filter(s=>s.title.trim());
+  if(draftIsNew) state.goals.push(draftGoal);
+  else{
+    const i=state.goals.findIndex(g=>g.id===draftGoal.id);
+    if(i>=0) state.goals[i]=draftGoal;
+  }
+  editing=null; draftGoal=null; draftIsNew=false; save(); render();
+}
+function createGoal(){
+  if(live().length>=MAXGOALS) return;
+  const id=newId();
+  draftGoal={id,type:'daily',title:'New goal',subs:[]};
+  draftIsNew=true; editing=id; panel='day'; render();
+}
 function bind(){
   on('[data-tog]',b=>b.onclick=()=>{const k=sel||todayKey();
     bump(b.dataset.tog,(state.logs[k]||{})[b.dataset.tog]?-1:1);});
@@ -1647,6 +1756,7 @@ function bind(){
   on('[data-ao]',b=>b.onclick=()=>{ const id=b.dataset.ao;
     archiveOpen.has(id)?archiveOpen.delete(id):archiveOpen.add(id); render(); });
   on('[data-sm]',b=>b.onclick=()=>shift(+b.dataset.sm));
+  on('[data-cscope]',b=>b.onclick=()=>{categoryScope=b.dataset.cscope;render();});
   on('.d[data-k]',c=>c.onclick=()=>{ sel=c.dataset.k; panel='day'; render(); });
   on('.hd[data-hk]',c=>c.onclick=()=>{ const d=parseKey(c.dataset.hk);
     view={y:d.getFullYear(),m:d.getMonth()}; sel=c.dataset.hk; panel='day'; render(); });
@@ -1655,12 +1765,17 @@ function bind(){
   const nx=document.getElementById('next'); if(nx&&!nx.disabled) nx.onclick=()=>shift(1);
   const bk=document.getElementById('back');
   if(bk) bk.onclick=()=>{const n=today();view={y:n.getFullYear(),m:n.getMonth()};sel=todayKey();panel='day';render();};
+  const recordsJump=document.getElementById('recordsJump');
+  if(recordsJump) recordsJump.onclick=()=>document.querySelector('.history')?.scrollIntoView({behavior:'smooth',block:'start'});
   on('[data-tab]',b=>b.onclick=()=>{
     const p=b.dataset.tab;
     // no day is selected while browsing another month, so the day view returns to today
     if(p==='day'&&!sel){ const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey(); }
+    if(p!=='day'){editing=null;draftGoal=null;draftIsNew=false;}
     panel=p; render();});
-  on('[data-edit]',b=>b.onclick=()=>{ editing=b.dataset.edit||null; render(); });
+  on('[data-edit]',b=>b.onclick=()=>beginEdit(b.dataset.edit));
+  on('[data-cancel-edit]',b=>b.onclick=cancelEdit);
+  on('[data-save-edit]',b=>b.onclick=commitEdit);
 
   // Reordering, on plain mouse events rather than HTML5 drag and drop. The native API
   // needs `draggable` set before the gesture begins, and setting it from the handle's
@@ -1673,26 +1788,24 @@ function bind(){
   });
 
   const ag=document.getElementById('ag');
-  if(ag) ag.onclick=()=>{
-    if(live().length>=MAXGOALS) return;   // the cap is already stated beside the button
-    const id=newId();
-    state.goals.push({id,type:'daily',title:'New goal',
-                      subs:[{id:newId(),title:'New sub-goal'}]});
-    editing=id; panel='day'; save(); render();};
+  if(ag) ag.onclick=createGoal;
+  const emptyGoal=document.getElementById('emptyGoal'); if(emptyGoal) emptyGoal.onclick=createGoal;
   on('[data-as]',b=>b.onclick=()=>{
     const id=newId();
-    state.goals.find(g=>g.id===b.dataset.as).subs.push({id,title:'New sub-goal'});save();refreshEditor(id);
+    if(draftGoal&&draftGoal.id===b.dataset.as){draftGoal.subs.push({id,title:''});refreshEditor(id);}
   });
-  on('[data-gt]',i=>i.oninput=()=>{state.goals.find(g=>g.id===i.dataset.gt).title=i.value;save();});
-  on('[data-gy]',s=>s.onchange=()=>{const g=state.goals.find(g=>g.id===s.dataset.gy);
-    g.type=s.value; if(g.type==='count'&&!g.target)g.target=40; save(); refreshEditor();});
+  on('[data-gt]',i=>i.oninput=()=>{if(draftGoal&&draftGoal.id===i.dataset.gt)draftGoal.title=i.value;});
+  on('[data-gy]',b=>b.onclick=()=>{const g=draftGoal;
+    if(!g||g.id!==b.dataset.gy)return; g.type=b.dataset.type; if(g.type==='count'&&!g.target)g.target=40; refreshEditor();});
   on('[data-gn]',i=>i.oninput=()=>{
-    state.goals.find(g=>g.id===i.dataset.gn).target=Math.max(1,+i.value||1); save();});
+    if(draftGoal&&draftGoal.id===i.dataset.gn)draftGoal.target=Math.max(1,+i.value||1);});
   on('[data-st]',i=>i.oninput=()=>{
-    for(const g of state.goals){const s=g.subs.find(s=>s.id===i.dataset.st);if(s){s.title=i.value;break;}}save();});
-  on('[data-dg]',b=>b.onclick=()=>dropGoal(b.dataset.dg));
-  on('[data-ds]',b=>b.onclick=()=>dropSub(b.dataset.ds));
-  on('[data-rs]',b=>b.onclick=()=>restoreSub(b.dataset.rs));
+    if(!draftGoal)return;const s=draftGoal.subs.find(s=>s.id===i.dataset.st);if(s)s.title=i.value;});
+  on('[data-dg]',b=>b.onclick=()=>{if(draftIsNew)cancelEdit();else dropGoal(b.dataset.dg);});
+  on('[data-ds]',b=>b.onclick=()=>{if(!draftGoal)return;const i=draftGoal.subs.findIndex(s=>s.id===b.dataset.ds);
+    if(i<0)return;subLogged(b.dataset.ds)?draftGoal.subs[i].archived=true:draftGoal.subs.splice(i,1);refreshEditor();});
+  on('[data-rs]',b=>b.onclick=()=>{if(!draftGoal)return;const s=draftGoal.subs.find(s=>s.id===b.dataset.rs);
+    if(s){delete s.archived;refreshEditor();}});
   on('[data-rg]',b=>b.onclick=()=>restoreGoal(b.dataset.rg));
   on('[data-pg]',b=>b.onclick=()=>{purging=b.dataset.pg; notice=''; render();});
   on('[data-purge]',b=>b.onclick=()=>purgeGoal(b.dataset.purge));

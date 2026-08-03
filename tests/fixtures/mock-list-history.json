@@ -1,0 +1,36 @@
+{
+  "_mockScenario": "list-history-and-folding",
+  "goals": [
+    {
+      "id": "list-roadmap",
+      "type": "list",
+      "title": "Learning roadmap",
+      "subs": [
+        { "id": "list-open-one", "title": "Distributed tracing" },
+        { "id": "list-open-two", "title": "Load testing" },
+        { "id": "list-recent-one", "title": "Query planning" },
+        { "id": "list-recent-two", "title": "Database transactions" },
+        { "id": "list-recent-three", "title": "Cache invalidation" },
+        { "id": "list-recent-four", "title": "Message delivery" },
+        { "id": "list-recent-five", "title": "Rate limiting" },
+        { "id": "list-recent-six", "title": "Service discovery" },
+        { "id": "list-recent-seven", "title": "Failure recovery" },
+        { "id": "list-recent-eight", "title": "Schema evolution" },
+        { "id": "list-old-one", "title": "HTTP fundamentals" },
+        { "id": "list-old-two", "title": "SQL fundamentals" }
+      ]
+    }
+  ],
+  "logs": {
+    "2026-06-01": { "list-old-one": 1 },
+    "2026-07-01": { "list-old-two": 1 },
+    "2026-07-05": { "list-recent-one": 1 },
+    "2026-07-12": { "list-recent-two": 1 },
+    "2026-07-20": { "list-recent-three": 1 },
+    "2026-07-28": { "list-recent-four": 1 },
+    "2026-07-31": { "list-recent-five": 1 },
+    "2026-08-01": { "list-recent-six": 1 },
+    "2026-08-02": { "list-recent-seven": 1 },
+    "2026-08-03": { "list-recent-eight": 1 }
+  }
+}

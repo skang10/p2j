@@ -1,0 +1,42 @@
+{
+  "_mockScenario": "archive-and-restore",
+  "goals": [
+    {
+      "id": "archive-count",
+      "type": "count",
+      "target": 8,
+      "title": "Old interview prep",
+      "archived": true,
+      "subs": [
+        { "id": "archive-code", "title": "Coding rounds" },
+        { "id": "archive-system", "title": "System design rounds" }
+      ]
+    },
+    {
+      "id": "archive-list",
+      "type": "list",
+      "title": "Completed course",
+      "archived": true,
+      "subs": [
+        { "id": "archive-module-one", "title": "Foundations" },
+        { "id": "archive-module-two", "title": "Advanced topics" }
+      ]
+    },
+    {
+      "id": "live-daily",
+      "type": "daily",
+      "title": "Current routine",
+      "subs": [
+        { "id": "live-plan", "title": "Plan the day" },
+        { "id": "live-review", "title": "Review the day" },
+        { "id": "live-old", "title": "Old habit", "archived": true }
+      ]
+    }
+  ],
+  "logs": {
+    "2026-07-15": { "live-old": 1, "live-plan": 1 },
+    "2026-08-01": { "archive-code": 3, "archive-system": 2 },
+    "2026-08-02": { "archive-module-one": 1, "live-plan": 1 },
+    "2026-08-03": { "archive-module-two": 1, "live-review": 1 }
+  }
+}
