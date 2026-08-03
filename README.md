@@ -9,7 +9,7 @@ up for them each day.
 Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style to a more
 structured, check-in style.
 
-## Screenshots
+## App Preview
 
 ### Today
 
