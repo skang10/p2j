@@ -40,7 +40,7 @@ t('parseKey', () => {
 });
 t('key/parseKey roundtrip', () => eq(A.key(A.parseKey('2026-02-09')), '2026-02-09'));
 t('label', () => eq(A.label('2026-07-28'), 'Jul 28'));
-t('short', () => eq(A.short('2026-12-05'), '12/5'));
+t('short', () => eq(A.short('2026-12-05'), 'December 5 2026'));
 t('mKey', () => eq(A.mKey(2026, 6), '2026-07'));
 t('inMonth', () => {
   ok(A.inMonth('2026-07-01', 2026, 6));
@@ -275,9 +275,11 @@ t('Stats separates monthly records, active days, category mix, and completed ite
   a.panel = 'stats'; a.render();
   const html = g.captured.app;
   has(html, 'Monthly records'); has(html, 'Active days'); has(html, 'Category mix'); no(html, 'Crosses it off items · 0');
-  has(html, '<span class="typebadge">Marks the day done</span>');
-  has(html, '<span class="typebadge">Adds one</span>');
+  no(html, '<h4>Active days</h4><span class="typebadge">', 'section headings do not repeat their type');
+  no(html, '<h4>Category mix</h4><span class="typebadge">', 'section headings stay compact');
   no(html, 'Check-ins recorded for each Goal', 'section subtitles are replaced by labels');
+  no(html.slice(html.indexOf('<section class="recordsummary">'), html.indexOf('</section>')),
+    'class="typebadge"', 'Monthly records keeps Goal rows label-free');
   eq((html.match(/aria-label="[^"]+ · \d+ records?"/g) || []).length, 3, 'one record total per goal');
   no(html, 'class="barcol"', 'different goal units are not combined in a bar chart');
   no(html, 'Last 12 months', 'consistency history belongs to Today');
@@ -329,7 +331,18 @@ t('Stats renders per-goal record totals and a selected-month donut chart', async
   const html = a.statsPanel();
   eq((html.match(/aria-label="[^"]+ · \d+ records?"/g) || []).length, 3, 'one monthly record row per goal');
   has(html, 'class="donut"');
+  has(html, 'class="donutgrid"');
   has(html, 'aria-label="Problems monthly total 6"');
+});
+t('Active days breaks a daily Goal down by Sub-goal', async () => {
+  const a = await fixture();
+  a.state.goals[2].subs.push({ id: 'd2', title: 'Follow up' });
+  a.state.logs['2026-07-03'].d2 = 1;
+  const html = a.statsPanel();
+  has(html, '<b>Applications</b>'); has(html, '<b>Follow up</b>');
+  eq((html.match(/<span>active day<\/span>/g) || []).length, 2, 'each Sub-goal has its own day count');
+  has(html, '<span class="typebadge">Job hunt</span>', 'the parent Goal remains visible as context');
+  eq((html.match(/class="daybartrack"/g) || []).length, 2, 'each Sub-goal has a horizontal day bar');
 });
 t('Monthly record rows navigate within Stats to their type-specific detail', async () => {
   const g = await arch(); const a = g.api;
@@ -340,16 +353,16 @@ t('Monthly record rows navigate within Stats to their type-specific detail', asy
   has(html, 'data-stat-target="g2"', 'Crosses it off points to Completed');
   a.panel = 'stats'; a.navigateGoal('g1');
   eq(a.panel, 'stats', 'the jump does not leave Stats');
+  a.dropGoal('g1'); a.panel = 'stats'; a.navigateGoal('g1');
+  eq(a.panel, 'archive', 'an archived Goal opens in Archive');
+  ok(a.archiveOpen.has('g1'), 'the archived Goal is expanded');
 });
-t('Adds one category mix defaults to the selected month and can show all time', async () => {
+t('Adds one category mix is limited to the selected month', async () => {
   const a = await fixture();
-  let html = a.statsPanel();
-  has(html, 'data-cscope="month"'); has(html, 'data-cscope="all"');
+  const html = a.statsPanel();
   has(html, 'aria-label="Problems monthly total 6"');
   has(html, '<em>DP</em><b>5</b>'); has(html, '<em>Trees</em><b>1</b>');
-  a.categoryScope = 'all'; html = a.statsPanel();
-  has(html, 'aria-label="Problems all-time total 15"');
-  has(html, '<em>DP</em><b>10</b>'); has(html, '<em>Trees</em><b>5</b>');
+  no(html, 'All time'); no(html, 'all-time total');
   eq((html.match(/class="donutgroup"/g) || []).length, 1, 'only the count goal has a category donut');
 });
 t('archived sub-goals leave the visible Stats category breakdown', async () => {
@@ -781,7 +794,7 @@ t('unfolding shows every finished item, and offers the way back', async () => {
 t('the Done line is newest first, so the fold keeps what you just crossed off', async () => {
   const a = await longList(23);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
-  const dates = [...html.matchAll(/<em>(\d+\/\d+)<\/em>/g)].map(m => m[1]);
+  const dates = [...html.matchAll(/<em>([A-Z][a-z]+ \d+ \d{4})<\/em>/g)].map(m => m[1]);
   eq(dates.length, a.DONEMAX);
   const F = a.firstDone();
   const shown = [...html.matchAll(/data-clear="(l\d+)"/g)].map(m => m[1]);
@@ -1394,6 +1407,72 @@ t('the cross-month Stats mock separates monthly and all-time totals', async () =
   eq(count('08', ['stats-ticket']), 0, 'the archived goal is absent from August');
   eq(count('06', ['stats-arrays']) + count('07', ['stats-arrays']) + count('08', ['stats-arrays']), 7);
 });
+t('the many-goals mock reaches the live cap and stresses a large archive', () => {
+  const mock = require('./fixtures/make-many-goals')();
+  eq(mock.goals.filter(g => !g.archived).length, 5);
+  eq(mock.goals.filter(g => g.archived).length, 100);
+  ok(mock.goals.some(g => g.title.length > 60), 'long Goal titles are represented');
+  ok(mock.goals.flatMap(g => g.subs).some(s => s.title.length > 55), 'long Sub-goals are represented');
+  eq(new Set(Object.keys(mock.logs)).size > 50, true, 'records are spread over many dates');
+});
+t('large Stats and Archive sections fold and paginate five items at a time', async () => {
+  const g = await bootReady({ now: '2026-08-04' }); const a = g.api;
+  a.state = require('./fixtures/make-many-goals')();
+  a.view = { y: 2026, m: 7 };
+  let html = a.statsPanel();
+  const summary = html.slice(html.indexOf('<section class="recordsummary">'), html.indexOf('</section>') + 10);
+  eq((summary.match(/data-stat-goal=/g) || []).length, a.PAGE_SIZE, 'Monthly records shows five rows');
+  has(summary, '1 / 3', 'Monthly records has its own pager');
+  a.sectionOpen.records = false; html = a.statsPanel();
+  const folded = html.slice(html.indexOf('<section class="recordsummary">'), html.indexOf('</section>') + 10);
+  has(folded, 'aria-expanded="false"'); no(folded, 'data-stat-goal=', 'folding hides the rows');
+  a.sectionOpen.records = true;
+
+  html = a.archivePanel();
+  eq((html.match(/class="arch"/g) || []).length, a.PAGE_SIZE, 'Archive shows five goals');
+  has(html, '1 / 20'); has(html, 'Archived goal 1'); no(html, 'Archived goal 6');
+  a.sectionPage.archive = 1; html = a.archivePanel();
+  has(html, 'Archived goal 6'); no(html, 'Archived goal 1</h3>', 'the first page is replaced');
+});
+t('Completed paginates 100 items and identifies archived Goal entries', async () => {
+  const g = await bootReady({ now: '2026-08-04' }); const a = g.api;
+  a.state = require('./fixtures/make-many-completed')();
+  a.view = { y: 2026, m: 7 };
+  const ach = a.achievements().filter(x => a.inMonth(x.d, 2026, 7) && !x.hit);
+  eq(ach.length, 100); eq(ach.filter(x => x.archived).length, 40);
+  const html = a.statsPanel();
+  const start = html.indexOf('<h4>Completed</h4>');
+  const completed = html.slice(start);
+  eq((completed.match(/class="arow/g) || []).length, a.PAGE_SIZE, 'five completed items are rendered');
+  has(completed, '1 / 20'); has(completed, '<i class="gone">archived</i>');
+  has(completed, '<span class="typebadge">Archived completed work', 'the parent Goal is a compact label');
+  has(html, 'data-stat-goal="completed-archived-goal"', 'the archived Goal remains in Monthly records');
+});
+t('the comprehensive mock covers every type, status, and month', () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-comprehensive.json'), 'utf8'));
+  eq(mock.goals.filter(g => !g.archived).map(g => g.type).sort(), ['count', 'daily', 'list']);
+  eq(mock.goals.filter(g => g.archived).map(g => g.type).sort(), ['count', 'daily', 'list']);
+  eq([...new Set(Object.keys(mock.logs).map(d => d.slice(0, 7)))],
+    ['2026-05', '2026-06', '2026-07', '2026-08']);
+  ok(Object.values(mock.logs).some(day => Object.values(day).reduce((a, b) => a + b, 0) >= 5));
+  eq(mock.goals.find(g => g.id === 'full-list-live').subs.length, 7);
+});
+t('the category stress mock contains twenty visible categories', () => {
+  const mock = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-many-categories.json'), 'utf8'));
+  eq(mock.goals[0].subs.length, 20);
+  const represented = new Set(Object.values(mock.logs).flatMap(day => Object.keys(day)));
+  eq(represented.size, 20);
+  eq(Object.values(mock.logs).flatMap(day => Object.values(day)).reduce((a, b) => a + b, 0), 150);
+});
+t('a Category mix with more than five Categories spans both columns', async () => {
+  const g = await bootReady({ now: '2026-08-04' }); const a = g.api;
+  a.state = JSON.parse(require('fs').readFileSync(
+    require('path').join(__dirname, 'fixtures', 'mock-many-categories.json'), 'utf8'));
+  a.view = { y: 2026, m: 7 };
+  has(a.statsPanel(), '<section class="donutgroup wide" data-stat-target="categories-goal">');
+});
 t('load always lands on today in the day panel', async () => {
   const g = await loadFrom({ goals: [{ id: 'a', type: 'daily', cad: 'free', title: 'g', subs: [] }], logs: {} });
   eq(g.api.view, { y: TY, m: TM });
@@ -1494,14 +1573,13 @@ t('stats still credit an archived goal, and say it is archived', async () => {
   has(sp, '<i class="gone">archived</i>', 'and says why a name you no longer track is here');
   ok(a.achievements().some(x => x.t === 'A'), 'and a finished list item stays an achievement');
 });
-t('Stats hides an archived goal in months where it has no records', async () => {
+t('Stats hides an archived goal from every section in months where it has no records', async () => {
   const g = await arch(); const a = g.api;
   a.dropGoal('g1');
   a.view = { y: 2026, m: 7 };
-  let sp = a.statsPanel();
+  const sp = a.statsPanel();
   no(sp, 'Problems', 'the archived goal is absent from an unrelated month');
-  a.categoryScope = 'all'; sp = a.statsPanel();
-  has(sp, 'Problems', 'All time still includes an archived goal with historical records');
+  no(sp, 'All time', 'Category mix has no cross-month escape hatch');
 });
 t('an archived goal is gone from the check-in screen but not from the record', async () => {
   const g = await arch(); const a = g.api;
@@ -1541,7 +1619,7 @@ t('a permanent delete asks first, naming what it will cost', async () => {
   has(a.archivePanel(), 'data-pg="g1"', 'the archive tab offers it');
   a.purging = 'g1';
   const html = a.archivePanel();
-  has(html, 'and its 11 check-ins permanently?', 'the question states the count');
+  has(html, 'and its 11 records permanently?', 'the question states the count');
   no(html, 'data-rg="g1"', 'and the ordinary controls step aside while it asks');
 });
 t('a permanent delete removes the goal and every log it owned', async () => {

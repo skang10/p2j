@@ -16,9 +16,10 @@ dropGoal dropSub restoreGoal restoreSub purgeGoal archivePanel lastWorked
 moveGoal nudgeGoal beginDrag bump clearSub stripSub
 render heatmap heatStart HWEEKS calendar dayPanel snapshotPanel goalBlock paceLine pips
 achievements goalAmount statsPanel goalEditor tabs track bind shift
-beginEdit cancelEdit commitEdit createGoal navigateGoal`.split(/\s+/).filter(Boolean);
+beginEdit cancelEdit commitEdit createGoal navigateGoal
+PAGE_SIZE sectionOpen sectionPage pageOf pager foldTitle`.split(/\s+/).filter(Boolean);
 
-const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'draftGoal', 'draftIsNew', 'categoryScope', 'dataPath', 'saveErr', 'version',
+const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'draftGoal', 'draftIsNew', 'dataPath', 'saveErr', 'version',
                  'notice', 'purging'];
 
 // A Date subclass whose no-arg constructor returns a fixed instant. Every other

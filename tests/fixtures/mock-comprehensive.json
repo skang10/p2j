@@ -1,0 +1,92 @@
+{
+  "_mockScenario": "comprehensive-multi-month",
+  "goals": [
+    {
+      "id": "full-daily-live",
+      "type": "daily",
+      "title": "Focus routine",
+      "subs": [
+        { "id": "full-plan", "title": "Plan the day" },
+        { "id": "full-focus", "title": "Deep work" },
+        { "id": "full-review", "title": "Review the day" }
+      ]
+    },
+    {
+      "id": "full-count-live",
+      "type": "count",
+      "target": 20,
+      "title": "Technical practice",
+      "subs": [
+        { "id": "full-arrays", "title": "Arrays" },
+        { "id": "full-sql", "title": "SQL" },
+        { "id": "full-systems", "title": "System design" }
+      ]
+    },
+    {
+      "id": "full-list-live",
+      "type": "list",
+      "title": "Learning roadmap",
+      "subs": [
+        { "id": "full-indexes", "title": "Database indexes" },
+        { "id": "full-caching", "title": "Caching strategies" },
+        { "id": "full-queues", "title": "Message queues" },
+        { "id": "full-tracing", "title": "Distributed tracing" },
+        { "id": "full-capacity", "title": "Capacity planning" },
+        { "id": "full-open-one", "title": "Failure recovery" },
+        { "id": "full-open-two", "title": "Schema evolution" }
+      ]
+    },
+    {
+      "id": "full-daily-archived",
+      "type": "daily",
+      "title": "Morning routine",
+      "archived": true,
+      "subs": [
+        { "id": "full-meditate", "title": "Meditate" },
+        { "id": "full-journal", "title": "Journal" }
+      ]
+    },
+    {
+      "id": "full-count-archived",
+      "type": "count",
+      "target": 12,
+      "title": "Interview preparation",
+      "archived": true,
+      "subs": [
+        { "id": "full-coding", "title": "Coding rounds" },
+        { "id": "full-behavioral", "title": "Behavioral stories" }
+      ]
+    },
+    {
+      "id": "full-list-archived",
+      "type": "list",
+      "title": "Launch version one",
+      "archived": true,
+      "subs": [
+        { "id": "full-scope", "title": "Scope" },
+        { "id": "full-build", "title": "Build" },
+        { "id": "full-test", "title": "Test" },
+        { "id": "full-ship", "title": "Ship" }
+      ]
+    }
+  ],
+  "logs": {
+    "2026-05-03": { "full-meditate": 1, "full-journal": 1, "full-scope": 1 },
+    "2026-05-12": { "full-meditate": 1, "full-arrays": 2, "full-build": 1 },
+    "2026-05-20": { "full-coding": 3, "full-test": 1 },
+    "2026-05-28": { "full-behavioral": 2, "full-ship": 1 },
+    "2026-06-02": { "full-plan": 1, "full-focus": 1, "full-coding": 2 },
+    "2026-06-08": { "full-arrays": 3, "full-sql": 2, "full-meditate": 1 },
+    "2026-06-15": { "full-plan": 1, "full-review": 1, "full-indexes": 1 },
+    "2026-06-24": { "full-systems": 2, "full-behavioral": 3 },
+    "2026-07-01": { "full-plan": 1, "full-arrays": 2, "full-coding": 4 },
+    "2026-07-07": { "full-focus": 1, "full-sql": 3, "full-caching": 1 },
+    "2026-07-14": { "full-plan": 1, "full-review": 1, "full-behavioral": 2 },
+    "2026-07-21": { "full-arrays": 4, "full-systems": 3, "full-queues": 1 },
+    "2026-07-30": { "full-focus": 1, "full-coding": 2 },
+    "2026-08-01": { "full-plan": 1, "full-arrays": 2, "full-tracing": 1 },
+    "2026-08-02": { "full-focus": 1, "full-sql": 2 },
+    "2026-08-03": { "full-plan": 1, "full-review": 1, "full-systems": 3 },
+    "2026-08-04": { "full-focus": 1, "full-arrays": 1, "full-capacity": 1 }
+  }
+}

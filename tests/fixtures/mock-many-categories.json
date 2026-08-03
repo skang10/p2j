@@ -1,0 +1,47 @@
+{
+  "_mockScenario": "twenty-categories",
+  "goals": [
+    {
+      "id": "categories-goal",
+      "type": "count",
+      "target": 250,
+      "title": "Twenty category stress test",
+      "subs": [
+        { "id": "category-01", "title": "Arrays" },
+        { "id": "category-02", "title": "Strings" },
+        { "id": "category-03", "title": "Hash maps" },
+        { "id": "category-04", "title": "Linked lists" },
+        { "id": "category-05", "title": "Stacks" },
+        { "id": "category-06", "title": "Queues" },
+        { "id": "category-07", "title": "Trees" },
+        { "id": "category-08", "title": "Graphs" },
+        { "id": "category-09", "title": "Heaps" },
+        { "id": "category-10", "title": "Binary search" },
+        { "id": "category-11", "title": "Sliding window" },
+        { "id": "category-12", "title": "Two pointers" },
+        { "id": "category-13", "title": "Dynamic programming" },
+        { "id": "category-14", "title": "Backtracking" },
+        { "id": "category-15", "title": "Greedy" },
+        { "id": "category-16", "title": "Intervals" },
+        { "id": "category-17", "title": "Prefix sums" },
+        { "id": "category-18", "title": "Bit manipulation" },
+        { "id": "category-19", "title": "Math and geometry" },
+        { "id": "category-20", "title": "System design" }
+      ]
+    }
+  ],
+  "logs": {
+    "2026-08-01": {
+      "category-01": 20, "category-02": 18, "category-03": 16, "category-04": 14,
+      "category-05": 12, "category-06": 10, "category-07": 9, "category-08": 8,
+      "category-09": 7, "category-10": 6
+    },
+    "2026-08-02": {
+      "category-11": 5, "category-12": 5, "category-13": 4, "category-14": 4,
+      "category-15": 3, "category-16": 3
+    },
+    "2026-08-03": {
+      "category-17": 2, "category-18": 2, "category-19": 1, "category-20": 1
+    }
+  }
+}
