@@ -7,6 +7,7 @@ const DONEMAX=5;  // finished list items shown before the rest fold away (§5)
 const PAGE_SIZE=5;
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, draftGoal=null, draftIsNew=false, quickAdding=null, saveErr=false;
+let noteView=null;
 const sectionOpen={records:true,days:true,mix:true,completed:true};
 const sectionPage={records:0,days:0,mix:0,completed:0,archive:0};
 let notice='';
@@ -32,6 +33,16 @@ const daysIn=(y,m)=>new Date(y,m+1,0).getDate();
 const diffDays=(a,b)=>Math.round((b-a)/864e5);
 const newId=()=>Math.random().toString(36).slice(2,8);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function markdown(s){
+  const inline=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
+  return String(s||'').split(/\r?\n/).map(line=>{
+    const h=line.match(/^(#{1,3})\s+(.+)/); if(h)return `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`;
+    if(/^[-*]\s+/.test(line))return `<li>${inline(line.replace(/^[-*]\s+/,''))}</li>`;
+    if(/^>\s?/.test(line))return `<blockquote>${inline(line.replace(/^>\s?/,''))}</blockquote>`;
+    return line.trim()?`<p>${inline(line)}</p>`:'<br>';
+  }).join('');
+}
 
 /* ---------- storage layer: swap the backend here and nowhere else ---------- */
 const Store = (() => {
@@ -67,6 +78,7 @@ async function load(){
   }catch(e){ console.warn('Read failed, starting fresh', e); }
   if(!state.goals||(!state.goals.length&&!explicitMock)) state=seed();
   if(!state.logs) state.logs={};
+  if(!state.noteSnapshots) state.noteSnapshots={};
   state.goals.forEach(g=>{ if(!g.type)g.type='daily'; if(!g.subs)g.subs=[];
     delete g.cad; });   // cadence is gone; drop the dead field on the way through
   const n=today(); view={y:n.getFullYear(),m:n.getMonth()}; sel=todayKey();
@@ -244,11 +256,25 @@ function bump(id,delta){
   if(Object.keys(day).length) state.logs[k]=day; else delete state.logs[k];
   save(); render();
 }
+function findSub(id){
+  for(const g of state.goals){const s=g.subs.find(s=>s.id===id);if(s)return {g,s};}
+  return null;
+}
+function completeList(id){
+  const found=findSub(id); if(!found)return;
+  const k=sel||todayKey();
+  if(!state.noteSnapshots)state.noteSnapshots={};
+  if(!state.noteSnapshots[k])state.noteSnapshots[k]={};
+  state.noteSnapshots[k][id]={title:found.s.title,goalTitle:found.g.title,markdown:found.s.note||''};
+  bump(id,1);
+}
 // Take one sub-goal out of every day it appears in. The only way logs are destroyed,
 // shared by the "undone" control and by a permanent delete (§4.5).
 function stripSub(id){
   Object.keys(state.logs).forEach(d=>{ delete state.logs[d][id];
     if(!Object.keys(state.logs[d]).length) delete state.logs[d]; });
+  Object.keys(state.noteSnapshots||{}).forEach(d=>{delete state.noteSnapshots[d][id];
+    if(!Object.keys(state.noteSnapshots[d]).length)delete state.noteSnapshots[d];});
 }
 function clearSub(id){ stripSub(id); save(); render(); }
 
@@ -307,7 +333,7 @@ function render(quietEditor=false){
         </section>`:''}
       </main>
     </div>
-
+    ${noteView?noteEditor():''}
     ${foot()}`;
   bind();
 }
@@ -472,8 +498,9 @@ function snapshotPanel(k){
     return `<div class="goal snapshot">
       <div class="ghead"><h3>${esc(g.title)}${g.archived?'<i class="gone">archived</i>':''}</h3>
         <span class="prog"><b>${total}</b> record${total===1?'':'s'}</span></div>
-      <div class="snapshotchips">${entries.map(s=>`<span class="snapshotchip">${esc(s.title)}${
-        day[s.id]>1?`<b>×${day[s.id]}</b>`:''}</span>`).join('')}</div></div>`;
+      <div class="snapshotchips">${entries.map(s=>{const hasNote=state.noteSnapshots?.[k]?.[s.id];return hasNote
+        ?`<button class="snapshotchip notechip" data-note="${s.id}" data-note-date="${k}">${esc(s.title)}<span aria-hidden="true">›</span></button>`
+        :`<span class="snapshotchip">${esc(s.title)}${day[s.id]>1?`<b>×${day[s.id]}</b>`:''}</span>`;}).join('')}</div></div>`;
   }).join('');
   return `<div class="snapshotnote">Read-only snapshot</div>
     ${rows||'<p class="hint snapshotempty">No records for this day.</p>'}`;
@@ -512,8 +539,9 @@ function goalBlock(g,k,F){
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
     prog=pips(fin.length,subs.length);
-    chips=open.map(s=>`<span class="listitem"><button class="chip" data-add="${s.id}">${esc(s.title)}</button>
-      <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span>`).join('')+listAddControl(g.id);
+    chips=open.map(s=>`<span class="listitem noteditem" data-swipe="${s.id}"><span class="swipedone" aria-hidden="true">Done</span>
+      <span class="swipeface"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
+      <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span></span>`).join('')+listAddControl(g.id);
     // A long list finishes far more than it has open, and the finished pile is the
     // least actionable thing on the screen — unfolded it pushed the next goal off the
     // bottom. Every one of them is still listed, dated, in Stats' completion log.
@@ -536,6 +564,19 @@ function goalBlock(g,k,F){
   return `<div class="goal" data-goal="${g.id}">${grip}
     <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${right}${ed}</div></div>
     ${prog}${pace}${chips?`<div class="chips">${chips}</div>`:''}${done}</div>`;
+}
+
+function noteEditor(){
+  const found=findSub(noteView.id), snap=noteView.date&&state.noteSnapshots?.[noteView.date]?.[noteView.id];
+  if(!found&&!snap)return '';
+  const readonly=Boolean(noteView.date), title=snap?.title||found.s.title, goal=snap?.goalTitle||found.g.title;
+  const text=readonly?snap.markdown:(found.s.note||'');
+  return `<button class="notebackdrop" data-note-close aria-label="Close note"></button>
+    <section class="noteview${readonly?' readonly':''}" role="dialog" aria-modal="true" aria-label="${esc(title)} note">
+      <header><div><span>${esc(goal)}</span><h2>${esc(title)}</h2></div><button data-note-close aria-label="Close note">×</button></header>
+      ${readonly?`<div class="notedate">Completed ${short(noteView.date)}</div><article class="markdownbody">${text?markdown(text):'<p class="hint">No note was recorded.</p>'}</article>`
+      :`<div class="noteedit"><textarea data-note-input="${noteView.id}" placeholder="Start writing...">${esc(text)}</textarea></div>`}
+    </section>`;
 }
 
 function listAddControl(goalId){
@@ -647,7 +688,7 @@ function achievements(){
   const out=[], F=firstDone();
   state.goals.forEach(g=>{
     if(g.type==='list')
-      g.subs.forEach(s=>{ if(F[s.id]) out.push({d:F[s.id],g:g.title,gid:g.id,archived:g.archived,t:s.title}); });
+      g.subs.forEach(s=>{ if(F[s.id]) out.push({d:F[s.id],g:g.title,gid:g.id,sid:s.id,archived:g.archived,t:s.title}); });
     if(g.type==='count'){
       const acc={}, tg=g.target||40;
       Object.keys(state.logs).sort().forEach(k=>{
@@ -756,7 +797,7 @@ function statsPanel(){
     ${ach.length?`<section class="chartcard"><div class="charthead${sectionOpen.completed?'':' closed'}"><div>${foldTitle('completed','Completed')}</div>
       <span class="sectioncount">${ach.length} item${ach.length===1?'':'s'} this month</span></div>
     ${sectionOpen.completed?`<div class="ach">${completedPage.items.map(a=>
-      `<div class="arow${a.hit?' hit':''}" data-stat-target="${a.gid}">
+      `<div class="arow${a.hit?' hit':''}" data-stat-target="${a.gid}"${a.sid&&state.noteSnapshots?.[a.d]?.[a.sid]?` data-note="${a.sid}" data-note-date="${a.d}" role="button" tabindex="0"`:''}>
         <span class="ad mono">${short(a.d)}</span>
         <span class="completedname"><span class="at">${esc(a.t)}</span>
           <span class="typebadge">${esc(a.g)}${a.archived?'<i class="gone">archived</i>':''}</span></span></div>`).join('')
@@ -819,11 +860,17 @@ function bind(){
   on('[data-tog]',b=>b.onclick=()=>{const k=sel||todayKey();
     bump(b.dataset.tog,(state.logs[k]||{})[b.dataset.tog]?-1:1);});
   on('[data-add]',b=>b.onclick=()=>bump(b.dataset.add,1));
+  on('[data-note]',b=>b.onclick=e=>{e.stopPropagation();if(b.closest?.('[data-swipe]')?.dataset.dragged)return;
+    noteView={id:b.dataset.note,date:b.dataset.noteDate||null};render();});
+  on('[data-note-close]',b=>b.onclick=()=>{noteView=null;render();});
+  on('[data-note-input]',i=>i.oninput=()=>{const found=findSub(i.dataset.noteInput);if(!found)return;
+    found.s.note=i.value;save();});
   on('[data-minus]',b=>b.onclick=()=>bump(b.dataset.minus,-1));
   on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
   on('[data-list-add]',b=>b.onclick=()=>{quickAdding=b.dataset.listAdd;render();
     setTimeout(()=>document.querySelector(`[data-quick-input="${quickAdding}"]`)?.focus(),0);});
   on('[data-list-remove]',b=>b.onclick=()=>dropSub(b.dataset.listRemove));
+  on('[data-swipe]',bindSwipe);
   on('[data-quick-input]',i=>i.onkeydown=e=>{
     if(e.key==='Enter'){e.preventDefault();commitQuickSub(i.dataset.quickInput,i);}
     if(e.key==='Escape'){e.preventDefault();quickAdding=null;render();}
@@ -896,6 +943,26 @@ function bind(){
   on('[data-purge]',b=>b.onclick=()=>purgeGoal(b.dataset.purge));
   const np=document.getElementById('nopurge');
   if(np) np.onclick=()=>{purging=null; render();};
+}
+
+function bindSwipe(el){
+  let startX=0,startY=0,dx=0,active=false;
+  const reset=()=>{el.classList.remove('dragging','ready');el.style.removeProperty('--swipe');};
+  el.onpointerdown=e=>{
+    if(e.button!==undefined&&e.button!==0||e.target.closest?.('[data-list-remove]'))return;
+    startX=e.clientX;startY=e.clientY;dx=0;active=true;
+  };
+  el.onpointermove=e=>{
+    if(!active)return;const x=e.clientX-startX,y=e.clientY-startY;
+    if(Math.abs(y)>Math.abs(x)&&Math.abs(y)>8){active=false;reset();return;}
+    dx=Math.max(0,Math.min(88,x));if(dx<3)return;
+    e.preventDefault();el.classList.add('dragging');el.classList.toggle('ready',dx>=56);
+    el.style.setProperty('--swipe',`${dx}px`);
+  };
+  const finish=()=>{if(!active)return;active=false;
+    if(dx>=56){el.dataset.dragged='1';completeList(el.dataset.swipe);setTimeout(()=>delete el.dataset.dragged,0);}
+    else reset();};
+  el.onpointerup=finish;el.onpointercancel=()=>{active=false;reset();};
 }
 
 function shift(d){
