@@ -516,6 +516,7 @@ t('a list goal with nothing open shows no chips row at all', async () => {
   no(html, 'class="chips"', 'an empty row would still take its top margin');
   no(html, 'data-add=', 'nothing left to tap');
   has(html, 'class="doneline"', 'and the finished items say what happened');
+  no(html, '<em>', 'finished Sub-goals do not repeat their completion dates');
   has(html, '<b>3</b><i>/3</i>', 'as does the count');
 });
 t('count chips carry a minus button only once tapped', async () => {
@@ -794,8 +795,6 @@ t('unfolding shows every finished item, and offers the way back', async () => {
 t('the Done line is newest first, so the fold keeps what you just crossed off', async () => {
   const a = await longList(23);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
-  const dates = [...html.matchAll(/<em>([A-Z][a-z]+ \d+ \d{4})<\/em>/g)].map(m => m[1]);
-  eq(dates.length, a.DONEMAX);
   const F = a.firstDone();
   const shown = [...html.matchAll(/data-clear="(l\d+)"/g)].map(m => m[1]);
   const newest = a.state.goals[0].subs.filter(s => F[s.id]).sort((x, y) => F[x.id] < F[y.id] ? 1 : -1)
@@ -1082,6 +1081,14 @@ t('editable sub-goals are grouped as stickers with an inline add control', async
   has(html, 'class="erow sub sticker"');
   has(html, 'class="add substickeradd"');
   has(html, 'aria-label="Add sub-goal"');
+});
+t('sub-goal stickers leave room for blank and longer labels', async () => {
+  const g = await bootReady(); const a = g.api;
+  a.createGoal();
+  a.draftGoal.subs.push({ id: 'blank', title: '' }, { id: 'long', title: 'System design practice' });
+  const html = a.goalEditor(a.draftGoal);
+  has(html, 'style="--chars:9"');
+  has(html, 'style="--chars:23"');
 });
 t('a goal without items offers a clear first sub-goal action', async () => {
   const g = await bootReady(); const a = g.api;
@@ -1683,16 +1690,15 @@ t('the editor × closes the editor and cannot remove anything', async () => {
   no(ed, 'class="x" data-dg', 'no × anywhere removes the goal');
   eq((ed.match(/data-dg=/g) || []).length, 1, 'exactly one control removes the goal');
 });
-t('the editor names the removal it will perform, and what survives', async () => {
+t('the editor names the removal it will perform without extra explanatory copy', async () => {
   const g = await arch(); const a = g.api;
   const ed = a.goalEditor(a.state.goals[0]);
   has(ed, '<button class="drop" data-dg="g1">Archive this goal</button>', 'labelled, not an icon');
-  has(ed, 'The 11 check-ins it already has stay in the record', 'naming what is kept');
-  has(ed, 'restore it from the Archive tab', 'and where to find it — it said the footer');
+  no(ed, 'class="cap"', 'the action does not need a caption');
   a.state.goals.push(JSON.parse(JSON.stringify(unlogged)));
   const ed2 = a.goalEditor(a.state.goals[3]);
   has(ed2, '>Delete this goal</button>', 'nothing logged, so it is a plain delete');
-  no(ed2, 'class="cap"', 'and no caption: the button already says the whole of it');
+  no(ed2, 'class="cap"', 'the delete action does not need a caption either');
 });
 t('sub-goal rows keep their × , because a row-level × removes that row', async () => {
   const g = await arch(); const a = g.api;

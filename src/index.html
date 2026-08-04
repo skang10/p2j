@@ -254,8 +254,6 @@
     text-decoration:line-through;text-decoration-color:var(--line);
     transition:color .12s,text-decoration-color .12s}
   .undone:hover{color:var(--ink);text-decoration-color:var(--muted)}
-  .undone em{font-style:normal;font-family:var(--mono);font-variant-numeric:tabular-nums;
-    opacity:.6;margin-left:5px;white-space:nowrap}
   .hint{font-size:14px;color:var(--muted)}
 
   /* stats */
@@ -1569,7 +1567,7 @@ function goalBlock(g,k,F){
     if(recent.length){
       const all=doneOpen.has(g.id), show=all?recent:recent.slice(0,DONEMAX), rest=recent.length-show.length;
       done=`<div class="doneline"><span class="lb">Done · last month</span>${
-        show.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}<em>${short(F[s.id])}</em></button>`).join('')}${
+        show.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}</button>`).join('')}${
         rest>0?`<button class="lnk fold" data-more="${g.id}">+${rest} more</button>`:''}${
         all&&recent.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
     }
@@ -1593,9 +1591,18 @@ function goalBlock(g,k,F){
 // better by the Monthly target field that appears the moment you pick it, and "the list"
 // only repeated the noun already above the sub-goals.
 const TAP={daily:'Marks the day done',count:'Adds one',list:'Crosses it off'};
+const subStickerChars=title=>Math.max(9,Math.min(36,title.length+1));
+function fitSubInput(input){
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+  if(!ctx)return;
+  const style=getComputedStyle(input);
+  ctx.font=`${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const text=input.value||input.placeholder||'';
+  input.style.width=`${Math.min(250,Math.max(54,Math.ceil(ctx.measureText(text).width)+2))}px`;
+}
 function goalEditor(g,quiet=false){
   const field=(lb,ctrl)=>`<label class="frow"><span class="flbl">${lb}</span><span class="fctl">${ctrl}</span></label>`;
-  const kept=goalCount(g), keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);
+  const keep=goalLogged(g), subs=liveSubs(g), gone=g.subs.filter(s=>s.archived);
   return `<div class="goal ed${quiet?' steady':''}">
     <div class="ehead"><h3>Edit goal</h3>
       <button class="x" data-cancel-edit title="Cancel">×</button></div>
@@ -1612,7 +1619,7 @@ function goalEditor(g,quiet=false){
     <div class="esep"></div>
     ${subs.length?`<p class="flab">Sub-goals <span class="fcount">${subs.length}</span></p>
     <div class="substickers">
-      ${subs.map(s=>`<div class="erow sub sticker" style="--chars:${Math.max(3,Math.min(28,s.title.length+.5))}">
+      ${subs.map(s=>`<div class="erow sub sticker" style="--chars:${subStickerChars(s.title)}">
         <input type="text" value="${esc(s.title)}" data-st="${s.id}" placeholder="Sub-goal">
         <button class="x" data-ds="${s.id}" title="${subLogged(s.id)?'Archive':'Delete'}">×</button></div>`).join('')}
       <button class="add substickeradd" data-as="${g.id}" aria-label="Add sub-goal" title="Add sub-goal"><span aria-hidden="true">+</span></button>
@@ -1623,8 +1630,6 @@ function goalEditor(g,quiet=false){
     <div class="esep"></div>
     <div class="dzone">
       <button class="drop" data-dg="${g.id}">${keep?'Archive this goal':'Delete this goal'}</button>
-      ${keep?`<p class="cap">The ${kept} check-in${kept===1?'':'s'} it already has stay in the record.
-        You can restore it from the Archive tab.</p>`:''}
     </div>
     <div class="erow edfoot">
       <span class="grow"></span>
@@ -1897,8 +1902,10 @@ function bind(){
     if(!g||g.id!==b.dataset.gy)return; g.type=b.dataset.type; if(g.type==='count'&&!g.target)g.target=40; refreshEditor();});
   on('[data-gn]',i=>i.oninput=()=>{
     if(draftGoal&&draftGoal.id===i.dataset.gn)draftGoal.target=Math.max(1,+i.value||1);});
-  on('[data-st]',i=>i.oninput=()=>{
-    if(!draftGoal)return;const s=draftGoal.subs.find(s=>s.id===i.dataset.st);if(s)s.title=i.value;});
+  on('[data-st]',i=>{fitSubInput(i);i.oninput=()=>{
+    if(!draftGoal)return;const s=draftGoal.subs.find(s=>s.id===i.dataset.st);if(s){
+      s.title=i.value;fitSubInput(i);
+    }};});
   on('[data-dg]',b=>b.onclick=()=>{if(draftIsNew)cancelEdit();else dropGoal(b.dataset.dg);});
   on('[data-ds]',b=>b.onclick=()=>{if(!draftGoal)return;const i=draftGoal.subs.findIndex(s=>s.id===b.dataset.ds);
     if(i<0)return;subLogged(b.dataset.ds)?draftGoal.subs[i].archived=true:draftGoal.subs.splice(i,1);refreshEditor();});
