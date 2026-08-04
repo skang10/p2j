@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/skang10/p2j/compare/v0.2.0...v0.3.0) (2026-08-04)
+
+
+### Features
+
+* add notes to cross-off goals ([#5](https://github.com/skang10/p2j/issues/5)) ([cca4182](https://github.com/skang10/p2j/commit/cca4182c23f17e0993a015f0879f3e037b131f30))
+* refine cross-off completion workflow ([#6](https://github.com/skang10/p2j/issues/6)) ([8f62c7a](https://github.com/skang10/p2j/commit/8f62c7a219481fe5c95927862a4058bfd9e1b5ac))
+
+
+### Bug Fixes
+
+* upload macOS assets for releases ([#2](https://github.com/skang10/p2j/issues/2)) ([407ede7](https://github.com/skang10/p2j/commit/407ede7bb1aa9f089bc3cb67551f56ad25f6549c))
+
 ## [0.2.0](https://github.com/skang10/p2j/compare/v0.1.0...v0.2.0) (2026-08-04)
 
 
