@@ -1,13 +1,26 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "packages": {
-    "src-tauri": {
-      "release-type": "rust",
+    ".": {
+      "release-type": "simple",
       "package-name": "Daybook",
       "include-component-in-tag": false,
       "include-v-in-tag": true,
       "extra-files": [
-        "tauri.conf.json"
+        {
+          "type": "toml",
+          "path": "src-tauri/Cargo.toml",
+          "jsonpath": "$.package.version"
+        },
+        {
+          "type": "json",
+          "path": "src-tauri/tauri.conf.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "generic",
+          "path": "src-tauri/Cargo.lock"
+        }
       ]
     }
   }
