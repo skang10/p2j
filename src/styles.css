@@ -217,12 +217,17 @@
     box-shadow:0 24px 70px rgba(20,24,30,.18);overflow:auto}
   .noteview header{display:flex;align-items:flex-start;justify-content:space-between;padding:34px 44px 22px;
     border-bottom:1px solid var(--line)}
+  .noteview header>div:first-child{flex:1;min-width:0}
   .noteview header span,.notedate{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
   .noteview header h2{font-size:28px;margin-top:7px}
-  .notetitle{display:block;width:min(680px,calc(100vw - 180px));margin:7px 0 0;padding:0;border:0;outline:0;
+  .notetitle{display:block;width:100%;margin:7px 0 0;padding:0;border:0;outline:0;
     background:transparent;color:var(--ink);font:650 28px/1.2 var(--sans)}
   .notetitle:focus{box-shadow:none}
   .noteview header button{border:0;background:none;color:var(--muted);font-size:24px;cursor:pointer}
+  .noteactions{display:flex;align-items:center;gap:12px;flex:none}
+  .noteview header .notecomplete{min-height:34px;padding:7px 12px;border:1px solid var(--edge);border-radius:7px;
+    background:var(--soft);color:var(--accent);font:600 12px var(--sans)}
+  .noteview header .notecomplete:hover{background:var(--accent);border-color:var(--accent);color:#fff}
   .notedate{padding:22px 44px 0}
   .noteedit{min-height:calc(100% - 112px)}
   .noteedit textarea{display:block;width:100%;min-height:calc(100vh - 210px);resize:none;border:0;outline:0;
@@ -852,13 +857,7 @@
   .listremove{display:grid;place-items:center;width:23px;height:23px;padding:0;border:0;border-radius:50%;
     background:transparent;color:var(--muted);font:inherit;font-size:15px;line-height:1;cursor:pointer}
   .listremove:hover{background:rgba(23,25,28,.08);color:var(--danger)}
-  .noteditem{position:relative;display:inline-flex;overflow:hidden;padding:0;border-color:var(--hair);
-    background:var(--accent);touch-action:pan-y;user-select:none}
-  .swipedone{position:absolute;inset:0 auto 0 11px;display:flex;align-items:center;color:#fff;
-    font-size:11px;font-weight:650;opacity:.82}
-  .swipeface{position:relative;z-index:1;display:flex;align-items:center;gap:1px;padding:3px 4px 3px 10px;
-    background:var(--faint);transform:translateX(var(--swipe,0));transition:transform .2s ease}
-  .noteditem.dragging .swipeface{transition:none}.noteditem.ready .swipedone{opacity:1}
+  .noteditem{display:inline-flex}
   .noteditem .noteopen{width:auto;max-width:min(420px,calc(100vw - 190px));padding-right:7px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
   .listadd{display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid var(--hair);

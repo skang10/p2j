@@ -523,12 +523,11 @@ t('a list goal with nothing open keeps only its direct add control', async () =>
   no(html, '<em>', 'finished Sub-goals do not repeat their completion dates');
   has(html, '<b>3</b><i>/3</i>', 'as does the count');
 });
-t('an open list keeps its original remove control alongside drag completion', async () => {
+t('an open list keeps its original title and remove controls', async () => {
   const a = await fixture();
   const html = a.goalBlock(a.state.goals[1], '2026-07-11', a.firstDone());
   has(html, 'data-list-remove="l2"');
-  has(html, 'data-swipe="l2"');
-  has(html, 'class="swipedone"');
+  no(html, 'data-swipe="l2"');
   has(html, 'data-list-add="g2"');
   a.quickAdding = 'g2';
   has(a.listAddControl('g2'), 'data-quick-input="g2"');
@@ -536,7 +535,7 @@ t('an open list keeps its original remove control alongside drag completion', as
   eq(a.state.goals[1].subs.at(-1).title, 'Ship release notes');
   eq(a.quickAdding, null);
 });
-t('list item titles open notes while the sticker itself handles completion', async () => {
+t('list item titles open notes instead of completing directly', async () => {
   const a = await fixture();
   const html = a.goalBlock(a.state.goals[1], '2026-07-11', a.firstDone());
   has(html, 'data-note="l2"');
@@ -550,6 +549,7 @@ t('an unfinished note exposes its sub-goal title as an editable field', async ()
   has(html, 'data-note-title="l2"');
   has(html, 'value="B"');
   has(html, 'aria-label="Sub-goal title"');
+  has(html, 'data-note-complete="l2"');
 });
 t('completing a list item freezes its Markdown in the selected day snapshot', async () => {
   const a = await fixture();
@@ -578,6 +578,7 @@ t('a completed note opens read-only from any panel', async () => {
   has(g.captured.app, 'Completed August 5 2026');
   has(g.captured.app, '<h1>Ownership</h1>');
   no(g.captured.app, 'data-note-input');
+  no(g.captured.app, 'data-note-complete');
 });
 t('count chips carry a minus button only once tapped', async () => {
   const a = await fixture();
