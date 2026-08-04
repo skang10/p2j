@@ -60,8 +60,8 @@ The `.dmg` is named for the architecture it was built on.
 
 ### Test
 
-Frontend logic is covered by a lightweight Node harness that loads the script from
-`src/index.html`. Run it from the repository root:
+Frontend logic is covered by a lightweight Node harness that loads `src/app.js`
+in a minimal DOM environment. Run it from the repository root:
 
 ```bash
 cd ..
