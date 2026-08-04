@@ -9,7 +9,6 @@ let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, draftGoal=null, draftIsNew=false, quickAdding=null, saveErr=false;
 let noteView=null;
 let completionPeek=null;
-let draggedSub=null;
 const sectionOpen={records:true,days:true,mix:true,completed:true};
 const sectionPage={records:0,days:0,mix:0,completed:0,archive:0};
 let notice='';
@@ -541,7 +540,7 @@ function goalBlock(g,k,F){
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
     prog=`<button class="pipsopen" data-completed-goal="${g.id}" data-complete-drop="${g.id}" aria-expanded="${completionPeek?.id===g.id}" aria-label="Show completed items for ${esc(g.title)}">${pips(fin.length,subs.length)}</button>`;
-    chips=open.map(s=>`<span class="listitem noteditem" draggable="true" data-complete-drag="${s.id}" data-drag-goal="${g.id}"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
+    chips=open.map(s=>`<span class="listitem noteditem" data-complete-drag="${s.id}" data-drag-goal="${g.id}"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
       <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span>`).join('')+listAddControl(g.id);
     // Today is the only place where a completion can be undone. Older work remains
     // available as a read-only fact in Stats and day snapshots instead of leaking back
@@ -876,7 +875,8 @@ function bind(){
   on('[data-tog]',b=>b.onclick=()=>{const k=sel||todayKey();
     bump(b.dataset.tog,(state.logs[k]||{})[b.dataset.tog]?-1:1);});
   on('[data-add]',b=>b.onclick=()=>bump(b.dataset.add,1));
-  on('[data-note]',b=>b.onclick=e=>{e.stopPropagation();noteView={id:b.dataset.note,date:b.dataset.noteDate||null};render();});
+  on('[data-note]',b=>b.onclick=e=>{e.stopPropagation();if(b.closest?.('[data-complete-drag]')?.dataset.dragged)return;
+    noteView={id:b.dataset.note,date:b.dataset.noteDate||null};render();});
   on('[data-note-close]',b=>b.onclick=()=>{noteView=null;render();});
   on('[data-note-complete]',b=>b.onclick=()=>{completeList(b.dataset.noteComplete);noteView=null;render();});
   on('[data-note-input]',i=>i.oninput=()=>{const found=findSub(i.dataset.noteInput);if(!found)return;
@@ -888,18 +888,7 @@ function bind(){
   on('[data-list-add]',b=>b.onclick=()=>{quickAdding=b.dataset.listAdd;render();
     setTimeout(()=>document.querySelector(`[data-quick-input="${quickAdding}"]`)?.focus(),0);});
   on('[data-list-remove]',b=>b.onclick=()=>dropSub(b.dataset.listRemove));
-  on('[data-complete-drag]',el=>{
-    el.ondragstart=e=>{draggedSub=el.dataset.completeDrag;e.dataTransfer.effectAllowed='move';
-      e.dataTransfer.setData('text/plain',draggedSub);el.classList.add('dragging');};
-    el.ondragend=()=>{draggedSub=null;el.classList.remove('dragging');on('[data-complete-drop]',d=>d.classList.remove('dropready'));};
-  });
-  on('[data-complete-drop]',target=>{
-    target.ondragover=e=>{const found=findSub(draggedSub);
-      if(found?.g.id!==target.dataset.completeDrop)return;e.preventDefault();e.dataTransfer.dropEffect='move';target.classList.add('dropready');};
-    target.ondragleave=()=>target.classList.remove('dropready');
-    target.ondrop=e=>{e.preventDefault();target.classList.remove('dropready');const found=findSub(draggedSub);
-      if(found?.g.id===target.dataset.completeDrop)completeList(draggedSub);};
-  });
+  on('[data-complete-drag]',el=>el.onmousedown=e=>{if(e.button!==0||e.target.closest?.('[data-list-remove]'))return;beginSubDrag(el,e);});
   on('[data-quick-input]',i=>i.onkeydown=e=>{
     if(e.key==='Enter'){e.preventDefault();commitQuickSub(i.dataset.quickInput,i);}
     if(e.key==='Escape'){e.preventDefault();quickAdding=null;render();}
@@ -976,6 +965,23 @@ function bind(){
   on('[data-purge]',b=>b.onclick=()=>purgeGoal(b.dataset.purge));
   const np=document.getElementById('nopurge');
   if(np) np.onclick=()=>{purging=null; render();};
+}
+
+function beginSubDrag(el,e){
+  const sx=e.clientX,sy=e.clientY,id=el.dataset.completeDrag,goal=el.dataset.dragGoal;
+  let moved=false,target=null;
+  const clear=()=>on('[data-complete-drop]',d=>d.classList.remove('dropready'));
+  document.onmousemove=ev=>{
+    if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<6)return;
+    moved=true;el.classList.add('dragging');clear();
+    const hit=document.elementFromPoint?.(ev.clientX,ev.clientY)?.closest?.('[data-complete-drop]');
+    target=hit?.dataset.completeDrop===goal?hit:null;if(target)target.classList.add('dropready');
+  };
+  document.onmouseup=()=>{
+    document.onmousemove=null;document.onmouseup=null;clear();el.classList.remove('dragging');
+    if(!moved)return;el.dataset.dragged='1';
+    if(target)completeList(id);setTimeout(()=>delete el.dataset.dragged,0);
+  };
 }
 
 function shift(d){

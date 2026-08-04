@@ -16,7 +16,7 @@ live liveSubs subLogged goalLogged
 dropGoal dropSub restoreGoal restoreSub purgeGoal archivePanel lastWorked
 moveGoal nudgeGoal beginDrag bump completeList findSub clearSub stripSub markdown noteEditor
 render heatmap heatStart HWEEKS calendar dayPanel snapshotPanel goalBlock completedList listAddControl commitQuickSub paceLine pips
-achievements goalAmount statsPanel goalEditor tabs track bind shift
+achievements goalAmount statsPanel goalEditor tabs track bind beginSubDrag shift
 beginEdit cancelEdit commitEdit createGoal navigateGoal
 PAGE_SIZE sectionOpen sectionPage pageOf pager foldTitle`.split(/\s+/).filter(Boolean);
 
