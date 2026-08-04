@@ -9,6 +9,7 @@ let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, draftGoal=null, draftIsNew=false, quickAdding=null, saveErr=false;
 let noteView=null;
 let completionPeek=null;
+let draggedSub=null;
 const sectionOpen={records:true,days:true,mix:true,completed:true};
 const sectionPage={records:0,days:0,mix:0,completed:0,archive:0};
 let notice='';
@@ -539,8 +540,8 @@ function goalBlock(g,k,F){
     const fin=subs.filter(s=>F[s.id]).sort((a,b)=>F[a.id]<F[b.id]?1:-1);
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
-    prog=`<button class="pipsopen" data-completed-goal="${g.id}" aria-expanded="${completionPeek?.id===g.id}" aria-label="Show completed items for ${esc(g.title)}">${pips(fin.length,subs.length)}</button>`;
-    chips=open.map(s=>`<span class="listitem noteditem"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
+    prog=`<button class="pipsopen" data-completed-goal="${g.id}" data-complete-drop="${g.id}" aria-expanded="${completionPeek?.id===g.id}" aria-label="Show completed items for ${esc(g.title)}">${pips(fin.length,subs.length)}</button>`;
+    chips=open.map(s=>`<span class="listitem noteditem" draggable="true" data-complete-drag="${s.id}" data-drag-goal="${g.id}"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
       <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span>`).join('')+listAddControl(g.id);
     // Today is the only place where a completion can be undone. Older work remains
     // available as a read-only fact in Stats and day snapshots instead of leaking back
@@ -887,6 +888,18 @@ function bind(){
   on('[data-list-add]',b=>b.onclick=()=>{quickAdding=b.dataset.listAdd;render();
     setTimeout(()=>document.querySelector(`[data-quick-input="${quickAdding}"]`)?.focus(),0);});
   on('[data-list-remove]',b=>b.onclick=()=>dropSub(b.dataset.listRemove));
+  on('[data-complete-drag]',el=>{
+    el.ondragstart=e=>{draggedSub=el.dataset.completeDrag;e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',draggedSub);el.classList.add('dragging');};
+    el.ondragend=()=>{draggedSub=null;el.classList.remove('dragging');on('[data-complete-drop]',d=>d.classList.remove('dropready'));};
+  });
+  on('[data-complete-drop]',target=>{
+    target.ondragover=e=>{const found=findSub(draggedSub);
+      if(found?.g.id!==target.dataset.completeDrop)return;e.preventDefault();e.dataTransfer.dropEffect='move';target.classList.add('dropready');};
+    target.ondragleave=()=>target.classList.remove('dropready');
+    target.ondrop=e=>{e.preventDefault();target.classList.remove('dropready');const found=findSub(draggedSub);
+      if(found?.g.id===target.dataset.completeDrop)completeList(draggedSub);};
+  });
   on('[data-quick-input]',i=>i.onkeydown=e=>{
     if(e.key==='Enter'){e.preventDefault();commitQuickSub(i.dataset.quickInput,i);}
     if(e.key==='Escape'){e.preventDefault();quickAdding=null;render();}
