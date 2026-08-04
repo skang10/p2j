@@ -8,6 +8,7 @@ const PAGE_SIZE=5;
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, draftGoal=null, draftIsNew=false, quickAdding=null, saveErr=false;
 let noteView=null;
+let completionPeek=null;
 const sectionOpen={records:true,days:true,mix:true,completed:true};
 const sectionPage={records:0,days:0,mix:0,completed:0,archive:0};
 let notice='';
@@ -538,7 +539,7 @@ function goalBlock(g,k,F){
     const fin=subs.filter(s=>F[s.id]).sort((a,b)=>F[a.id]<F[b.id]?1:-1);
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
-    prog=pips(fin.length,subs.length);
+    prog=`<button class="pipsopen" data-completed-goal="${g.id}" aria-expanded="${completionPeek?.id===g.id}" aria-label="Show completed items for ${esc(g.title)}">${pips(fin.length,subs.length)}</button>`;
     chips=open.map(s=>`<span class="listitem noteditem" data-swipe="${s.id}"><span class="swipedone" aria-hidden="true">Done</span>
       <span class="swipeface"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
       <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span></span>`).join('')+listAddControl(g.id);
@@ -560,9 +561,23 @@ function goalBlock(g,k,F){
     chips=subs.map(s=>`<button class="chip ${day[s.id]?'on':''}" data-tog="${s.id}">${esc(s.title)}</button>`).join('');
   }
 
+  const renderedCompleted=completionPeek?.id===g.id?completedList(g,F):'';
   return `<div class="goal" data-goal="${g.id}">${grip}
     <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${right}${ed}</div></div>
-    ${prog}${pace}${chips?`<div class="chips">${chips}</div>`:''}${done}</div>`;
+    ${prog}${renderedCompleted}${pace}${chips?`<div class="chips">${chips}</div>`:''}${done}</div>`;
+}
+
+function completedList(g,F){
+  const items=g.subs.filter(s=>F[s.id]).sort((a,b)=>F[a.id]<F[b.id]?1:-1);
+  const pages=Math.max(1,Math.ceil(items.length/PAGE_SIZE));
+  completionPeek.page=Math.max(0,Math.min(completionPeek.page||0,pages-1));
+  const start=completionPeek.page*PAGE_SIZE, shown=items.slice(start,start+PAGE_SIZE);
+  return `<section class="completedpeek"><div class="peekhead"><span>Completed</span><b>${items.length}</b></div>
+    <div class="peeklist">${shown.map(s=>{const d=F[s.id],hasNote=state.noteSnapshots?.[d]?.[s.id];return hasNote
+      ?`<button class="peekrow" data-note="${s.id}" data-note-date="${d}"><span>${esc(s.title)}</span><time>${short(d)}</time><i>›</i></button>`
+      :`<div class="peekrow"><span>${esc(s.title)}</span><time>${short(d)}</time></div>`;}).join('')}</div>
+    ${pages>1?`<div class="peekpager"><button data-completed-page="-1" ${completionPeek.page===0?'disabled':''} aria-label="Previous completed items">‹</button>
+      <span>${completionPeek.page+1} / ${pages}</span><button data-completed-page="1" ${completionPeek.page===pages-1?'disabled':''} aria-label="Next completed items">›</button></div>`:''}</section>`;
 }
 
 function noteEditor(){
@@ -883,6 +898,10 @@ function bind(){
   on('[data-quick-cancel]',b=>b.onclick=()=>{quickAdding=null;render();});
   on('[data-more]',b=>b.onclick=()=>{ const id=b.dataset.more;
     doneOpen.has(id)?doneOpen.delete(id):doneOpen.add(id); render(); });
+  on('[data-completed-goal]',b=>b.onclick=()=>{const id=b.dataset.completedGoal;
+    completionPeek=completionPeek?.id===id?null:{id,page:0};render();});
+  on('[data-completed-page]',b=>b.onclick=()=>{if(b.disabled||!completionPeek)return;
+    completionPeek.page+=+b.dataset.completedPage;render();});
   on('[data-ao]',b=>b.onclick=()=>{ const id=b.dataset.ao;
     archiveOpen.has(id)?archiveOpen.delete(id):archiveOpen.add(id); render(); });
   on('[data-sm]',b=>b.onclick=()=>{sectionPage.records=sectionPage.days=sectionPage.mix=sectionPage.completed=0;shift(+b.dataset.sm);});

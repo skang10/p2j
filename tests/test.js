@@ -845,6 +845,20 @@ t('today\'s completion line uses the compact Done label', async () => {
   has(html, '<span class="lb">Done</span>');
   no(html, 'past 30 days');
 });
+t('a list progress track opens a paginated completed-item history', async () => {
+  const a=await longList(12,true);a.completionPeek={id:'gl',page:0};
+  const html=a.goalBlock(a.state.goals[0],a.todayKey(),a.firstDone());
+  has(html,'data-completed-goal="gl"');
+  has(html,'class="completedpeek"');
+  eq((html.match(/class="peekrow"/g)||[]).length,a.PAGE_SIZE,'five rows per page');
+  has(html,'1 / 3');
+  has(html,'data-completed-page="1"');
+});
+t('completed history stays collapsed until its progress track is selected', async () => {
+  const a=await longList(3,true);a.completionPeek=null;
+  const html=a.goalBlock(a.state.goals[0],a.todayKey(),a.firstDone());
+  has(html,'aria-expanded="false"');no(html,'class="completedpeek"');
+});
 t('a long Done line folds to DONEMAX, saying how many are hidden', async () => {
   const a = await longList(23, true);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
