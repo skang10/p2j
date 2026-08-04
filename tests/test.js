@@ -1,5 +1,9 @@
 // Frontend logic tests for src/index.html. Run: node test.js
-const { boot, bootReady } = require('./harness');
+const { boot: bootAt, bootReady: bootReadyAt } = require('./harness');
+
+const TEST_NOW = '2026-08-10';
+const boot = (opts = {}) => bootAt({ now: TEST_NOW, ...opts });
+const bootReady = (opts = {}) => bootReadyAt({ now: TEST_NOW, ...opts });
 
 // Pin the date so month-boundary behaviour is asserted, not left to the calendar.
 async function onDate(iso) {
