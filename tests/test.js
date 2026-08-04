@@ -543,6 +543,14 @@ t('list item titles open notes while the sticker itself handles completion', asy
   no(html, 'data-complete="l2"');
   no(html, 'data-add="l2"');
 });
+t('an unfinished note exposes its sub-goal title as an editable field', async () => {
+  const a = await fixture();
+  a.noteView={id:'l2',date:null};
+  const html=a.noteEditor();
+  has(html, 'data-note-title="l2"');
+  has(html, 'value="B"');
+  has(html, 'aria-label="Sub-goal title"');
+});
 t('completing a list item freezes its Markdown in the selected day snapshot', async () => {
   const a = await fixture();
   a.sel = '2026-07-11';

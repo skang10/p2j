@@ -572,7 +572,8 @@ function noteEditor(){
   const text=readonly?snap.markdown:(found.s.note||'');
   return `<button class="notebackdrop" data-note-close aria-label="Close note"></button>
     <section class="noteview${readonly?' readonly':''}" role="dialog" aria-modal="true" aria-label="${esc(title)} note">
-      <header><div><span>${esc(goal)}</span><h2>${esc(title)}</h2></div><button data-note-close aria-label="Close note">×</button></header>
+      <header><div><span>${esc(goal)}</span>${readonly?`<h2>${esc(title)}</h2>`:
+        `<input class="notetitle" data-note-title="${noteView.id}" value="${esc(title)}" aria-label="Sub-goal title">`}</div><button data-note-close aria-label="Close note">×</button></header>
       ${readonly?`<div class="notedate">Completed ${short(noteView.date)}</div><article class="markdownbody">${text?markdown(text):'<p class="hint">No note was recorded.</p>'}</article>`
       :`<div class="noteedit"><textarea data-note-input="${noteView.id}" placeholder="Start writing...">${esc(text)}</textarea></div>`}
     </section>`;
@@ -864,6 +865,8 @@ function bind(){
   on('[data-note-close]',b=>b.onclick=()=>{noteView=null;render();});
   on('[data-note-input]',i=>i.oninput=()=>{const found=findSub(i.dataset.noteInput);if(!found)return;
     found.s.note=i.value;save();});
+  on('[data-note-title]',i=>i.oninput=()=>{const found=findSub(i.dataset.noteTitle);if(!found)return;
+    found.s.title=i.value;save();});
   on('[data-minus]',b=>b.onclick=()=>bump(b.dataset.minus,-1));
   on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
   on('[data-list-add]',b=>b.onclick=()=>{quickAdding=b.dataset.listAdd;render();
