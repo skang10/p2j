@@ -523,17 +523,53 @@ t('a list goal with nothing open keeps only its direct add control', async () =>
   no(html, '<em>', 'finished Sub-goals do not repeat their completion dates');
   has(html, '<b>3</b><i>/3</i>', 'as does the count');
 });
-t('an open list can add and remove Sub-goals directly from Today', async () => {
+t('an open list keeps its original remove control alongside drag completion', async () => {
   const a = await fixture();
   const html = a.goalBlock(a.state.goals[1], '2026-07-11', a.firstDone());
   has(html, 'data-list-remove="l2"');
-  has(html, 'data-list-remove="l3"');
+  has(html, 'data-swipe="l2"');
+  has(html, 'class="swipedone"');
   has(html, 'data-list-add="g2"');
   a.quickAdding = 'g2';
   has(a.listAddControl('g2'), 'data-quick-input="g2"');
   a.commitQuickSub('g2', { value: '  Ship release notes  ' });
   eq(a.state.goals[1].subs.at(-1).title, 'Ship release notes');
   eq(a.quickAdding, null);
+});
+t('list item titles open notes while the sticker itself handles completion', async () => {
+  const a = await fixture();
+  const html = a.goalBlock(a.state.goals[1], '2026-07-11', a.firstDone());
+  has(html, 'data-note="l2"');
+  no(html, 'data-complete="l2"');
+  no(html, 'data-add="l2"');
+});
+t('completing a list item freezes its Markdown in the selected day snapshot', async () => {
+  const a = await fixture();
+  a.sel = '2026-07-11';
+  a.state.goals[1].subs[1].note = '# Ownership\n- One owner';
+  a.completeList('l2');
+  eq(a.state.logs['2026-07-11'].l2, 1);
+  eq(a.state.noteSnapshots['2026-07-11'].l2, {
+    title: 'B', goalTitle: 'To learn', markdown: '# Ownership\n- One owner'
+  });
+  a.state.goals[1].subs[1].note = 'changed later';
+  has(a.markdown(a.state.noteSnapshots['2026-07-11'].l2.markdown), '<h1>Ownership</h1>');
+});
+t('Markdown notes escape HTML before formatting', async () => {
+  const a = await fixture();
+  const html = a.markdown('# Safe\n<script>alert(1)</script>\n**bold**');
+  has(html, '<h1>Safe</h1>'); has(html, '&lt;script&gt;'); has(html, '<strong>bold</strong>');
+  no(html, '<script>');
+});
+t('a completed note opens read-only from any panel', async () => {
+  const g = await bootReady(); const a = g.api;
+  a.state = {goals:[{id:'g',type:'list',title:'Knowledge',subs:[{id:'rust',title:'Rust basics'}]}],
+    logs:{'2026-08-05':{rust:1}},noteSnapshots:{'2026-08-05':{rust:{title:'Rust basics',goalTitle:'Knowledge',markdown:'# Ownership'}}}};
+  a.panel='stats'; a.view={y:2026,m:7}; a.noteView={id:'rust',date:'2026-08-05'}; a.render();
+  has(g.captured.app, 'class="noteview readonly"');
+  has(g.captured.app, 'Completed August 5 2026');
+  has(g.captured.app, '<h1>Ownership</h1>');
+  no(g.captured.app, 'data-note-input');
 });
 t('count chips carry a minus button only once tapped', async () => {
   const a = await fixture();
