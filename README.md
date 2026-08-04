@@ -11,7 +11,9 @@ structured, check-in style.
 
 ## Download
 
-[Download P2J Daybook v0.1.0 for Apple Silicon macOS](https://github.com/skang10/p2j/releases/download/v0.1.0/Daybook_0.1.0_aarch64.dmg)
+| Version | Platform | Architecture | Download |
+| --- | --- | --- | --- |
+| v0.2.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/p2j/releases/download/v0.2.0/Daybook_0.2.0_aarch64.dmg) |
 
 This build is not notarized. If macOS blocks it the first time, right-click Daybook and
 choose **Open**.
