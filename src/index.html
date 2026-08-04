@@ -1586,7 +1586,8 @@ function goalBlock(g,k,F){
     const recent=fin.filter(s=>inLastMonth(F[s.id]));
     if(recent.length){
       const all=doneOpen.has(g.id), show=all?recent:recent.slice(0,DONEMAX), rest=recent.length-show.length;
-      done=`<div class="doneline"><span class="lb">Done · last month</span>${
+      const doneLabel=recent.every(s=>F[s.id]===todayKey())?'Done today':'Done · past 30 days';
+      done=`<div class="doneline"><span class="lb">${doneLabel}</span>${
         show.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}</button>`).join('')}${
         rest>0?`<button class="lnk fold" data-more="${g.id}">+${rest} more</button>`:''}${
         all&&recent.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;

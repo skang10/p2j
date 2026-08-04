@@ -791,7 +791,14 @@ t('a short Done line is shown whole, with nothing to unfold', async () => {
   const a = await longList(4);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
   eq((html.match(/class="undone"/g) || []).length, 4, 'all four');
+  has(html, 'Done · past 30 days');
   no(html, 'more'); no(html, 'Show fewer');
+});
+t('a Done line containing only today\'s completions says today', async () => {
+  const a = await longList(1);
+  const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
+  has(html, 'Done today');
+  no(html, 'past 30 days');
 });
 t('a long Done line folds to DONEMAX, saying how many are hidden', async () => {
   const a = await longList(23);
