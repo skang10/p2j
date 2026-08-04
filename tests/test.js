@@ -827,14 +827,14 @@ t('Today exposes only today\'s completion, not the previous 30 days', async () =
   const a = await longList(4);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
   eq((html.match(/class="undone"/g) || []).length, 1, 'only today');
-  has(html, 'Done today');
+  has(html, '<span class="lb">Done</span>');
   no(html, 'past 30 days');
   no(html, 'more'); no(html, 'Show fewer');
 });
-t('a Done line containing only today\'s completions says today', async () => {
+t('today\'s completion line uses the compact Done label', async () => {
   const a = await longList(1);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
-  has(html, 'Done today');
+  has(html, '<span class="lb">Done</span>');
   no(html, 'past 30 days');
 });
 t('a long Done line folds to DONEMAX, saying how many are hidden', async () => {

@@ -548,7 +548,7 @@ function goalBlock(g,k,F){
     const todayDone=fin.filter(s=>F[s.id]===k);
     if(todayDone.length){
       const all=doneOpen.has(g.id), show=all?todayDone:todayDone.slice(0,DONEMAX), rest=todayDone.length-show.length;
-      done=`<div class="doneline"><span class="lb">Done today</span>${
+      done=`<div class="doneline"><span class="lb">Done</span>${
         show.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}</button>`).join('')}${
         rest>0?`<button class="lnk fold" data-more="${g.id}">+${rest} more</button>`:''}${
         all&&todayDone.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
