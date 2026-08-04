@@ -1,11 +1,12 @@
-// Loads src/index.html's <script> into a vm context with minimal DOM stubs and
+// Loads src/app.js into a vm context with minimal DOM stubs and
 // exposes its internals, so the derived logic can be exercised without a browser.
-// index.html itself is never modified — only read.
+// The production script itself is never modified — only read.
 const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
 
-const HTML = path.join(__dirname, '..', 'src', 'index.html');
+const SCRIPT = path.join(__dirname, '..', 'src', 'app.js');
+const STYLES = path.join(__dirname, '..', 'src', 'styles.css');
 
 const NAMES = `KEY DOW MONS MAXGOALS
 pad key today todayKey parseKey label short mKey inMonth daysIn diffDays newId esc TAP
@@ -58,9 +59,7 @@ function makeElement(id) {
 // behaviour (month ends, leap days, the early-month ETA cutoff) can be asserted
 // instead of being tested only on whatever day the suite happens to run.
 function boot(opts = {}) {
-  const src = fs.readFileSync(HTML, 'utf8');
-  const m = src.match(/<script>([\s\S]*?)<\/script>/);
-  if (!m) throw new Error('no <script> block found in index.html');
+  const src = fs.readFileSync(SCRIPT, 'utf8');
 
   const els = new Map();
   const captured = {};
@@ -117,7 +116,7 @@ function boot(opts = {}) {
   ${NAMES.join(', ')}
 };`;
 
-  vm.runInContext(m[1] + epilogue, ctx, { filename: 'index.html:script' });
+  vm.runInContext(src + epilogue, ctx, { filename: 'src/app.js' });
   return { api: ctx.__api, captured, store, logs, els };
 }
 
@@ -130,4 +129,4 @@ async function bootReady(opts) {
   return h;
 }
 
-module.exports = { boot, bootReady, settle, HTML };
+module.exports = { boot, bootReady, settle, SCRIPT, STYLES };

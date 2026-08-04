@@ -850,8 +850,8 @@ t('the version is read from the running bundle, never written down here', async 
   } });
   await g.api.readVersion();
   eq(g.api.version, '9.9.9', 'whatever the bundle says');
-  const src = require('fs').readFileSync(require('./harness').HTML, 'utf8');
-  no(src.match(/<script>[\s\S]*?<\/script>/)[1], "'0.1.0'",
+  const src = require('fs').readFileSync(require('./harness').SCRIPT, 'utf8');
+  no(src, "'0.1.0'",
      'no copy of the version in the frontend to drift from tauri.conf.json');
 });
 t('a bundle that will not answer leaves the version blank rather than wrong', async () => {
@@ -1738,7 +1738,7 @@ t('Tap action uses an application-rendered menu with the application font', asyn
   const html = a.goalEditor(a.state.goals[0]);
   has(html, 'class="tapmenu"'); has(html, 'role="menuitemradio"');
   no(html, '<select', 'the OS-native popup cannot replace the application font');
-  has(require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'index.html'), 'utf8'),
+  has(require('fs').readFileSync(require('./harness').STYLES, 'utf8'),
       '.tapoption{', 'the options are rendered and styled by Daybook');
 });
 t('creating a goal stays in a disposable draft until Save', async () => {
@@ -1803,10 +1803,9 @@ t('Store picks the tauri backend when __TAURI__ is present', async () => {
   eq(calls.filter(c => c[0] === 'data_path').length, 0, 'nothing asks for the path any more');
 });
 t('Store is the only place invoke is referenced', () => {
-  const src = require('fs').readFileSync(require('./harness').HTML, 'utf8');
-  const body = src.match(/<script>([\s\S]*?)<\/script>/)[1];
-  const storeBlock = body.match(/const Store = \(\(\) => \{[\s\S]*?\}\)\(\);/)[0];
-  const outside = body.replace(storeBlock, '');
+  const src = require('fs').readFileSync(require('./harness').SCRIPT, 'utf8');
+  const storeBlock = src.match(/const Store = \(\(\) => \{[\s\S]*?\}\)\(\);/)[0];
+  const outside = src.replace(storeBlock, '');
   ok(!/invoke/.test(outside), 'invoke appears outside the Store block');
 });
 
