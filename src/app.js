@@ -8,6 +8,7 @@ const PAGE_SIZE=5;
 let state={goals:[],logs:{}};
 let view=null, sel=null, panel='day', editing=null, draftGoal=null, draftIsNew=false, quickAdding=null, saveErr=false;
 let noteView=null;
+let completionPeek=null;
 const sectionOpen={records:true,days:true,mix:true,completed:true};
 const sectionPage={records:0,days:0,mix:0,completed:0,archive:0};
 let notice='';
@@ -538,21 +539,19 @@ function goalBlock(g,k,F){
     const fin=subs.filter(s=>F[s.id]).sort((a,b)=>F[a.id]<F[b.id]?1:-1);
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
-    prog=pips(fin.length,subs.length);
-    chips=open.map(s=>`<span class="listitem noteditem" data-swipe="${s.id}"><span class="swipedone" aria-hidden="true">Done</span>
-      <span class="swipeface"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
-      <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span></span>`).join('')+listAddControl(g.id);
-    // A long list finishes far more than it has open, and the finished pile is the
-    // least actionable thing on the screen — unfolded it pushed the next goal off the
-    // bottom. Every one of them is still listed, dated, in Stats' completion log.
-    const recent=fin.filter(s=>inLastMonth(F[s.id]));
-    if(recent.length){
-      const all=doneOpen.has(g.id), show=all?recent:recent.slice(0,DONEMAX), rest=recent.length-show.length;
-      const doneLabel=recent.every(s=>F[s.id]===todayKey())?'Done today':'Done · past 30 days';
-      done=`<div class="doneline"><span class="lb">${doneLabel}</span>${
+    prog=`<button class="pipsopen" data-completed-goal="${g.id}" data-complete-drop="${g.id}" aria-expanded="${completionPeek?.id===g.id}" aria-label="Show completed items for ${esc(g.title)}">${pips(fin.length,subs.length)}</button>`;
+    chips=open.map(s=>`<span class="listitem noteditem" data-complete-drag="${s.id}" data-drag-goal="${g.id}"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
+      <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span>`).join('')+listAddControl(g.id);
+    // Today is the only place where a completion can be undone. Older work remains
+    // available as a read-only fact in Stats and day snapshots instead of leaking back
+    // into the active workspace as an editable item.
+    const todayDone=fin.filter(s=>F[s.id]===k);
+    if(todayDone.length){
+      const all=doneOpen.has(g.id), show=all?todayDone:todayDone.slice(0,DONEMAX), rest=todayDone.length-show.length;
+      done=`<div class="doneline"><span class="lb">Done</span>${
         show.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}</button>`).join('')}${
         rest>0?`<button class="lnk fold" data-more="${g.id}">+${rest} more</button>`:''}${
-        all&&recent.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
+        all&&todayDone.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
     }
   }
   else{
@@ -561,9 +560,23 @@ function goalBlock(g,k,F){
     chips=subs.map(s=>`<button class="chip ${day[s.id]?'on':''}" data-tog="${s.id}">${esc(s.title)}</button>`).join('');
   }
 
+  const renderedCompleted=completionPeek?.id===g.id?completedList(g,F):'';
   return `<div class="goal" data-goal="${g.id}">${grip}
     <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${right}${ed}</div></div>
-    ${prog}${pace}${chips?`<div class="chips">${chips}</div>`:''}${done}</div>`;
+    ${prog}${renderedCompleted}${pace}${chips?`<div class="chips">${chips}</div>`:''}${done}</div>`;
+}
+
+function completedList(g,F){
+  const items=g.subs.filter(s=>F[s.id]).sort((a,b)=>F[a.id]<F[b.id]?1:-1);
+  const pages=Math.max(1,Math.ceil(items.length/PAGE_SIZE));
+  completionPeek.page=Math.max(0,Math.min(completionPeek.page||0,pages-1));
+  const start=completionPeek.page*PAGE_SIZE, shown=items.slice(start,start+PAGE_SIZE);
+  return `<section class="completedpeek"><div class="peekhead"><span>Completed</span><b>${items.length}</b></div>
+    <div class="peeklist">${shown.map(s=>{const d=F[s.id],hasNote=state.noteSnapshots?.[d]?.[s.id];return hasNote
+      ?`<button class="peekrow" data-note="${s.id}" data-note-date="${d}"><span>${esc(s.title)}</span><time>${short(d)}</time><i>›</i></button>`
+      :`<div class="peekrow"><span>${esc(s.title)}</span><time>${short(d)}</time></div>`;}).join('')}</div>
+    ${pages>1?`<div class="peekpager"><button data-completed-page="-1" ${completionPeek.page===0?'disabled':''} aria-label="Previous completed items">‹</button>
+      <span>${completionPeek.page+1} / ${pages}</span><button data-completed-page="1" ${completionPeek.page===pages-1?'disabled':''} aria-label="Next completed items">›</button></div>`:''}</section>`;
 }
 
 function noteEditor(){
@@ -573,7 +586,9 @@ function noteEditor(){
   const text=readonly?snap.markdown:(found.s.note||'');
   return `<button class="notebackdrop" data-note-close aria-label="Close note"></button>
     <section class="noteview${readonly?' readonly':''}" role="dialog" aria-modal="true" aria-label="${esc(title)} note">
-      <header><div><span>${esc(goal)}</span><h2>${esc(title)}</h2></div><button data-note-close aria-label="Close note">×</button></header>
+      <header><div><span>${esc(goal)}</span>${readonly?`<h2>${esc(title)}</h2>`:
+        `<input class="notetitle" data-note-title="${noteView.id}" value="${esc(title)}" aria-label="Sub-goal title">`}</div>
+        <div class="noteactions">${readonly?'':`<button class="notecomplete" data-note-complete="${noteView.id}">Mark complete</button>`}<button data-note-close aria-label="Close note">×</button></div></header>
       ${readonly?`<div class="notedate">Completed ${short(noteView.date)}</div><article class="markdownbody">${text?markdown(text):'<p class="hint">No note was recorded.</p>'}</article>`
       :`<div class="noteedit"><textarea data-note-input="${noteView.id}" placeholder="Start writing...">${esc(text)}</textarea></div>`}
     </section>`;
@@ -860,17 +875,20 @@ function bind(){
   on('[data-tog]',b=>b.onclick=()=>{const k=sel||todayKey();
     bump(b.dataset.tog,(state.logs[k]||{})[b.dataset.tog]?-1:1);});
   on('[data-add]',b=>b.onclick=()=>bump(b.dataset.add,1));
-  on('[data-note]',b=>b.onclick=e=>{e.stopPropagation();if(b.closest?.('[data-swipe]')?.dataset.dragged)return;
+  on('[data-note]',b=>b.onclick=e=>{e.stopPropagation();if(b.closest?.('[data-complete-drag]')?.dataset.dragged)return;
     noteView={id:b.dataset.note,date:b.dataset.noteDate||null};render();});
   on('[data-note-close]',b=>b.onclick=()=>{noteView=null;render();});
+  on('[data-note-complete]',b=>b.onclick=()=>{completeList(b.dataset.noteComplete);noteView=null;render();});
   on('[data-note-input]',i=>i.oninput=()=>{const found=findSub(i.dataset.noteInput);if(!found)return;
     found.s.note=i.value;save();});
+  on('[data-note-title]',i=>i.oninput=()=>{const found=findSub(i.dataset.noteTitle);if(!found)return;
+    found.s.title=i.value;save();});
   on('[data-minus]',b=>b.onclick=()=>bump(b.dataset.minus,-1));
   on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
   on('[data-list-add]',b=>b.onclick=()=>{quickAdding=b.dataset.listAdd;render();
     setTimeout(()=>document.querySelector(`[data-quick-input="${quickAdding}"]`)?.focus(),0);});
   on('[data-list-remove]',b=>b.onclick=()=>dropSub(b.dataset.listRemove));
-  on('[data-swipe]',bindSwipe);
+  on('[data-complete-drag]',el=>el.onmousedown=e=>{if(e.button!==0||e.target.closest?.('[data-list-remove]'))return;beginSubDrag(el,e);});
   on('[data-quick-input]',i=>i.onkeydown=e=>{
     if(e.key==='Enter'){e.preventDefault();commitQuickSub(i.dataset.quickInput,i);}
     if(e.key==='Escape'){e.preventDefault();quickAdding=null;render();}
@@ -881,6 +899,10 @@ function bind(){
   on('[data-quick-cancel]',b=>b.onclick=()=>{quickAdding=null;render();});
   on('[data-more]',b=>b.onclick=()=>{ const id=b.dataset.more;
     doneOpen.has(id)?doneOpen.delete(id):doneOpen.add(id); render(); });
+  on('[data-completed-goal]',b=>b.onclick=()=>{const id=b.dataset.completedGoal;
+    completionPeek=completionPeek?.id===id?null:{id,page:0};render();});
+  on('[data-completed-page]',b=>b.onclick=()=>{if(b.disabled||!completionPeek)return;
+    completionPeek.page+=+b.dataset.completedPage;render();});
   on('[data-ao]',b=>b.onclick=()=>{ const id=b.dataset.ao;
     archiveOpen.has(id)?archiveOpen.delete(id):archiveOpen.add(id); render(); });
   on('[data-sm]',b=>b.onclick=()=>{sectionPage.records=sectionPage.days=sectionPage.mix=sectionPage.completed=0;shift(+b.dataset.sm);});
@@ -945,24 +967,21 @@ function bind(){
   if(np) np.onclick=()=>{purging=null; render();};
 }
 
-function bindSwipe(el){
-  let startX=0,startY=0,dx=0,active=false;
-  const reset=()=>{el.classList.remove('dragging','ready');el.style.removeProperty('--swipe');};
-  el.onpointerdown=e=>{
-    if(e.button!==undefined&&e.button!==0||e.target.closest?.('[data-list-remove]'))return;
-    startX=e.clientX;startY=e.clientY;dx=0;active=true;
+function beginSubDrag(el,e){
+  const sx=e.clientX,sy=e.clientY,id=el.dataset.completeDrag,goal=el.dataset.dragGoal;
+  let moved=false,target=null;
+  const clear=()=>on('[data-complete-drop]',d=>d.classList.remove('dropready'));
+  document.onmousemove=ev=>{
+    if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<6)return;
+    moved=true;el.classList.add('dragging');clear();
+    const hit=document.elementFromPoint?.(ev.clientX,ev.clientY)?.closest?.('[data-complete-drop]');
+    target=hit?.dataset.completeDrop===goal?hit:null;if(target)target.classList.add('dropready');
   };
-  el.onpointermove=e=>{
-    if(!active)return;const x=e.clientX-startX,y=e.clientY-startY;
-    if(Math.abs(y)>Math.abs(x)&&Math.abs(y)>8){active=false;reset();return;}
-    dx=Math.max(0,Math.min(88,x));if(dx<3)return;
-    e.preventDefault();el.classList.add('dragging');el.classList.toggle('ready',dx>=56);
-    el.style.setProperty('--swipe',`${dx}px`);
+  document.onmouseup=()=>{
+    document.onmousemove=null;document.onmouseup=null;clear();el.classList.remove('dragging');
+    if(!moved)return;el.dataset.dragged='1';
+    if(target)completeList(id);setTimeout(()=>delete el.dataset.dragged,0);
   };
-  const finish=()=>{if(!active)return;active=false;
-    if(dx>=56){el.dataset.dragged='1';completeList(el.dataset.swipe);setTimeout(()=>delete el.dataset.dragged,0);}
-    else reset();};
-  el.onpointerup=finish;el.onpointercancel=()=>{active=false;reset();};
 }
 
 function shift(d){

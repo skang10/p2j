@@ -523,12 +523,15 @@ t('a list goal with nothing open keeps only its direct add control', async () =>
   no(html, '<em>', 'finished Sub-goals do not repeat their completion dates');
   has(html, '<b>3</b><i>/3</i>', 'as does the count');
 });
-t('an open list keeps its original remove control alongside drag completion', async () => {
+t('an open list keeps its original title and remove controls', async () => {
   const a = await fixture();
   const html = a.goalBlock(a.state.goals[1], '2026-07-11', a.firstDone());
   has(html, 'data-list-remove="l2"');
-  has(html, 'data-swipe="l2"');
-  has(html, 'class="swipedone"');
+  no(html, 'draggable="true"', 'native drag is unreliable in the macOS webview');
+  has(html, 'data-complete-drag="l2"');
+  has(html, 'data-drag-goal="g2"');
+  has(html, 'data-complete-drop="g2"');
+  no(html, 'data-swipe="l2"');
   has(html, 'data-list-add="g2"');
   a.quickAdding = 'g2';
   has(a.listAddControl('g2'), 'data-quick-input="g2"');
@@ -536,12 +539,21 @@ t('an open list keeps its original remove control alongside drag completion', as
   eq(a.state.goals[1].subs.at(-1).title, 'Ship release notes');
   eq(a.quickAdding, null);
 });
-t('list item titles open notes while the sticker itself handles completion', async () => {
+t('list item titles open notes instead of completing directly', async () => {
   const a = await fixture();
   const html = a.goalBlock(a.state.goals[1], '2026-07-11', a.firstDone());
   has(html, 'data-note="l2"');
   no(html, 'data-complete="l2"');
   no(html, 'data-add="l2"');
+});
+t('an unfinished note exposes its sub-goal title as an editable field', async () => {
+  const a = await fixture();
+  a.noteView={id:'l2',date:null};
+  const html=a.noteEditor();
+  has(html, 'data-note-title="l2"');
+  has(html, 'value="B"');
+  has(html, 'aria-label="Sub-goal title"');
+  has(html, 'data-note-complete="l2"');
 });
 t('completing a list item freezes its Markdown in the selected day snapshot', async () => {
   const a = await fixture();
@@ -570,6 +582,7 @@ t('a completed note opens read-only from any panel', async () => {
   has(g.captured.app, 'Completed August 5 2026');
   has(g.captured.app, '<h1>Ownership</h1>');
   no(g.captured.app, 'data-note-input');
+  no(g.captured.app, 'data-note-complete');
 });
 t('count chips carry a minus button only once tapped', async () => {
   const a = await fixture();
@@ -809,42 +822,57 @@ t('Total Records links the summary to the activity history', async () => {
 // ---------- the Done line folds ----------
 // A long list finishes far more than it keeps open, and the finished pile is the least
 // actionable thing on screen. Unfolded, 23 of them pushed the next goal off the bottom.
-async function longList(doneCount) {
+async function longList(doneCount, allToday=false) {
   const g = await bootReady({ now: '2026-07-31' });
   const a = g.api;
   const subs = Array.from({ length: 40 }, (_, i) => ({ id: 'l' + i, title: 'Topic ' + i }));
   const logs = {};
-  // crossed off on recent distinct days, so all are eligible for the rolling Done line
   subs.slice(0, doneCount).forEach((s, i) => {
-    const d=a.today(); d.setDate(d.getDate()-(doneCount-1-i)); logs[a.key(d)] = { [s.id]: 1 };
+    const d=a.today(); if(!allToday)d.setDate(d.getDate()-(doneCount-1-i));
+    const k=a.key(d);if(!logs[k])logs[k]={};logs[k][s.id]=1;
   });
   a.state = { goals: [{ id: 'gl', type: 'list', title: 'To learn', subs }], logs };
   a.view = { y: 2026, m: 6 };
   a.doneOpen.clear();
   return a;
 }
-t('a short Done line is shown whole, with nothing to unfold', async () => {
+t('Today exposes only today\'s completion, not the previous 30 days', async () => {
   const a = await longList(4);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
-  eq((html.match(/class="undone"/g) || []).length, 4, 'all four');
-  has(html, 'Done · past 30 days');
+  eq((html.match(/class="undone"/g) || []).length, 1, 'only today');
+  has(html, '<span class="lb">Done</span>');
+  no(html, 'past 30 days');
   no(html, 'more'); no(html, 'Show fewer');
 });
-t('a Done line containing only today\'s completions says today', async () => {
+t('today\'s completion line uses the compact Done label', async () => {
   const a = await longList(1);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
-  has(html, 'Done today');
+  has(html, '<span class="lb">Done</span>');
   no(html, 'past 30 days');
 });
+t('a list progress track opens a paginated completed-item history', async () => {
+  const a=await longList(12,true);a.completionPeek={id:'gl',page:0};
+  const html=a.goalBlock(a.state.goals[0],a.todayKey(),a.firstDone());
+  has(html,'data-completed-goal="gl"');
+  has(html,'class="completedpeek"');
+  eq((html.match(/class="peekrow"/g)||[]).length,a.PAGE_SIZE,'five rows per page');
+  has(html,'1 / 3');
+  has(html,'data-completed-page="1"');
+});
+t('completed history stays collapsed until its progress track is selected', async () => {
+  const a=await longList(3,true);a.completionPeek=null;
+  const html=a.goalBlock(a.state.goals[0],a.todayKey(),a.firstDone());
+  has(html,'aria-expanded="false"');no(html,'class="completedpeek"');
+});
 t('a long Done line folds to DONEMAX, saying how many are hidden', async () => {
-  const a = await longList(23);
+  const a = await longList(23, true);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
   eq((html.match(/class="undone"/g) || []).length, a.DONEMAX, 'five shown');
   has(html, '+18 more', 'and the rest are counted, not silently dropped');
   has(html, '<b>23</b><i>/40</i>', 'the count beside the title still says 23 of 40');
 });
 t('unfolding shows every finished item, and offers the way back', async () => {
-  const a = await longList(23);
+  const a = await longList(23, true);
   a.doneOpen.add('gl');
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
   eq((html.match(/class="undone"/g) || []).length, 23, 'all of them');
@@ -852,7 +880,7 @@ t('unfolding shows every finished item, and offers the way back', async () => {
   no(html, 'more<', 'and nothing left to expand');
 });
 t('the Done line is newest first, so the fold keeps what you just crossed off', async () => {
-  const a = await longList(23);
+  const a = await longList(23, true);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
   const F = a.firstDone();
   const shown = [...html.matchAll(/data-clear="(l\d+)"/g)].map(m => m[1]);

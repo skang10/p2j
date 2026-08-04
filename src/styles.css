@@ -217,9 +217,17 @@
     box-shadow:0 24px 70px rgba(20,24,30,.18);overflow:auto}
   .noteview header{display:flex;align-items:flex-start;justify-content:space-between;padding:34px 44px 22px;
     border-bottom:1px solid var(--line)}
+  .noteview header>div:first-child{flex:1;min-width:0}
   .noteview header span,.notedate{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
   .noteview header h2{font-size:28px;margin-top:7px}
+  .notetitle{display:block;width:100%;margin:7px 0 0;padding:0;border:0;outline:0;
+    background:transparent;color:var(--ink);font:650 28px/1.2 var(--sans)}
+  .notetitle:focus{box-shadow:none}
   .noteview header button{border:0;background:none;color:var(--muted);font-size:24px;cursor:pointer}
+  .noteactions{display:flex;align-items:center;gap:12px;flex:none}
+  .noteview header .notecomplete{min-height:32px;padding:6px 9px;border:0;border-radius:6px;
+    background:transparent;color:var(--accent);font:600 12px var(--sans)}
+  .noteview header .notecomplete:hover{background:var(--soft);color:#115544}
   .notedate{padding:22px 44px 0}
   .noteedit{min-height:calc(100% - 112px)}
   .noteedit textarea{display:block;width:100%;min-height:calc(100vh - 210px);resize:none;border:0;outline:0;
@@ -817,6 +825,25 @@
   .pace,.pips,.bar{margin-top:13px}.ptrack,.bar{height:5px;background:var(--sunk)}
   .ptrack .done,.bar i{background:var(--accent)}.ptrack .proj{background:var(--edge)}
   .pips{gap:3px}.pip{width:7px;height:7px;border-radius:2px}.pip.f{background:var(--accent)}
+  .pipsopen{display:block;margin:7px -6px -6px;padding:6px;border:0;border-radius:6px;background:transparent;cursor:pointer}
+  .pipsopen .pips{margin-top:0}
+  .pipsopen:hover .pip,.pipsopen:focus-visible .pip{box-shadow:0 0 0 1px rgba(23,107,87,.18)}
+  .pipsopen.dropready{background:rgba(23,107,87,.09);box-shadow:inset 0 0 0 1px rgba(23,107,87,.28)}
+  .completedpeek{margin:13px 0 2px;padding:13px 14px 11px;border:1px solid var(--hair);border-radius:7px;
+    background:var(--faint)}
+  .peekhead{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:11px;color:var(--muted)}
+  .peekhead b{font-weight:600;color:var(--body)}
+  .peeklist{display:grid}
+  .peekrow{display:grid;grid-template-columns:minmax(0,1fr) auto 12px;align-items:center;gap:12px;
+    min-height:34px;padding:5px 0;border:0;border-top:1px solid var(--hair);background:transparent;
+    color:var(--body);font:inherit;font-size:12px;text-align:left}
+  button.peekrow{cursor:pointer}.peekrow:first-child{border-top:0}
+  button.peekrow:hover span{color:var(--accent)}
+  .peekrow time{color:var(--muted);font:11px var(--mono)}.peekrow i{color:var(--dust);font-style:normal}
+  .peekpager{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:8px;border-top:1px solid var(--hair)}
+  .peekpager button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:1px solid var(--hair);
+    border-radius:6px;background:var(--surface);color:var(--body);cursor:pointer}
+  .peekpager button:disabled{opacity:.35;cursor:default}.peekpager span{font:10.5px var(--mono);color:var(--muted)}
   .chips{gap:7px;margin-top:16px}
   .chip{min-height:32px;padding:6px 11px;border:1px solid var(--hair);border-radius:7px;
     background:var(--faint);font-size:12px;color:var(--body)}
@@ -831,13 +858,7 @@
   .listremove{display:grid;place-items:center;width:23px;height:23px;padding:0;border:0;border-radius:50%;
     background:transparent;color:var(--muted);font:inherit;font-size:15px;line-height:1;cursor:pointer}
   .listremove:hover{background:rgba(23,25,28,.08);color:var(--danger)}
-  .noteditem{position:relative;display:inline-flex;overflow:hidden;padding:0;border-color:var(--hair);
-    background:var(--accent);touch-action:pan-y;user-select:none}
-  .swipedone{position:absolute;inset:0 auto 0 11px;display:flex;align-items:center;color:#fff;
-    font-size:11px;font-weight:650;opacity:.82}
-  .swipeface{position:relative;z-index:1;display:flex;align-items:center;gap:1px;padding:3px 4px 3px 10px;
-    background:var(--faint);transform:translateX(var(--swipe,0));transition:transform .2s ease}
-  .noteditem.dragging .swipeface{transition:none}.noteditem.ready .swipedone{opacity:1}
+  .noteditem{display:inline-flex;cursor:grab}.noteditem.dragging{opacity:.45}.noteditem:active{cursor:grabbing}
   .noteditem .noteopen{width:auto;max-width:min(420px,calc(100vw - 190px));padding-right:7px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
   .listadd{display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid var(--hair);

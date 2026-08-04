@@ -15,12 +15,12 @@ dayTotal level dayKeys subTotal firstDone activeDays goalDays goalCount streak
 live liveSubs subLogged goalLogged
 dropGoal dropSub restoreGoal restoreSub purgeGoal archivePanel lastWorked
 moveGoal nudgeGoal beginDrag bump completeList findSub clearSub stripSub markdown noteEditor
-render heatmap heatStart HWEEKS calendar dayPanel snapshotPanel goalBlock listAddControl commitQuickSub paceLine pips
-achievements goalAmount statsPanel goalEditor tabs track bind bindSwipe shift
+render heatmap heatStart HWEEKS calendar dayPanel snapshotPanel goalBlock completedList listAddControl commitQuickSub paceLine pips
+achievements goalAmount statsPanel goalEditor tabs track bind beginSubDrag shift
 beginEdit cancelEdit commitEdit createGoal navigateGoal
 PAGE_SIZE sectionOpen sectionPage pageOf pager foldTitle`.split(/\s+/).filter(Boolean);
 
-const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'draftGoal', 'draftIsNew', 'quickAdding', 'noteView', 'dataPath', 'saveErr', 'version',
+const MUTABLE = ['state', 'view', 'sel', 'panel', 'editing', 'draftGoal', 'draftIsNew', 'quickAdding', 'noteView', 'completionPeek', 'dataPath', 'saveErr', 'version',
                  'notice', 'purging'];
 
 // A Date subclass whose no-arg constructor returns a fixed instant. Every other
