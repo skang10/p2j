@@ -9,6 +9,13 @@ up for them each day.
 Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style to a more
 structured, check-in style.
 
+## Download
+
+[Download P2J Daybook v0.1.0 for Apple Silicon macOS](https://github.com/skang10/p2j/releases/download/v0.1.0/Daybook_0.1.0_aarch64.dmg)
+
+This build is not notarized. If macOS blocks it the first time, right-click Daybook and
+choose **Open**.
+
 ## App Preview
 
 ### Today
@@ -19,7 +26,9 @@ structured, check-in style.
 
 ![P2J Daybook monthly Stats view](docs/daybook-stats.png)
 
-## Requirements
+## Development
+
+### Requirements
 
 - Rust 1.77 or newer
 - Tauri CLI 2
@@ -30,7 +39,7 @@ xcode-select --install
 cargo install tauri-cli --version "^2"
 ```
 
-## Build
+### Build
 
 ```bash
 git clone https://github.com/skang10/p2j
@@ -42,12 +51,12 @@ That leaves you in `src-tauri`. The app bundle and the installer are written bel
 
 ```text
 target/release/bundle/macos/Daybook.app
-target/release/bundle/dmg/Daybook_0.1.0_aarch64.dmg
+target/release/bundle/dmg/Daybook_<version>_aarch64.dmg
 ```
 
 The `.dmg` is named for the architecture it was built on.
 
-## Test
+### Test
 
 Frontend logic is covered by a lightweight Node harness that loads the script from
 `src/index.html`. Run it from the repository root:
@@ -57,7 +66,7 @@ cd ..
 node tests/test.js
 ```
 
-## Data
+### Local data
 
 Daybook stores data in one local JSON file and makes no network requests.
 
