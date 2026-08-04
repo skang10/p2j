@@ -809,25 +809,26 @@ t('Total Records links the summary to the activity history', async () => {
 // ---------- the Done line folds ----------
 // A long list finishes far more than it keeps open, and the finished pile is the least
 // actionable thing on screen. Unfolded, 23 of them pushed the next goal off the bottom.
-async function longList(doneCount) {
+async function longList(doneCount, allToday=false) {
   const g = await bootReady({ now: '2026-07-31' });
   const a = g.api;
   const subs = Array.from({ length: 40 }, (_, i) => ({ id: 'l' + i, title: 'Topic ' + i }));
   const logs = {};
-  // crossed off on recent distinct days, so all are eligible for the rolling Done line
   subs.slice(0, doneCount).forEach((s, i) => {
-    const d=a.today(); d.setDate(d.getDate()-(doneCount-1-i)); logs[a.key(d)] = { [s.id]: 1 };
+    const d=a.today(); if(!allToday)d.setDate(d.getDate()-(doneCount-1-i));
+    const k=a.key(d);if(!logs[k])logs[k]={};logs[k][s.id]=1;
   });
   a.state = { goals: [{ id: 'gl', type: 'list', title: 'To learn', subs }], logs };
   a.view = { y: 2026, m: 6 };
   a.doneOpen.clear();
   return a;
 }
-t('a short Done line is shown whole, with nothing to unfold', async () => {
+t('Today exposes only today\'s completion, not the previous 30 days', async () => {
   const a = await longList(4);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
-  eq((html.match(/class="undone"/g) || []).length, 4, 'all four');
-  has(html, 'Done · past 30 days');
+  eq((html.match(/class="undone"/g) || []).length, 1, 'only today');
+  has(html, 'Done today');
+  no(html, 'past 30 days');
   no(html, 'more'); no(html, 'Show fewer');
 });
 t('a Done line containing only today\'s completions says today', async () => {
@@ -837,14 +838,14 @@ t('a Done line containing only today\'s completions says today', async () => {
   no(html, 'past 30 days');
 });
 t('a long Done line folds to DONEMAX, saying how many are hidden', async () => {
-  const a = await longList(23);
+  const a = await longList(23, true);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
   eq((html.match(/class="undone"/g) || []).length, a.DONEMAX, 'five shown');
   has(html, '+18 more', 'and the rest are counted, not silently dropped');
   has(html, '<b>23</b><i>/40</i>', 'the count beside the title still says 23 of 40');
 });
 t('unfolding shows every finished item, and offers the way back', async () => {
-  const a = await longList(23);
+  const a = await longList(23, true);
   a.doneOpen.add('gl');
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
   eq((html.match(/class="undone"/g) || []).length, 23, 'all of them');
@@ -852,7 +853,7 @@ t('unfolding shows every finished item, and offers the way back', async () => {
   no(html, 'more<', 'and nothing left to expand');
 });
 t('the Done line is newest first, so the fold keeps what you just crossed off', async () => {
-  const a = await longList(23);
+  const a = await longList(23, true);
   const html = a.goalBlock(a.state.goals[0], a.todayKey(), a.firstDone());
   const F = a.firstDone();
   const shown = [...html.matchAll(/data-clear="(l\d+)"/g)].map(m => m[1]);

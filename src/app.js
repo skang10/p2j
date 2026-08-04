@@ -542,17 +542,16 @@ function goalBlock(g,k,F){
     chips=open.map(s=>`<span class="listitem noteditem" data-swipe="${s.id}"><span class="swipedone" aria-hidden="true">Done</span>
       <span class="swipeface"><button class="chip noteopen" data-note="${s.id}">${esc(s.title)}</button>
       <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span></span>`).join('')+listAddControl(g.id);
-    // A long list finishes far more than it has open, and the finished pile is the
-    // least actionable thing on the screen — unfolded it pushed the next goal off the
-    // bottom. Every one of them is still listed, dated, in Stats' completion log.
-    const recent=fin.filter(s=>inLastMonth(F[s.id]));
-    if(recent.length){
-      const all=doneOpen.has(g.id), show=all?recent:recent.slice(0,DONEMAX), rest=recent.length-show.length;
-      const doneLabel=recent.every(s=>F[s.id]===todayKey())?'Done today':'Done · past 30 days';
-      done=`<div class="doneline"><span class="lb">${doneLabel}</span>${
+    // Today is the only place where a completion can be undone. Older work remains
+    // available as a read-only fact in Stats and day snapshots instead of leaking back
+    // into the active workspace as an editable item.
+    const todayDone=fin.filter(s=>F[s.id]===k);
+    if(todayDone.length){
+      const all=doneOpen.has(g.id), show=all?todayDone:todayDone.slice(0,DONEMAX), rest=todayDone.length-show.length;
+      done=`<div class="doneline"><span class="lb">Done today</span>${
         show.map(s=>`<button class="undone" data-clear="${s.id}">${esc(s.title)}</button>`).join('')}${
         rest>0?`<button class="lnk fold" data-more="${g.id}">+${rest} more</button>`:''}${
-        all&&recent.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
+        all&&todayDone.length>DONEMAX?`<button class="lnk fold" data-more="${g.id}">Show fewer</button>`:''}</div>`;
     }
   }
   else{
