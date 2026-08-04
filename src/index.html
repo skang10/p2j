@@ -239,7 +239,6 @@
     background:var(--c4);color:var(--on);cursor:pointer;border-radius:0 var(--r) var(--r) 0;
     transition:background .12s,border-color .12s}
   .minus:hover{background:var(--c3);border-color:var(--c3)}
-
   .doneline{margin-top:14px;font-size:13.5px;color:var(--muted);display:flex;flex-wrap:wrap;
     gap:5px 12px;align-items:baseline}
   .doneline .lb{font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;color:var(--dust)}
@@ -805,6 +804,26 @@
   .chip.on,.minus{background:var(--accent);border-color:var(--accent);color:#fff}
   .chip.on:hover,.minus:hover{background:#115544;border-color:#115544}
   .grp .chip{border-radius:7px 0 0 7px}.minus{border-radius:0 7px 7px 0}
+  .listitem{display:inline-flex;align-items:center;gap:2px;min-height:32px;padding:3px 4px 3px 10px;
+    border:1px solid var(--hair);border-radius:999px;background:var(--faint)}
+  .listitem .chip{min-height:24px;padding:2px 1px;border:0;border-radius:0;background:transparent}
+  .listitem .chip:hover{border:0;background:transparent;color:var(--accent)}
+  .listremove{display:grid;place-items:center;width:23px;height:23px;padding:0;border:0;border-radius:50%;
+    background:transparent;color:var(--muted);font:inherit;font-size:15px;line-height:1;cursor:pointer}
+  .listremove:hover{background:rgba(23,25,28,.08);color:var(--danger)}
+  .listadd{display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid var(--hair);
+    border-radius:50%;background:var(--faint);color:var(--accent);font:inherit;font-size:18px;cursor:pointer}
+  .listadd:hover{border-color:var(--edge);background:var(--soft)}
+  .quickadd{display:inline-flex;align-items:center;gap:2px;max-width:100%;min-height:32px;padding:3px 4px 3px 10px;
+    border:1px solid var(--edge);border-radius:999px;background:var(--faint)}
+  .quickadd input{flex:none;width:min(150px,calc(100vw - 210px));min-width:86px;padding:2px 1px;border:0!important;
+    border-radius:0;background:transparent;font-size:12px;box-shadow:none!important}
+  .quickadd input:focus{border:0!important;box-shadow:none!important}
+  .quickadd button{display:grid;place-items:center;width:23px;height:23px;padding:0;border:0;border-radius:50%;
+    background:transparent;color:var(--muted);font:inherit;line-height:1;cursor:pointer}
+  .quickadd .quickaddsave{color:var(--accent);font-size:13px}
+  .quickadd .quickaddcancel{font-size:15px}
+  .quickadd button:hover{background:rgba(23,25,28,.08);color:var(--ink)}
   .doneline{margin-top:14px;padding-top:12px;border-top:1px solid var(--hair);font-size:12px}
   .addrow{margin-top:12px;padding:0;border:0}
   .addgoal{display:flex;align-items:center;gap:10px;width:100%;height:46px;padding:0 15px;
@@ -1053,7 +1072,7 @@ const ETAMIN=5;   // days that must have elapsed before a rate is worth projecti
 const DONEMAX=5;  // finished list items shown before the rest fold away (§5)
 const PAGE_SIZE=5;
 let state={goals:[],logs:{}};
-let view=null, sel=null, panel='day', editing=null, draftGoal=null, draftIsNew=false, saveErr=false;
+let view=null, sel=null, panel='day', editing=null, draftGoal=null, draftIsNew=false, quickAdding=null, saveErr=false;
 const sectionOpen={records:true,days:true,mix:true,completed:true};
 const sectionPage={records:0,days:0,mix:0,completed:0,archive:0};
 let notice='';
@@ -1534,9 +1553,9 @@ function goalBlock(g,k,F){
   const subs=liveSubs(g);   // archived sub-goals keep counting but are no longer tappable
   if(!subs.length) return `<div class="goal" data-goal="${g.id}">${grip}
     <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${ed}</div></div>
-    <p class="hint" style="margin-top:9px">${g.subs.length
+    ${g.type==='list'?`<div class="chips">${listAddControl(g.id)}</div>`:`<p class="hint" style="margin-top:9px">${g.subs.length
       ? 'Every sub-goal here is archived. Edit to restore one or add another.'
-      : 'No sub-goals yet. Edit to add one.'}</p></div>`;
+      : 'No sub-goals yet. Edit to add one.'}</p>`}</div>`;
   const {y,m}=view, day=state.logs[k]||{};
   let right='',prog='',pace='',chips='',done='';
 
@@ -1559,7 +1578,8 @@ function goalBlock(g,k,F){
     const thisM=fin.filter(s=>inMonth(F[s.id],y,m)).length;
     right=`<span class="prog mono">${thisM?`<b>+${thisM}</b> this month · `:''}<b>${fin.length}</b><i>/${subs.length}</i></span>`;
     prog=pips(fin.length,subs.length);
-    chips=open.map(s=>`<button class="chip" data-add="${s.id}">${esc(s.title)}</button>`).join('');
+    chips=open.map(s=>`<span class="listitem"><button class="chip" data-add="${s.id}">${esc(s.title)}</button>
+      <button class="listremove" data-list-remove="${s.id}" aria-label="Remove ${esc(s.title)}" title="Remove">×</button></span>`).join('')+listAddControl(g.id);
     // A long list finishes far more than it has open, and the finished pile is the
     // least actionable thing on the screen — unfolded it pushed the next goal off the
     // bottom. Every one of them is still listed, dated, in Stats' completion log.
@@ -1581,6 +1601,20 @@ function goalBlock(g,k,F){
   return `<div class="goal" data-goal="${g.id}">${grip}
     <div class="ghead"><h3>${esc(g.title)}</h3><div class="gright">${right}${ed}</div></div>
     ${prog}${pace}${chips?`<div class="chips">${chips}</div>`:''}${done}</div>`;
+}
+
+function listAddControl(goalId){
+  return quickAdding===goalId
+    ? `<span class="quickadd"><input type="text" data-quick-input="${goalId}" placeholder="New sub-goal" aria-label="New sub-goal">
+        <button class="quickaddsave" data-quick-save="${goalId}" aria-label="Add sub-goal" title="Add">✓</button>
+        <button class="quickaddcancel" data-quick-cancel aria-label="Cancel" title="Cancel">×</button></span>`
+    : `<button class="listadd" data-list-add="${goalId}" aria-label="Add sub-goal" title="Add sub-goal">+</button>`;
+}
+
+function commitQuickSub(goalId,input){
+  const title=input.value.trim(),g=state.goals.find(g=>g.id===goalId&&g.type==='list'&&!g.archived);
+  if(!title||!g)return;
+  g.subs.push({id:newId(),title});quickAdding=null;save();render();
 }
 
 // One goal's editor, rendered where that goal sits. The caption explains only
@@ -1852,6 +1886,17 @@ function bind(){
   on('[data-add]',b=>b.onclick=()=>bump(b.dataset.add,1));
   on('[data-minus]',b=>b.onclick=()=>bump(b.dataset.minus,-1));
   on('[data-clear]',b=>b.onclick=()=>clearSub(b.dataset.clear));
+  on('[data-list-add]',b=>b.onclick=()=>{quickAdding=b.dataset.listAdd;render();
+    setTimeout(()=>document.querySelector(`[data-quick-input="${quickAdding}"]`)?.focus(),0);});
+  on('[data-list-remove]',b=>b.onclick=()=>dropSub(b.dataset.listRemove));
+  on('[data-quick-input]',i=>i.onkeydown=e=>{
+    if(e.key==='Enter'){e.preventDefault();commitQuickSub(i.dataset.quickInput,i);}
+    if(e.key==='Escape'){e.preventDefault();quickAdding=null;render();}
+  });
+  on('[data-quick-save]',b=>b.onclick=()=>{
+    const input=document.querySelector(`[data-quick-input="${b.dataset.quickSave}"]`);if(input)commitQuickSub(b.dataset.quickSave,input);
+  });
+  on('[data-quick-cancel]',b=>b.onclick=()=>{quickAdding=null;render();});
   on('[data-more]',b=>b.onclick=()=>{ const id=b.dataset.more;
     doneOpen.has(id)?doneOpen.delete(id):doneOpen.add(id); render(); });
   on('[data-ao]',b=>b.onclick=()=>{ const id=b.dataset.ao;

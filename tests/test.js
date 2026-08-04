@@ -506,18 +506,30 @@ t('count goal shows met once the monthly target is met', async () => {
 });
 // A finished list says so by having nothing left to tap and everything on the Done
 // line. A sentence saying the same thing was one more line to read for no new fact.
-t('a list goal with nothing open shows no chips row at all', async () => {
+t('a list goal with nothing open keeps only its direct add control', async () => {
   const a = await fixture();
   a.view = { y: 2026, m: 6 };
   const g = a.state.goals[1];
   a.state.logs['2026-07-11'] = { l1: 1, l2: 1, l3: 1 };
   const html = a.goalBlock(g, '2026-07-11', a.firstDone());
   no(html, 'Everything here is done.');
-  no(html, 'class="chips"', 'an empty row would still take its top margin');
   no(html, 'data-add=', 'nothing left to tap');
+  has(html, 'data-list-add="g2"', 'new items can still be added from Today');
   has(html, 'class="doneline"', 'and the finished items say what happened');
   no(html, '<em>', 'finished Sub-goals do not repeat their completion dates');
   has(html, '<b>3</b><i>/3</i>', 'as does the count');
+});
+t('an open list can add and remove Sub-goals directly from Today', async () => {
+  const a = await fixture();
+  const html = a.goalBlock(a.state.goals[1], '2026-07-11', a.firstDone());
+  has(html, 'data-list-remove="l2"');
+  has(html, 'data-list-remove="l3"');
+  has(html, 'data-list-add="g2"');
+  a.quickAdding = 'g2';
+  has(a.listAddControl('g2'), 'data-quick-input="g2"');
+  a.commitQuickSub('g2', { value: '  Ship release notes  ' });
+  eq(a.state.goals[1].subs.at(-1).title, 'Ship release notes');
+  eq(a.quickAdding, null);
 });
 t('count chips carry a minus button only once tapped', async () => {
   const a = await fixture();
