@@ -225,9 +225,9 @@
   .notetitle:focus{box-shadow:none}
   .noteview header button{border:0;background:none;color:var(--muted);font-size:24px;cursor:pointer}
   .noteactions{display:flex;align-items:center;gap:12px;flex:none}
-  .noteview header .notecomplete{min-height:34px;padding:7px 12px;border:1px solid var(--edge);border-radius:7px;
-    background:var(--soft);color:var(--accent);font:600 12px var(--sans)}
-  .noteview header .notecomplete:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+  .noteview header .notecomplete{min-height:32px;padding:6px 9px;border:0;border-radius:6px;
+    background:transparent;color:var(--accent);font:600 12px var(--sans)}
+  .noteview header .notecomplete:hover{background:var(--soft);color:#115544}
   .notedate{padding:22px 44px 0}
   .noteedit{min-height:calc(100% - 112px)}
   .noteedit textarea{display:block;width:100%;min-height:calc(100vh - 210px);resize:none;border:0;outline:0;

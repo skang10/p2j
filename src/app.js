@@ -588,7 +588,7 @@ function noteEditor(){
     <section class="noteview${readonly?' readonly':''}" role="dialog" aria-modal="true" aria-label="${esc(title)} note">
       <header><div><span>${esc(goal)}</span>${readonly?`<h2>${esc(title)}</h2>`:
         `<input class="notetitle" data-note-title="${noteView.id}" value="${esc(title)}" aria-label="Sub-goal title">`}</div>
-        <div class="noteactions">${readonly?'':`<button class="notecomplete" data-note-complete="${noteView.id}">Mark as completed</button>`}<button data-note-close aria-label="Close note">×</button></div></header>
+        <div class="noteactions">${readonly?'':`<button class="notecomplete" data-note-complete="${noteView.id}">Mark complete</button>`}<button data-note-close aria-label="Close note">×</button></div></header>
       ${readonly?`<div class="notedate">Completed ${short(noteView.date)}</div><article class="markdownbody">${text?markdown(text):'<p class="hint">No note was recorded.</p>'}</article>`
       :`<div class="noteedit"><textarea data-note-input="${noteView.id}" placeholder="Start writing...">${esc(text)}</textarea></div>`}
     </section>`;
