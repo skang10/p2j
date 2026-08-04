@@ -13,7 +13,9 @@ structured, check-in style.
 
 | Version | Platform | Architecture | Download |
 | --- | --- | --- | --- |
-| v0.2.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/p2j/releases/download/v0.2.0/Daybook_0.2.0_aarch64.dmg) |
+<!-- x-release-please-start-version -->
+| v0.3.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/p2j/releases/download/v0.3.0/Daybook_0.3.0_aarch64.dmg) |
+<!-- x-release-please-end -->
 
 This build is not notarized. If macOS blocks it the first time, right-click Daybook and
 choose **Open**.
