@@ -11,9 +11,9 @@ structured, check-in style.
 
 ## Download
 
+<!-- x-release-please-start-version -->
 | Version | Platform | Architecture | Download |
 | --- | --- | --- | --- |
-<!-- x-release-please-start-version -->
 | v0.3.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/p2j/releases/download/v0.3.0/Daybook_0.3.0_aarch64.dmg) |
 <!-- x-release-please-end -->
 
