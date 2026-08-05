@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/skang10/p2j/compare/v0.3.0...v0.3.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* keep README download version in sync ([#7](https://github.com/skang10/p2j/issues/7)) ([e88b397](https://github.com/skang10/p2j/commit/e88b3970bf7e5771541ff070e639a7d36c29affb))
+* preserve README download table layout ([#9](https://github.com/skang10/p2j/issues/9)) ([ad665c0](https://github.com/skang10/p2j/commit/ad665c0ffe378e708121b92da6dc6bab2b3675ec))
+
 ## [0.3.0](https://github.com/skang10/p2j/compare/v0.2.0...v0.3.0) (2026-08-04)
 
 
