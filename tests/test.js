@@ -426,14 +426,14 @@ t('the add-goal entry point closes the goal list and states the cap beside itsel
   has(panel, 'class="addrow"', 'it lives in the day panel, with the goals');
   has(panel, 'id="ag"');
   ok(panel.indexOf('id="ag"') > panel.lastIndexOf('class="goal"'), 'after the last goal');
-  no(panel, 'You already have', 'three of five: nothing in the way');
+  no(panel, 'You already have', 'below the cap: nothing in the way');
   while (a.live().length < a.MAXGOALS) a.state.goals.push({ id: a.newId(), type: 'daily', title: 'x', subs: [] });
   const atCap = a.dayPanel(a.todayKey(), a.todayKey());
   has(atCap, 'id="ag"', 'still offered at the cap');
   has(atCap, `You already have ${a.MAXGOALS}. Remove one to add another.`, 'and says so');
   a.render(); a.bind();
   g.els.get('ag').onclick();
-  eq(a.live().length, a.MAXGOALS, 'clicking it declines rather than adding a sixth');
+  eq(a.live().length, a.MAXGOALS, 'clicking it declines rather than exceeding the cap');
 });
 t('future days are inert and past days are clickable', async () => {
   const g = await bootReady();

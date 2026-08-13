@@ -1,4 +1,4 @@
-const KEY='checkin-v3', DOW=['S','M','T','W','T','F','S'], MAXGOALS=5;
+const KEY='checkin-v3', DOW=['S','M','T','W','T','F','S'], MAXGOALS=7;
 const MON=['January','February','March','April','May','June',
            'July','August','September','October','November','December'];
 const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
