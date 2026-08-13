@@ -18,11 +18,6 @@
           "jsonpath": "$.version"
         },
         {
-          "type": "toml",
-          "path": "src-tauri/Cargo.lock",
-          "jsonpath": "$.package[?(@.name=='checkin')].version"
-        },
-        {
           "type": "generic",
           "path": "README.md"
         }
