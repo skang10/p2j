@@ -893,7 +893,7 @@ t('the Done line is newest first, so the fold keeps what you just crossed off', 
 t('the header names the app, and stays put at every width', async () => {
   const g = await bootReady();
   g.api.render();
-  has(g.captured.app, '<h1>P2J Daybook</h1>');
+  has(g.captured.app, '<h1>Polaris</h1>');
   has(g.captured.app, 'src="daybook-icon.png"', 'the product icon appears with its name');
   has(g.captured.app, 'class="top"', 'it used to be hidden on desktop, where the title bar said it');
 });

@@ -1,24 +1,27 @@
-# P2J Daybook
+# Polaris
 
-![P to J concept illustration: Prospecting ideas becoming Judging check-ins through Daybook](docs/p2j-concept.png)
+![A small blue star climbing a dotted trail toward the gold North Star](docs/daybook-concept.gif)
 
-P2J Daybook is a local check-in app for tracking a few goals and whether you showed
+Polaris is a local check-in app for tracking a few goals and whether you showed
 up for them each day.
 
-`p2j`, short for "P to J". The idea comes from the MBTI
-Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style to a more
-structured, check-in style.
+Polaris is the north star: the fixed point you steer by. The app holds up to seven
+goals — few enough to stay in view — and records whether you showed up for each one,
+day by day. The goals are the star; the daily check-ins are the climb toward it.
 
 ## Download
 
 <!-- x-release-please-start-version -->
 | Version | Platform | Architecture | Download |
 | --- | --- | --- | --- |
-| v0.4.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/p2j/releases/latest/download/Daybook_aarch64.dmg) |
+| v0.4.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/polaris/releases/latest/download/Daybook_aarch64.dmg) |
 <!-- x-release-please-end -->
 
-This build is not notarized. If macOS blocks it the first time, right-click Daybook and
-choose **Open**.
+The installer and the app bundle are still named `Daybook`; only the name shown in the
+app has changed so far.
+
+This build is not notarized. If macOS blocks it the first time, right-click **Daybook**
+and choose **Open**.
 
 ## App Preview
 
@@ -66,8 +69,8 @@ cargo install tauri-cli --version "^2"
 ### Build
 
 ```bash
-git clone https://github.com/skang10/p2j
-cd p2j/src-tauri
+git clone https://github.com/skang10/polaris
+cd polaris/src-tauri
 cargo tauri build
 ```
 
@@ -79,6 +82,25 @@ target/release/bundle/dmg/Daybook_<version>_aarch64.dmg
 ```
 
 The `.dmg` is named for the architecture it was built on.
+
+The bundle is still called `Daybook`. Its identifier, `com.skang10.daybook`, is what
+macOS uses to locate an install's check-in data, so renaming it would strand the
+records of anyone already running the app. That rename needs a migration, not a
+search and replace.
+
+### Icons
+
+All icons derive from `docs/icon.png`. To rebuild them after changing that file:
+
+```bash
+scripts/build-icns.sh
+```
+
+Do not run `cargo tauri icon` on its own. The `.icns` is assembled by hand so the
+16pt and 32pt slices can carry simplified art — at those sizes the dotted trail
+resolves to noise, so they show an enlarged star instead. `cargo tauri icon`
+overwrites the `.icns` with single-art slices and that detail is lost silently.
+`scripts/build-icns.sh` runs it in the right order and rebuilds the `.icns` after.
 
 ### Test
 
