@@ -1803,7 +1803,7 @@ t('Tap action uses an application-rendered menu with the application font', asyn
   has(html, 'class="tapmenu"'); has(html, 'role="menuitemradio"');
   no(html, '<select', 'the OS-native popup cannot replace the application font');
   has(require('fs').readFileSync(require('./harness').STYLES, 'utf8'),
-      '.tapoption{', 'the options are rendered and styled by Daybook');
+      '.tapoption{', 'the options are rendered and styled by Polaris');
 });
 t('creating a goal stays in a disposable draft until Save', async () => {
   const g = await bootReady(); const a = g.api;

@@ -36,7 +36,7 @@ echo "==> platform sizes"
 cargo tauri icon "$MASTER" -o "$ICONS" >/dev/null
 
 echo "==> icns"
-ICONSET="$(mktemp -d)/Daybook.iconset"
+ICONSET="$(mktemp -d)/Polaris.iconset"
 mkdir -p "$ICONSET"
 python3 - "$MASTER" "$SMALL" "$ICONSET" <<'PY'
 import sys

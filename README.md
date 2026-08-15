@@ -14,14 +14,15 @@ day by day. The goals are the star; the daily check-ins are the climb toward it.
 <!-- x-release-please-start-version -->
 | Version | Platform | Architecture | Download |
 | --- | --- | --- | --- |
-| v0.4.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/polaris/releases/latest/download/Daybook_aarch64.dmg) |
+| v0.4.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/polaris/releases/latest/download/Polaris_aarch64.dmg) |
 <!-- x-release-please-end -->
 
-The installer and the app bundle are still named `Daybook`; only the name shown in the
-app has changed so far.
-
-This build is not notarized. If macOS blocks it the first time, right-click **Daybook**
+This build is not notarized. If macOS blocks it the first time, right-click **Polaris**
 and choose **Open**.
+
+Upgrading from a version named Daybook? Your check-in records carry over untouched —
+they are stored against the app's identifier, which has not changed. Delete the old
+`Daybook.app` once `Polaris.app` is in place.
 
 ## App Preview
 
@@ -77,16 +78,16 @@ cargo tauri build
 That leaves you in `src-tauri`. The app bundle and the installer are written below it:
 
 ```text
-target/release/bundle/macos/Daybook.app
-target/release/bundle/dmg/Daybook_<version>_aarch64.dmg
+target/release/bundle/macos/Polaris.app
+target/release/bundle/dmg/Polaris_<version>_aarch64.dmg
 ```
 
 The `.dmg` is named for the architecture it was built on.
 
-The bundle is still called `Daybook`. Its identifier, `com.skang10.daybook`, is what
-macOS uses to locate an install's check-in data, so renaming it would strand the
-records of anyone already running the app. That rename needs a migration, not a
-search and replace.
+The bundle identifier stays `com.skang10.daybook` even though the app is now Polaris.
+macOS derives the app's data directory from that identifier, so changing it would
+strand the check-in records of every existing install. Renaming the identifier needs a
+migration; renaming the app did not.
 
 ### Icons
 
@@ -114,7 +115,7 @@ node tests/test.js
 
 ### Local data
 
-Daybook stores data in one local JSON file and makes no network requests.
+Polaris stores data in one local JSON file and makes no network requests.
 
 ```text
 ~/Library/Application Support/com.skang10.daybook/checkin.json

@@ -71,5 +71,5 @@ jobs:
           TAG_NAME: ${{ needs.release_please.outputs.tag_name }}
         run: |
           gh release upload "$TAG_NAME" src-tauri/target/release/bundle/dmg/*.dmg --clobber
-          cp src-tauri/target/release/bundle/dmg/*.dmg Daybook_aarch64.dmg
-          gh release upload "$TAG_NAME" Daybook_aarch64.dmg --clobber
+          cp src-tauri/target/release/bundle/dmg/*.dmg Polaris_aarch64.dmg
+          gh release upload "$TAG_NAME" Polaris_aarch64.dmg --clobber
