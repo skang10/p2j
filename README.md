@@ -31,14 +31,14 @@ consistency heatmap update as you go.
 ### Notes on the way to done
 
 List goals carry a markdown note per item. Write as you learn, then mark the
-item complete — it moves to Done and keeps the note.
+item complete!
 
 ![Writing a markdown note and completing a list item](docs/daybook-notes.gif)
 
 ### Stats
 
 The Stats tab reviews the month: records per goal, active days, a category
-mix, and everything completed — each with its note a click away.
+mix, and everything completed.
 
 ![Browsing the monthly Stats review](docs/daybook-stats.gif)
 
