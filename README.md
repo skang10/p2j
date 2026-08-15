@@ -22,13 +22,33 @@ choose **Open**.
 
 ## App Preview
 
-### Today
+### Daily check-ins
 
-![P2J Daybook Today view](docs/daybook-today.png)
+Tap a sub-goal to record it. Counters, the monthly progress bar, and the
+consistency heatmap update as you go.
+
+![Recording check-ins on the Today view](docs/daybook-checkin.gif)
+
+### Notes on the way to done
+
+List goals carry a markdown note per item. Write as you learn, then mark the
+item complete — it moves to Done and keeps the note.
+
+![Writing a markdown note and completing a list item](docs/daybook-notes.gif)
 
 ### Stats
 
-![P2J Daybook monthly Stats view](docs/daybook-stats.png)
+The Stats tab reviews the month: records per goal, active days, a category
+mix, and everything completed — each with its note a click away.
+
+![Browsing the monthly Stats review](docs/daybook-stats.gif)
+
+### Every day is kept
+
+Any past day opens from the calendar as a read-only snapshot, including the
+notes exactly as they were completed that day.
+
+![Opening a past day snapshot and its note](docs/daybook-history.gif)
 
 ## Development
 
