@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/skang10/polaris/compare/v0.5.0...v0.5.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* sign the macOS app bundle so it is not reported as damaged ([#17](https://github.com/skang10/polaris/issues/17)) ([a09cdc5](https://github.com/skang10/polaris/commit/a09cdc538558fe52bc656693df24418e1acbf798))
+
 ## [0.5.0](https://github.com/skang10/p2j/compare/v0.4.0...v0.5.0) (2026-08-15)
 
 
