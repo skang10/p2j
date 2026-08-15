@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/skang10/p2j/compare/v0.4.0...v0.5.0) (2026-08-15)
+
+
+### Features
+
+* rename the app to Polaris and adopt the north star concept ([#15](https://github.com/skang10/p2j/issues/15)) ([b804c93](https://github.com/skang10/p2j/commit/b804c934a3461374d588d728284280abdb0cae0c))
+
 ## [0.4.0](https://github.com/skang10/p2j/compare/v0.3.1...v0.4.0) (2026-08-15)
 
 
