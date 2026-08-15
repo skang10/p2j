@@ -15,9 +15,8 @@ up for them each day. The goals are the star; the daily check-ins are the climb 
 | v0.5.1 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/polaris/releases/latest/download/Polaris_aarch64.dmg) |
 <!-- x-release-please-end -->
 
-This build is not notarized. If macOS blocks it the first time, right-click **Polaris**
-and choose **Open**.
-
+This build is not notarized, so macOS blocks the first launch. Try to open it, then
+allow it in **System Settings → Privacy & Security → Open Anyway**.
 
 ## App Preview
 
