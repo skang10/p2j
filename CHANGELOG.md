@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/skang10/p2j/compare/v0.3.1...v0.4.0) (2026-08-15)
+
+
+### Features
+
+* raise goal cap from 5 to 7 ([#11](https://github.com/skang10/p2j/issues/11)) ([fa2054c](https://github.com/skang10/p2j/commit/fa2054c599a3120cc9e59ad3a08e500c5610fe01))
+
+
+### Bug Fixes
+
+* point README download at a version-stable DMG link ([#13](https://github.com/skang10/p2j/issues/13)) ([ce2fb69](https://github.com/skang10/p2j/commit/ce2fb696625a929fa9a4e0e13f646d7db642d735))
+
 ## [0.3.1](https://github.com/skang10/p2j/compare/v0.3.0...v0.3.1) (2026-08-05)
 
 
