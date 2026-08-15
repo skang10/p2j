@@ -1,24 +1,23 @@
-# P2J Daybook
+<p align="center">
+  <img src="docs/daybook-concept.gif" alt="A small blue star climbing a dotted trail toward the gold North Star" width="200">
+</p>
 
-![P to J concept illustration: Prospecting ideas becoming Judging check-ins through Daybook](docs/p2j-concept.png)
+# Polaris
 
-P2J Daybook is a local check-in app for tracking a few goals and whether you showed
-up for them each day.
-
-`p2j`, short for "P to J". The idea comes from the MBTI
-Perceiving/Judging shorthand: taking a more spontaneous, feel-your-way-through-work style to a more
-structured, check-in style.
+Polaris is a local check-in app for tracking a few goals and whether you showed
+up for them each day. The goals are the star; the daily check-ins are the climb toward it.
 
 ## Download
 
 <!-- x-release-please-start-version -->
 | Version | Platform | Architecture | Download |
 | --- | --- | --- | --- |
-| v0.4.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/p2j/releases/latest/download/Daybook_aarch64.dmg) |
+| v0.4.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/polaris/releases/latest/download/Polaris_aarch64.dmg) |
 <!-- x-release-please-end -->
 
-This build is not notarized. If macOS blocks it the first time, right-click Daybook and
-choose **Open**.
+This build is not notarized. If macOS blocks it the first time, right-click **Polaris**
+and choose **Open**.
+
 
 ## App Preview
 
@@ -32,14 +31,14 @@ consistency heatmap update as you go.
 ### Notes on the way to done
 
 List goals carry a markdown note per item. Write as you learn, then mark the
-item complete — it moves to Done and keeps the note.
+item complete!
 
 ![Writing a markdown note and completing a list item](docs/daybook-notes.gif)
 
 ### Stats
 
 The Stats tab reviews the month: records per goal, active days, a category
-mix, and everything completed — each with its note a click away.
+mix, and everything completed.
 
 ![Browsing the monthly Stats review](docs/daybook-stats.gif)
 
@@ -66,19 +65,38 @@ cargo install tauri-cli --version "^2"
 ### Build
 
 ```bash
-git clone https://github.com/skang10/p2j
-cd p2j/src-tauri
+git clone https://github.com/skang10/polaris
+cd polaris/src-tauri
 cargo tauri build
 ```
 
 That leaves you in `src-tauri`. The app bundle and the installer are written below it:
 
 ```text
-target/release/bundle/macos/Daybook.app
-target/release/bundle/dmg/Daybook_<version>_aarch64.dmg
+target/release/bundle/macos/Polaris.app
+target/release/bundle/dmg/Polaris_<version>_aarch64.dmg
 ```
 
 The `.dmg` is named for the architecture it was built on.
+
+The bundle identifier stays `com.skang10.daybook` even though the app is now Polaris.
+macOS derives the app's data directory from that identifier, so changing it would
+strand the check-in records of every existing install. Renaming the identifier needs a
+migration; renaming the app did not.
+
+### Icons
+
+All icons derive from `docs/icon.png`. To rebuild them after changing that file:
+
+```bash
+scripts/build-icns.sh
+```
+
+Do not run `cargo tauri icon` on its own. The `.icns` is assembled by hand so the
+16pt and 32pt slices can carry simplified art — at those sizes the dotted trail
+resolves to noise, so they show an enlarged star instead. `cargo tauri icon`
+overwrites the `.icns` with single-art slices and that detail is lost silently.
+`scripts/build-icns.sh` runs it in the right order and rebuilds the `.icns` after.
 
 ### Test
 
@@ -92,7 +110,7 @@ node tests/test.js
 
 ### Local data
 
-Daybook stores data in one local JSON file and makes no network requests.
+Polaris stores data in one local JSON file and makes no network requests.
 
 ```text
 ~/Library/Application Support/com.skang10.daybook/checkin.json

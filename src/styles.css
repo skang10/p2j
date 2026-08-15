@@ -733,7 +733,7 @@
     .d{height:41px}
     .goal{padding:15px 0}
   }
-  /* ── Daybook application shell ───────────────────────────────────────── */
+  /* ── Polaris application shell ───────────────────────────────────────── */
   :root{
     --paper:#F4F5F7;--surface:#FFFFFF;--sunk:#F1F2F4;--faint:#F8F9FA;
     --hair:#E8EAED;--line:#DADDE2;--ink:#17191C;--body:#42464D;

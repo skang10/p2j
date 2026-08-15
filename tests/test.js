@@ -893,7 +893,7 @@ t('the Done line is newest first, so the fold keeps what you just crossed off', 
 t('the header names the app, and stays put at every width', async () => {
   const g = await bootReady();
   g.api.render();
-  has(g.captured.app, '<h1>P2J Daybook</h1>');
+  has(g.captured.app, '<h1>Polaris</h1>');
   has(g.captured.app, 'src="daybook-icon.png"', 'the product icon appears with its name');
   has(g.captured.app, 'class="top"', 'it used to be hidden on desktop, where the title bar said it');
 });
@@ -1803,7 +1803,7 @@ t('Tap action uses an application-rendered menu with the application font', asyn
   has(html, 'class="tapmenu"'); has(html, 'role="menuitemradio"');
   no(html, '<select', 'the OS-native popup cannot replace the application font');
   has(require('fs').readFileSync(require('./harness').STYLES, 'utf8'),
-      '.tapoption{', 'the options are rendered and styled by Daybook');
+      '.tapoption{', 'the options are rendered and styled by Polaris');
 });
 t('creating a goal stays in a disposable draft until Save', async () => {
   const g = await bootReady(); const a = g.api;

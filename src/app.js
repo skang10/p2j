@@ -292,7 +292,7 @@ function render(quietEditor=false){
       <aside class="sidebar">
         <div class="top">
           <img class="brandmark" src="daybook-icon.png" alt="">
-          <div><h1>P2J Daybook</h1></div>
+          <div><h1>Polaris</h1></div>
           ${version?`<span class="ver mono">${esc(version)}</span>`:''}
         </div>
         ${tabs()}
