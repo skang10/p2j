@@ -18,14 +18,6 @@ up for them each day. The goals are the star; the daily check-ins are the climb 
 This build is not notarized. If macOS blocks it the first time, right-click **Polaris**
 and choose **Open**.
 
-If macOS instead says Polaris is *damaged and can't be opened*, the download is v0.5.0,
-whose app bundle went out without a valid signature. Later builds are signed, so the
-right-click above is enough. To use the copy you already have:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/Polaris.app
-```
-
 
 ## App Preview
 
