@@ -1,13 +1,11 @@
+<p align="center">
+  <img src="docs/daybook-concept.gif" alt="A small blue star climbing a dotted trail toward the gold North Star" width="200">
+</p>
+
 # Polaris
 
-![A small blue star climbing a dotted trail toward the gold North Star](docs/daybook-concept.gif)
-
 Polaris is a local check-in app for tracking a few goals and whether you showed
-up for them each day.
-
-Polaris is the north star: the fixed point you steer by. The app holds up to seven
-goals — few enough to stay in view — and records whether you showed up for each one,
-day by day. The goals are the star; the daily check-ins are the climb toward it.
+up for them each day. The goals are the star; the daily check-ins are the climb toward it.
 
 ## Download
 
@@ -20,9 +18,6 @@ day by day. The goals are the star; the daily check-ins are the climb toward it.
 This build is not notarized. If macOS blocks it the first time, right-click **Polaris**
 and choose **Open**.
 
-Upgrading from a version named Daybook? Your check-in records carry over untouched —
-they are stored against the app's identifier, which has not changed. Delete the old
-`Daybook.app` once `Polaris.app` is in place.
 
 ## App Preview
 
