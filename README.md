@@ -12,7 +12,7 @@ up for them each day. The goals are the star; the daily check-ins are the climb 
 <!-- x-release-please-start-version -->
 | Version | Platform | Architecture | Download |
 | --- | --- | --- | --- |
-| v0.5.0 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/polaris/releases/latest/download/Polaris_aarch64.dmg) |
+| v0.5.1 | macOS | Apple Silicon (arm64) | [DMG installer](https://github.com/skang10/polaris/releases/latest/download/Polaris_aarch64.dmg) |
 <!-- x-release-please-end -->
 
 This build is not notarized. If macOS blocks it the first time, right-click **Polaris**
